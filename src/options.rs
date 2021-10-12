@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "rust-mini-sysy",
+#[structopt(name = "racoon",
             about = "An implementation for mini-SysY compiler in Rust",
             author = "roife <roifewu@gmail.com>")]
 pub struct Options {

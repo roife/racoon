@@ -1,8 +1,10 @@
 pub mod err;
 
 mod span;
-pub mod token;
+
+mod token;
 pub mod lexer;
 
-pub mod ast;
+mod ast;
 pub mod parser;
+pub mod visitor;

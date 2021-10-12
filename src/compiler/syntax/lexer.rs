@@ -271,7 +271,7 @@ impl<T> Lexer<T>
                 match c {
                     Some((_, '*')) if self.iter.next_if(|(_, c)| *c == '/').is_some() => break,
                     Some((_, c)) => comment.push(c),
-                    None => Err(LexError::None)
+                    None => return Err(LexError::None)
                 }
             }
         } else {
