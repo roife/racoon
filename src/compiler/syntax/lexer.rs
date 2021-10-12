@@ -48,19 +48,19 @@ impl<T> Lexer<T>
     pub fn next_token(&mut self) -> Option<Token> {
         self.skip_spaces();
         let (start, c) = match self.iter.peek() {
-            Some((_, '\0')) | None => return None,
+            None | Some((_, '\0')) => return None,
             Some(&(pos, c)) => (pos, c),
         };
 
-        let tok = match c {
+        let token = match c {
             '0'..='9' => self.lex_number(),
-            'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier_keywords(),
+            'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier_keyword(),
             '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '|' | '&' | '^' | '(' | ')' | '['
             | ']' | '{' | '}' | ',' | ';' => self.lex_operator(),
             _ => Err(LexError::None),
         };
 
-        let tok = match tok {
+        let token = match token {
             Ok(t) => t,
             Err(e) => {
                 let end = self.skip_error_token();
@@ -75,37 +75,38 @@ impl<T> Lexer<T>
             }
         };
 
-        Some(tok)
+        Some(token)
     }
 
     fn skip_error_token(&mut self) -> usize {
-        while self.iter.peek().map_or(false, |(_, c)| !c.is_whitespace()) {
+        // TODO
+        loop {
+            if self.iter.peek().map_or(true, |(_, c)| c.is_whitespace()) {
+                break;
+            }
             self.iter.next();
         }
         self.iter.peek().map_or(0, |(pos, _)| *pos)
     }
 
     fn lex_number(&mut self) -> LexResult {
-        let (start, first_char) = *self.iter.peek().expect("Start pos not valid");
+        let start = self.iter.peek().expect("Start pos not valid").0;
 
-        let radix = if first_char == '0' {
-            self.iter.next();
-            let second_char = self.iter.peek().map_or('_', |i| i.1);
-            match second_char {
-                'x' => {
-                    self.iter.next();
-                    16
-                }
-                _ => 8,
+        let radix = if self.iter.next_if(|(_, c)| c == '0').is_some() {
+            if self.iter.next_if(|(_, c)| c == 'x').is_some() {
+                16
+            } else {
+                8
             }
         } else {
             10
         };
 
         let mut number = String::from("0");
-        while self.iter.peek().map_or(false, |x| x.1.is_digit(radix)) {
-            number.push(self.iter.next().unwrap().1);
+        while let Some((_, c)) = self.iter.next_if(|(_, c)| c.is_digit(radix)) {
+            number.push(c);
         }
+
         let end = self.iter.peek().unwrap().0;
 
         match i32::from_str_radix(&number, radix) {
@@ -117,12 +118,14 @@ impl<T> Lexer<T>
         }
     }
 
-    fn lex_identifier_keywords(&mut self) -> LexResult {
-        let (start, _) = *self.iter.peek().expect("Start pos not valid");
+    fn lex_identifier_keyword(&mut self) -> LexResult {
+        let start = self.iter.peek().expect("Start pos not valid").0;
+
         let mut ident = String::new();
-        while self.iter.peek().map_or(false, |x| x.1.is_alphanumeric() || x.1 == '_') {
-            ident.push(self.iter.next().unwrap().1);
+        while let Some((_, c)) = self.iter.next_if(|(_, c)| c.is_alphanumeric() || c == '_') {
+            ident.push(c);
         }
+
         let end = self.iter.peek().unwrap().0;
 
         let token_type = match &ident[..] {
@@ -144,8 +147,7 @@ impl<T> Lexer<T>
     }
 
     fn lex_operator(&mut self) -> LexResult {
-        let (start, first_char) = *self.iter.peek().expect("Start pos not valid");
-        self.iter.next();
+        let (start, first_char) = self.iter.next().expect("Start pos not valid");
         let second_char = match self.iter.peek() {
             Some((_, c)) => Some(c),
             None => None
