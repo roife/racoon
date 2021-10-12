@@ -18,7 +18,6 @@ impl Span {
     }
 
     pub fn from_range(start: usize, end: usize) -> Span {
-        println!("[{}, {}]", start, end);
         assert!(start < end);
         Span { idx: start, len: end - start }
     }

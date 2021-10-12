@@ -11,6 +11,6 @@ fn main() {
     let input = std::fs::read_to_string(input_file)
         .expect("Unable to read from input file");
 
-    let token_iter = lexer::Lexer::new("int".chars()).into_iter();
+    let token_iter = lexer::Lexer::new(input.chars()).into_iter();
     println!("{:?}", token_iter.collect::<Vec<token::Token>>());
 }

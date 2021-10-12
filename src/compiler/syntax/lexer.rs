@@ -24,7 +24,7 @@ impl<T> Iterator for Lexer<T>
 
     fn next(&mut self) -> Option<Token> {
         loop {
-            let token = self.get_next_token();
+            let token = self.next_token();
 
             if let Some(Token { token_type: TokenType::Comment(..), .. }) = token {
                 continue;
@@ -45,7 +45,7 @@ impl<T> Lexer<T>
         }
     }
 
-    pub fn get_next_token(&mut self) -> Option<Token> {
+    pub fn next_token(&mut self) -> Option<Token> {
         self.skip_spaces();
         // the first character of next token
         let (start, c) = match self.iter.peek() {
@@ -82,7 +82,6 @@ impl<T> Lexer<T>
         self.iter.peek().map_or(0, |(pos, _)| *pos)
     }
 
-    /// Lex a number
     fn lex_number(&mut self) -> LexResult {
         let (start, first_char) = *self.iter.peek().expect("Start pos not valid");
 
@@ -94,8 +93,7 @@ impl<T> Lexer<T>
                     self.iter.next();
                     16
                 }
-                '0'..='9' => 8,
-                _ => return Err(LexError::None)
+                _ => 8,
             }
         } else {
             10
@@ -116,7 +114,6 @@ impl<T> Lexer<T>
         }
     }
 
-    /// Lex an identifier.
     fn lex_identifier_keywords(&mut self) -> LexResult {
         let (start, _) = *self.iter.peek().expect("Start pos not valid");
         let mut ident = String::new();
@@ -143,7 +140,6 @@ impl<T> Lexer<T>
         })
     }
 
-    /// Lex an operator.
     fn lex_operator(&mut self) -> LexResult {
         let (start, first_char) = *self.iter.peek().expect("Start pos not valid");
         self.iter.next();
@@ -155,48 +151,67 @@ impl<T> Lexer<T>
 
         if first_char == '/' {
             match second_char {
-                Some('*') => return self.lex_comments(true),
-                Some('/') => return self.lex_comments(false),
+                Some('*') => {
+                    self.iter.next();
+                    return self.lex_comments(true);
+                },
+                Some('/') => {
+                    self.iter.next();
+                    return self.lex_comments(false);
+                },
                 _ => {}
             }
         }
 
         let token_type = match first_char {
-            // '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '|' | '&' | '^' | '(' | ')' | '[' | ']' | '{' | '}' | ',' | ';'
             '+' => TokenType::Plus,
             '-' => TokenType::Minus,
             '*' => TokenType::Mul,
             '/' => match second_char {
                 Some('*') | Some('/') => unreachable!(),
-                None => TokenType::Div,
-                _ => return Err(LexError::None)
+                _ => TokenType::Div
             },
+            '%' => TokenType::Mod,
             '=' => match second_char {
-                Some('=') => TokenType::Eq,
-                None => TokenType::Assign,
-                _ => return Err(LexError::None)
+                Some('=') => {
+                    self.iter.next();
+                    TokenType::Eq
+                },
+                _ => TokenType::Assign,
             },
             '<' => match second_char {
-                Some('=') => TokenType::Le,
-                None => TokenType::Lt,
-                _ => return Err(LexError::None)
+                Some('=') => {
+                    self.iter.next();
+                    TokenType::Le
+                },
+                _ => TokenType::Lt,
             },
             '>' => match second_char {
-                Some('=') => TokenType::Ge,
-                None => TokenType::Gt,
-                _ => return Err(LexError::None)
+                Some('=') => {
+                    self.iter.next();
+                    TokenType::Ge
+                },
+                _ => TokenType::Gt,
             },
             '!' => match second_char {
-                Some('=') => TokenType::Ne,
-                None => TokenType::Not,
-                _ => return Err(LexError::None)
+                Some('=') => {
+                    self.iter.next();
+                    TokenType::Ne
+                },
+                _ => TokenType::Not,
             },
             '|' => match second_char {
-                Some('|') => TokenType::Or,
+                Some('|') => {
+                    self.iter.next();
+                    TokenType::Or
+                },
                 _ => return Err(LexError::None)
             },
             '&' => match second_char {
-                Some('&') => TokenType::And,
+                Some('&') => {
+                    self.iter.next();
+                    TokenType::And
+                },
                 _ => return Err(LexError::None)
             },
             '(' => TokenType::LParen,
@@ -257,12 +272,10 @@ impl<T> Lexer<T>
         })
     }
 
-    /// Skip spaces and stop before the next non-space character.
     fn skip_spaces(&mut self) {
         while match self.iter.peek() {
+            Some(&(_, c)) => c != '\0' && c.is_whitespace(),
             None => false,
-            Some((_, '\0')) => false,
-            Some((_, ch)) => ch.is_whitespace(),
         } {
             self.iter.next();
         }
