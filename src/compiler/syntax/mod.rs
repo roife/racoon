@@ -1,7 +1,6 @@
-mod span;
-
 pub mod err;
 
+mod span;
 pub mod token;
 pub mod lexer;
 

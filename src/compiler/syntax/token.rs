@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use super::{
     span::Span,
     err::LexError
@@ -6,57 +7,30 @@ use super::{
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub enum TokenType {
     Ident(String),
-
     ConstKw,
-
-    Int,
-    Void,
-
+    Int, Void,
     IntLiteral(i32),
-
-    BreakKw,
-    ContinueKw,
-
-    IfKw,
-    ElseKw,
-
-    Not,
-    And,
-    Or,
-
-    WhileKw,
+    WhileKw, BreakKw, ContinueKw,
+    IfKw, ElseKw,
+    Not, And, Or,
     ReturnKw,
-
-    Plus,
-    Minus,
-    Mul,
-    Div,
-    Mod,
-
-    Lt,
-    Le,
-    Gt,
-    Ge,
-    Eq,
-    Ne,
-
+    Plus, Minus, Mul, Div, Mod,
+    Lt, Le, Gt, Ge, Eq, Ne,
     Assign,
-    Semicolon,
-    Comma,
-
-    LParen,
-    RParen,
-    LBracket,
-    RBracket,
-    LBrace,
-    RBrace,
-
+    Semicolon, Comma,
+    LParen, RParen, LBracket, RBracket, LBrace, RBrace,
     Comment(String),
     Err(LexError)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub span: Span,
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.token_type)
+    }
 }

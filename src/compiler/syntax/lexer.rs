@@ -1,17 +1,70 @@
 use std::{
     iter::{Iterator, Peekable},
 };
-use std::iter::Enumerate;
 use super::{
-    span::Span,
+    span::{Pos, Span},
     token::{TokenType, Token},
     err::LexError
 };
 
+struct StringIter<T>
+    where T: Iterator<Item = char>,
+{
+    chars: std::iter::Chain<T, std::iter::Once<char>>,
+    pos: Pos,
+    is_last_cr: bool
+}
+
+impl<T> StringIter<T>
+    where T: Iterator<Item = char>,
+{
+    pub fn new(src: T) -> StringIter<T> {
+        StringIter {
+            chars: src.chain(std::iter::once('\0')),
+            pos: Pos::ZERO,
+            is_last_cr: false,
+        }
+    }
+}
+
+impl<T> Iterator for StringIter<T>
+    where T: Iterator<Item = char>,
+{
+    type Item = (Pos, char);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.chars.next() {
+            Some(c) => {
+                let ret = Some((self.pos, c));
+                match c {
+                    '\n' => {
+                        if !self.is_last_cr {
+                            self.pos.move_next_line();
+                        } else {
+                            self.pos.move_next_idx();
+                        }
+                        self.is_last_cr = false;
+                    }
+                    '\r' => {
+                        self.pos.move_next_line();
+                        self.is_last_cr = true;
+                    }
+                    _ => {
+                        self.is_last_cr = false;
+                        self.pos.move_next_pos();
+                    }
+                };
+                ret
+            }
+            None => None
+        }
+    }
+}
+
 pub struct Lexer<T>
     where T: Iterator<Item = char>,
 {
-    iter: Peekable<Enumerate<T>>,
+    iter: Peekable<StringIter<T>>,
     err: Option<Vec<LexError>>,
 }
 
@@ -26,6 +79,7 @@ impl<T> Iterator for Lexer<T>
         loop {
             let token = self.next_token();
 
+            // TODO: let-else
             if let Some(Token { token_type: TokenType::Comment(..), .. }) = token {
                 continue;
             } else {
@@ -40,7 +94,7 @@ impl<T> Lexer<T>
 {
     pub fn new(iter: T) -> Lexer<T> {
         Lexer {
-            iter: iter.enumerate().into_iter().peekable(),
+            iter: StringIter::new(iter).peekable(),
             err: None,
         }
     }
@@ -49,10 +103,10 @@ impl<T> Lexer<T>
         self.skip_spaces();
         let (start, c) = match self.iter.peek() {
             None | Some((_, '\0')) => return None,
-            Some(&(pos, c)) => (pos, c),
+            Some((pos, c)) => (*pos, *c),
         };
 
-        let token = match c {
+        let token_result = match c {
             '0'..='9' => self.lex_number(),
             'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier_keyword(),
             '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '|' | '&' | '^' | '(' | ')' | '['
@@ -60,17 +114,18 @@ impl<T> Lexer<T>
             _ => Err(LexError::None),
         };
 
-        let token = match token {
-            Ok(t) => t,
+        let token = match token_result {
+            Ok(token) => token,
             Err(e) => {
                 let end = self.skip_error_token();
+                // todo: simplify
                 match &mut self.err {
                     Some(vec) => vec.push(e),
                     None => self.err = Some(vec![e]),
                 }
                 Token {
                     token_type: TokenType::Err(e),
-                    span: Span::from_range(start, end),
+                    span: Span::from(start, end),
                 }
             }
         };
@@ -78,22 +133,20 @@ impl<T> Lexer<T>
         Some(token)
     }
 
-    fn skip_error_token(&mut self) -> usize {
-        // TODO
+    fn skip_error_token(&mut self) -> Pos {
         loop {
-            if self.iter.peek().map_or(true, |(_, c)| c.is_whitespace()) {
+            if self.iter.next_if(|(_, c)| c.is_whitespace() || *c == '\0').is_some() {
                 break;
             }
-            self.iter.next();
         }
-        self.iter.peek().map_or(0, |(pos, _)| *pos)
+        self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
     }
 
     fn lex_number(&mut self) -> LexResult {
-        let start = self.iter.peek().expect("Start pos not valid").0;
+        let start = self.iter.peek().unwrap().0;
 
-        let radix = if self.iter.next_if(|(_, c)| c == '0').is_some() {
-            if self.iter.next_if(|(_, c)| c == 'x').is_some() {
+        let radix = if self.iter.next_if(|(_, c)| *c == '0').is_some() {
+            if self.iter.next_if(|(_, c)| *c == 'x').is_some() {
                 16
             } else {
                 8
@@ -112,17 +165,17 @@ impl<T> Lexer<T>
         match i32::from_str_radix(&number, radix) {
             Ok(i) => Ok(Token {
                 token_type: TokenType::IntLiteral(i),
-                span: Span::from_range(start, end)
+                span: Span::from(start, end)
             }),
             Err(_) => Err(LexError::None)
         }
     }
 
     fn lex_identifier_keyword(&mut self) -> LexResult {
-        let start = self.iter.peek().expect("Start pos not valid").0;
+        let start = self.iter.peek().unwrap().0;
 
         let mut ident = String::new();
-        while let Some((_, c)) = self.iter.next_if(|(_, c)| c.is_alphanumeric() || c == '_') {
+        while let Some((_, c)) = self.iter.next_if(|(_, c)| c.is_alphanumeric() || *c == '_') {
             ident.push(c);
         }
 
@@ -142,83 +195,57 @@ impl<T> Lexer<T>
         };
         Ok(Token{
             token_type,
-            span: Span::from_range(start, end)
+            span: Span::from(start, end)
         })
     }
 
     fn lex_operator(&mut self) -> LexResult {
         let (start, first_char) = self.iter.next().expect("Start pos not valid");
-        let second_char = match self.iter.peek() {
-            Some((_, c)) => Some(c),
-            None => None
-        };
-        let len = if second_char.is_some() { 2 } else { 1 };
 
         if first_char == '/' {
-            match second_char {
-                Some('*') => {
-                    self.iter.next();
-                    return self.lex_comments(true);
-                },
-                Some('/') => {
-                    self.iter.next();
-                    return self.lex_comments(false);
-                },
-                _ => {}
+            if self.iter.next_if(|(_, c)| *c == '*').is_some() {
+                return self.lex_comments(true);
+            } else if self.iter.next_if(|(_, c)| *c == '/').is_some() {
+                return self.lex_comments(false);
             }
         }
 
         let token_type = match first_char {
-            '+' => TokenType::Plus,
             '-' => TokenType::Minus,
+            '+' => TokenType::Plus,
             '*' => TokenType::Mul,
-            '/' => match second_char {
-                Some('*') | Some('/') => unreachable!(),
-                _ => TokenType::Div
-            },
+            '/' => TokenType::Div,
             '%' => TokenType::Mod,
-            '=' => match second_char {
-                Some('=') => {
-                    self.iter.next();
-                    TokenType::Eq
-                },
-                _ => TokenType::Assign,
-            },
-            '<' => match second_char {
-                Some('=') => {
-                    self.iter.next();
-                    TokenType::Le
-                },
-                _ => TokenType::Lt,
-            },
-            '>' => match second_char {
-                Some('=') => {
-                    self.iter.next();
-                    TokenType::Ge
-                },
-                _ => TokenType::Gt,
-            },
-            '!' => match second_char {
-                Some('=') => {
-                    self.iter.next();
-                    TokenType::Ne
-                },
-                _ => TokenType::Not,
-            },
-            '|' => match second_char {
-                Some('|') => {
-                    self.iter.next();
-                    TokenType::Or
-                },
-                _ => return Err(LexError::None)
-            },
-            '&' => match second_char {
-                Some('&') => {
-                    self.iter.next();
-                    TokenType::And
-                },
-                _ => return Err(LexError::None)
-            },
+            '=' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+                TokenType::Eq
+            } else {
+                TokenType::Assign
+            }
+            '<' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+                TokenType::Le
+            } else {
+                TokenType::Lt
+            }
+            '>' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+                TokenType::Ge
+            } else {
+                TokenType::Gt
+            }
+            '!' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+                TokenType::Ne
+            } else {
+                TokenType::Not
+            }
+            '|' => if self.iter.next_if(|(_, c)| *c == '|').is_some() {
+                TokenType::Or
+            } else {
+                return Err(LexError::None)
+            }
+            '&' => if self.iter.next_if(|(_, c)| *c == '&').is_some() {
+                TokenType::And
+            } else {
+                return Err(LexError::None)
+            }
             '(' => TokenType::LParen,
             ')' => TokenType::RParen,
             '[' => TokenType::LBracket,
@@ -230,59 +257,50 @@ impl<T> Lexer<T>
             _ => return Err(LexError::None),
         };
 
+        let end = self.iter.peek().unwrap().0;
+
         Ok(Token{
             token_type,
-            span: Span::new(start, len)
+            span: Span::from(start, end)
         })
     }
 
     fn lex_comments(&mut self, multi_line: bool) -> LexResult {
         let mut comment = String::new();
         let start = self.iter.peek().unwrap().0;
-        let mut end = start + 1;
 
         if multi_line {
             loop {
                 let c = self.iter.next();
                 match c {
-                    Some((_, '*')) if match self.iter.peek()  {
-                        Some((_, '/')) => true,
-                        _ => false
-                    } => {
-                        self.iter.next();
-                        break;
-                    }
+                    Some((_, '*')) if self.iter.next_if(|(_, c)| *c == '/').is_some() => break,
                     Some((_, c)) => comment.push(c),
                     None => Err(LexError::None)?
                 }
-                end += 1;
             }
         } else {
             loop {
                 let c = self.iter.next();
                 match c {
-                    Some((_, '\r')) | Some((_, '\n')) | Some((_, '\0')) => {
-                        self.iter.next();
-                        break;
-                    }
+                    Some((_, '\r')) | Some((_, '\n')) | Some((_, '\0')) => break,
                     Some((_, c)) => comment.push(c),
                     None => break,
                 }
-                end += 1;
             }
         }
+
+        let end = self.iter.peek().unwrap().0;
         Ok(Token {
             token_type: TokenType::Comment(comment),
-            span: Span::from_range(start, end)
+            span: Span::from(start, end)
         })
     }
 
     fn skip_spaces(&mut self) {
-        while match self.iter.peek() {
-            Some(&(_, c)) => c != '\0' && c.is_whitespace(),
-            None => false,
-        } {
-            self.iter.next();
+        loop {
+            if self.iter.next_if(|(_, c)| *c != '\0' && c.is_whitespace()).is_none() {
+                break;
+            }
         }
     }
 }
