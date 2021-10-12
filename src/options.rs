@@ -1,0 +1,20 @@
+use std::path::PathBuf;
+use structopt::StructOpt;
+
+#[derive(StructOpt, Debug)]
+#[structopt(name = "rust-mini-sysy",
+            about = "An implementation of mini-SysY compiler written in Rust",
+            author = "roife <roifewu@gmail.com>")]
+pub struct Options {
+    #[structopt(parse(from_os_str))]
+    pub input_file: PathBuf,
+
+    #[structopt(short, long, default_value = "a.out", parse(from_os_str))]
+    pub output_file: PathBuf,
+
+    #[structopt(short, long)]
+    pub passes: Option<Vec<String>>,
+
+    #[structopt(short, long, default_value = "warn")]
+    pub log_level: log::LevelFilter,
+}
