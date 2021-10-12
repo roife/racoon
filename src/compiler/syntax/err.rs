@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub enum LexError {
     None
 }

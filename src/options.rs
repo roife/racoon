@@ -3,7 +3,7 @@ use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "rust-mini-sysy",
-            about = "An implementation of mini-SysY compiler written in Rust",
+            about = "An implementation for mini-SysY compiler in Rust",
             author = "roife <roifewu@gmail.com>")]
 pub struct Options {
     #[structopt(parse(from_os_str))]

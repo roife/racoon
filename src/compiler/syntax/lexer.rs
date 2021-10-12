@@ -47,7 +47,6 @@ impl<T> Lexer<T>
 
     pub fn next_token(&mut self) -> Option<Token> {
         self.skip_spaces();
-        // the first character of next token
         let (start, c) = match self.iter.peek() {
             Some((_, '\0')) | None => return None,
             Some(&(pos, c)) => (pos, c),
@@ -65,6 +64,10 @@ impl<T> Lexer<T>
             Ok(t) => t,
             Err(e) => {
                 let end = self.skip_error_token();
+                match &mut self.err {
+                    Some(vec) => vec.push(e),
+                    None => self.err = Some(vec![e]),
+                }
                 Token {
                     token_type: TokenType::Err(e),
                     span: Span::from_range(start, end),
@@ -100,7 +103,7 @@ impl<T> Lexer<T>
         };
 
         let mut number = String::from("0");
-        while self.iter.peek().map_or(false, |x| x.1.is_digit(10)) {
+        while self.iter.peek().map_or(false, |x| x.1.is_digit(radix)) {
             number.push(self.iter.next().unwrap().1);
         }
         let end = self.iter.peek().unwrap().0;
@@ -110,7 +113,7 @@ impl<T> Lexer<T>
                 token_type: TokenType::IntLiteral(i),
                 span: Span::from_range(start, end)
             }),
-            Err(e) => Err(LexError::None)
+            Err(_) => Err(LexError::None)
         }
     }
 
