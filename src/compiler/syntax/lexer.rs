@@ -65,7 +65,7 @@ pub struct Lexer<T>
     where T: Iterator<Item = char>,
 {
     iter: Peekable<StringIter<T>>,
-    err: Option<Vec<LexError>>,
+    err: Vec<LexError>,
 }
 
 type LexResult = Result<Token, LexError>;
@@ -95,7 +95,7 @@ impl<T> Lexer<T>
     pub fn new(iter: T) -> Lexer<T> {
         Lexer {
             iter: StringIter::new(iter).peekable(),
-            err: None,
+            err: Vec::new(),
         }
     }
 
@@ -118,11 +118,7 @@ impl<T> Lexer<T>
             Ok(token) => token,
             Err(e) => {
                 let end = self.skip_error_token();
-                // todo: simplify
-                match &mut self.err {
-                    Some(vec) => vec.push(e),
-                    None => self.err = Some(vec![e]),
-                }
+                self.err.push(e);
                 Token {
                     token_type: TokenType::Err(e),
                     span: Span::from(start, end),
@@ -275,7 +271,7 @@ impl<T> Lexer<T>
                 match c {
                     Some((_, '*')) if self.iter.next_if(|(_, c)| *c == '/').is_some() => break,
                     Some((_, c)) => comment.push(c),
-                    None => Err(LexError::None)?
+                    None => Err(LexError::None)
                 }
             }
         } else {
