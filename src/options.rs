@@ -13,14 +13,11 @@ pub struct Options {
     #[structopt(short, long, default_value = "a.out", parse(from_os_str))]
     pub output_file: PathBuf,
 
-    #[structopt(long, default_value = "ir")]
-    pub emit: EmitOption,
+    #[structopt(long="emit", default_value = "ir")]
+    pub emit_option: EmitOption,
 
     #[structopt(short, long)]
     pub passes: Option<Vec<String>>,
-
-    #[structopt(short, long, default_value = "warn")]
-    pub log_level: log::LevelFilter,
 }
 
 #[derive(Debug, Eq, PartialEq)]
