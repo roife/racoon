@@ -52,7 +52,7 @@ impl PartialOrd for Pos {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct Span {
     pub start: Pos,
     pub end: Pos,
