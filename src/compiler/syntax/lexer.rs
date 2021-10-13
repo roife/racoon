@@ -7,6 +7,12 @@ use super::{
     err::LexError
 };
 
+macro_rules! next_if_ch {
+    ($self:expr, $ch:expr) => {
+        $self.next_if(|(_, c)| *c == $ch).is_some()
+    };
+}
+
 struct StringIter<T>
     where T: Iterator<Item = char>,
 {
@@ -64,7 +70,7 @@ impl<T> Iterator for StringIter<T>
 pub struct Lexer<T>
     where T: Iterator<Item = char>,
 {
-    str_iter: Peekable<StringIter<T>>,
+    iter: Peekable<StringIter<T>>,
     err: Option<Vec<LexError>>,
 }
 
@@ -94,14 +100,14 @@ impl<T> Lexer<T>
 {
     pub fn new(iter: T) -> Lexer<T> {
         Lexer {
-            str_iter: StringIter::new(iter).peekable(),
+            iter: StringIter::new(iter).peekable(),
             err: None,
         }
     }
 
     pub fn next_token(&mut self) -> Option<Token> {
         self.skip_spaces();
-        let (start, c) = match self.str_iter.peek() {
+        let (start, c) = match self.iter.peek() {
             None | Some((_, '\0')) => return None,
             Some((pos, c)) => (*pos, *c),
         };
@@ -134,18 +140,18 @@ impl<T> Lexer<T>
 
     fn skip_error_token(&mut self) -> Pos {
         loop {
-            if self.str_iter.next_if(|(_, c)| c.is_whitespace() || *c == '\0').is_some() {
+            if self.iter.next_if(|(_, c)| c.is_whitespace() || *c == '\0').is_some() {
                 break;
             }
         }
-        self.str_iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
+        self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
     }
 
     fn lex_number(&mut self) -> LexResult {
-        let start = self.str_iter.peek().unwrap().0;
+        let start = self.iter.peek().unwrap().0;
 
-        let radix = if self.str_iter.next_if(|(_, c)| *c == '0').is_some() {
-            if self.str_iter.next_if(|(_, c)| *c == 'x').is_some() {
+        let radix = if next_if_ch!(self.iter, '0') {
+            if next_if_ch!(self.iter, 'x') {
                 16
             } else {
                 8
@@ -155,11 +161,11 @@ impl<T> Lexer<T>
         };
 
         let mut number = String::from("0");
-        while let Some((_, c)) = self.str_iter.next_if(|(_, c)| c.is_digit(radix)) {
+        while let Some((_, c)) = self.iter.next_if(|(_, c)| c.is_digit(radix)) {
             number.push(c);
         }
 
-        let end = self.str_iter.peek().unwrap().0;
+        let end = self.iter.peek().unwrap().0;
 
         match i32::from_str_radix(&number, radix) {
             Ok(i) => Ok(Token {
@@ -171,14 +177,14 @@ impl<T> Lexer<T>
     }
 
     fn lex_identifier_keyword(&mut self) -> LexResult {
-        let start = self.str_iter.peek().unwrap().0;
+        let start = self.iter.peek().unwrap().0;
 
         let mut ident = String::new();
-        while let Some((_, c)) = self.str_iter.next_if(|(_, c)| c.is_alphanumeric() || *c == '_') {
+        while let Some((_, c)) = self.iter.next_if(|(_, c)| c.is_alphanumeric() || *c == '_') {
             ident.push(c);
         }
 
-        let end = self.str_iter.peek().unwrap().0;
+        let end = self.iter.peek().unwrap().0;
 
         let token_type = match &ident[..] {
             "const" => TokenType::ConstKw,
@@ -199,12 +205,12 @@ impl<T> Lexer<T>
     }
 
     fn lex_operator(&mut self) -> LexResult {
-        let (start, first_char) = self.str_iter.next().expect("Start pos not valid");
+        let (start, first_char) = self.iter.next().expect("Start pos not valid");
 
         if first_char == '/' {
-            if self.str_iter.next_if(|(_, c)| *c == '*').is_some() {
+            if next_if_ch!(self.iter, '*') {
                 return self.lex_comments(true);
-            } else if self.str_iter.next_if(|(_, c)| *c == '/').is_some() {
+            } else if next_if_ch!(self.iter, '/') {
                 return self.lex_comments(false);
             }
         }
@@ -215,32 +221,32 @@ impl<T> Lexer<T>
             '*' => TokenType::Mul,
             '/' => TokenType::Div,
             '%' => TokenType::Mod,
-            '=' => if self.str_iter.next_if(|(_, c)| *c == '=').is_some() {
+            '=' => if next_if_ch!(self.iter, '=') {
                 TokenType::Eq
             } else {
                 TokenType::Assign
             }
-            '<' => if self.str_iter.next_if(|(_, c)| *c == '=').is_some() {
+            '<' => if next_if_ch!(self.iter, '=') {
                 TokenType::Le
             } else {
                 TokenType::Lt
             }
-            '>' => if self.str_iter.next_if(|(_, c)| *c == '=').is_some() {
+            '>' => if next_if_ch!(self.iter, '=') {
                 TokenType::Ge
             } else {
                 TokenType::Gt
             }
-            '!' => if self.str_iter.next_if(|(_, c)| *c == '=').is_some() {
+            '!' => if next_if_ch!(self.iter, '=') {
                 TokenType::Ne
             } else {
                 TokenType::Not
             }
-            '|' => if self.str_iter.next_if(|(_, c)| *c == '|').is_some() {
+            '|' => if next_if_ch!(self.iter, '|') {
                 TokenType::Or
             } else {
                 return Err(LexError::UnexpectedCharacter('|'))
             }
-            '&' => if self.str_iter.next_if(|(_, c)| *c == '&').is_some() {
+            '&' => if next_if_ch!(self.iter, '&') {
                 TokenType::And
             } else {
                 return Err(LexError::UnexpectedCharacter('&'))
@@ -256,7 +262,7 @@ impl<T> Lexer<T>
             _ => unreachable!(),
         };
 
-        let end = self.str_iter.peek().unwrap().0;
+        let end = self.iter.peek().unwrap().0;
 
         Ok(Token{
             token_type,
@@ -266,20 +272,20 @@ impl<T> Lexer<T>
 
     fn lex_comments(&mut self, multi_line: bool) -> LexResult {
         let mut comment = String::new();
-        let start = self.str_iter.peek().unwrap().0;
+        let start = self.iter.peek().unwrap().0;
 
         if multi_line {
             loop {
-                let c = self.str_iter.next();
+                let c = self.iter.next();
                 match c {
-                    Some((_, '*')) if self.str_iter.next_if(|(_, c)| *c == '/').is_some() => break,
+                    Some((_, '*')) if next_if_ch!(self.iter, '/') => break,
                     Some((_, c)) => comment.push(c),
                     None => return Err(LexError::UnexpectedEOF)
                 }
             }
         } else {
             loop {
-                let c = self.str_iter.next();
+                let c = self.iter.next();
                 match c {
                     Some((_, '\r')) | Some((_, '\n')) | Some((_, '\0')) => break,
                     Some((_, c)) => comment.push(c),
@@ -288,7 +294,7 @@ impl<T> Lexer<T>
             }
         }
 
-        let end = self.str_iter.peek().unwrap().0;
+        let end = self.iter.peek().unwrap().0;
         Ok(Token {
             token_type: TokenType::Comment(comment),
             span: Span::from(start, end)
@@ -297,7 +303,7 @@ impl<T> Lexer<T>
 
     fn skip_spaces(&mut self) {
         loop {
-            if self.str_iter.next_if(|(_, c)| *c != '\0' && c.is_whitespace()).is_none() {
+            if self.iter.next_if(|(_, c)| *c != '\0' && c.is_whitespace()).is_none() {
                 break;
             }
         }
