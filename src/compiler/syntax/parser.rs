@@ -8,6 +8,16 @@ use super::{
     ast::*
 };
 
+macro_rules! expect_token {
+    ($self:expr, $($pat:pat)|+) => {
+        $self.next_if(|token| matches!(token.token_type, $($pat)|+))
+        .map_or(
+            Err(ParseError::ExpectedPattern(stringify!($($pat)|+).to_owned())),
+            |token| Ok(token)
+        )
+    };
+}
+
 macro_rules! is_next {
     ($self:expr, $($pat:pat)|+) => {
         $self.peek().map_or(false, |token| matches!(token, $($pat)|+))
@@ -17,7 +27,7 @@ macro_rules! is_next {
 pub struct Parser<T>
     where T: Iterator<Item = char>,
 {
-    lexer_iter: Peekable<Lexer<T>>,
+    iter: Peekable<Lexer<T>>,
 }
 
 impl<T> Parser<T>
@@ -25,27 +35,26 @@ impl<T> Parser<T>
 {
     pub fn new(lexer: Lexer<T>) -> Parser<T> {
         Parser {
-            lexer_iter: lexer.into_iter().peekable()
+            iter: lexer.into_iter().peekable()
         }
+    }
+
+    pub fn parse(&mut self) -> Result<Program, ParseError> {
+        self.parse_program()
     }
 
     fn parse_program(&mut self) -> Result<Program, ParseError> {
-        let mut funcs = vec![];
-        let mut decls = vec![];
         loop {
         }
-        Ok(Program { decls, funcs })
+//        Ok(Program { decls, funcs })
     }
 
-    fn parse_func_stmt(&mut self) -> Result<FuncStmt, ParseError> {
-
+    fn parse_ident(&mut self) -> Result<Ident, ParseError> {
+        let token = expect_token!(self.iter, TokenType::Ident(_))?;
+        Ok(Ident {
+            span: token.span,
+            name: token.token_type.own_ident_name().unwrap()
+        })
     }
 
-    fn parse_func_param(&mut self) -> Result<FuncParam, ParseError> {
-
-    }
-
-    fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
-
-    }
 }

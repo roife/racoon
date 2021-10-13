@@ -23,6 +23,22 @@ pub enum TokenType {
     Err(LexError)
 }
 
+impl TokenType {
+    pub fn own_ident_name(self) -> Option<String> {
+        match self {
+            TokenType::Ident(name) => Some(name.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn get_int_literal(&self) -> Option<i32> {
+        match self {
+            TokenType::IntLiteral(i) => Some(*i),
+            _ => None
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
