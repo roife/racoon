@@ -7,6 +7,12 @@ use super::{
     err::LexError
 };
 
+macro_rules! next_if_match {
+    ($self:expr, $($pat:pat)|+) => {
+        $self.peek().map_or(false, |token| matches!(token, $($pat)|+))
+    };
+}
+
 struct StringIter<T>
     where T: Iterator<Item = char>,
 {
@@ -65,7 +71,7 @@ pub struct Lexer<T>
     where T: Iterator<Item = char>,
 {
     iter: Peekable<StringIter<T>>,
-    err: Vec<LexError>,
+    err: Option<Vec<LexError>>,
 }
 
 type LexResult = Result<Token, LexError>;
@@ -95,7 +101,7 @@ impl<T> Lexer<T>
     pub fn new(iter: T) -> Lexer<T> {
         Lexer {
             iter: StringIter::new(iter).peekable(),
-            err: Vec::new(),
+            err: None,
         }
     }
 
@@ -118,7 +124,10 @@ impl<T> Lexer<T>
             Ok(token) => token,
             Err(e) => {
                 let end = self.skip_error_token();
-                self.err.push(e);
+                match &mut self.err {
+                    Some(v) => v.push(e),
+                    None => self.err = Some(vec![e])
+                }
                 Token {
                     token_type: TokenType::Err(e),
                     span: Span::from(start, end),
