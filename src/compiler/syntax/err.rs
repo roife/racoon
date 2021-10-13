@@ -1,6 +1,8 @@
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub enum LexError {
-    None
+    IllegalLiteral,
+    UnexpectedEOF,
+    UnexpectedCharacter(char)
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]

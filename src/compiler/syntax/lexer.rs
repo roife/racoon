@@ -111,7 +111,7 @@ impl<T> Lexer<T>
             'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier_keyword(),
             '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '|' | '&' | '^' | '(' | ')' | '['
             | ']' | '{' | '}' | ',' | ';' => self.lex_operator(),
-            _ => Err(LexError::None),
+            c @ _ => Err(LexError::UnexpectedCharacter(c)),
         };
 
         let token = match token_result {
@@ -163,7 +163,7 @@ impl<T> Lexer<T>
                 token_type: TokenType::IntLiteral(i),
                 span: Span::from(start, end)
             }),
-            Err(_) => Err(LexError::None)
+            Err(_) => Err(LexError::IllegalLiteral)
         }
     }
 
@@ -235,12 +235,12 @@ impl<T> Lexer<T>
             '|' => if self.iter.next_if(|(_, c)| *c == '|').is_some() {
                 TokenType::Or
             } else {
-                return Err(LexError::None)
+                return Err(LexError::UnexpectedCharacter('|'))
             }
             '&' => if self.iter.next_if(|(_, c)| *c == '&').is_some() {
                 TokenType::And
             } else {
-                return Err(LexError::None)
+                return Err(LexError::UnexpectedCharacter('&'))
             }
             '(' => TokenType::LParen,
             ')' => TokenType::RParen,
@@ -250,7 +250,7 @@ impl<T> Lexer<T>
             '}' => TokenType::RBrace,
             ',' => TokenType::Comma,
             ';' => TokenType::Semicolon,
-            _ => return Err(LexError::None),
+            _ => unreachable!(),
         };
 
         let end = self.iter.peek().unwrap().0;
@@ -271,7 +271,7 @@ impl<T> Lexer<T>
                 match c {
                     Some((_, '*')) if self.iter.next_if(|(_, c)| *c == '/').is_some() => break,
                     Some((_, c)) => comment.push(c),
-                    None => return Err(LexError::None)
+                    None => return Err(LexError::UnexpectedEOF)
                 }
             }
         } else {
