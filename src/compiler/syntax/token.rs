@@ -8,7 +8,7 @@ use super::{
 pub enum TokenType {
     Ident(String),
     ConstKw,
-    Int, Void,
+    IntType, VoidType,
     IntLiteral(i32),
     WhileKw, BreakKw, ContinueKw,
     IfKw, ElseKw,
