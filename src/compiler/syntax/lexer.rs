@@ -188,8 +188,8 @@ impl<T> Lexer<T>
 
         let token_type = match &ident[..] {
             "const" => TokenType::ConstKw,
-            "int" => TokenType::IntType,
-            "void" => TokenType::VoidType,
+            "int" => TokenType::IntTy,
+            "void" => TokenType::VoidTy,
             "break" => TokenType::BreakKw,
             "continue" => TokenType::ContinueKw,
             "if" => TokenType::IfKw,
