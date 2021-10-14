@@ -85,8 +85,12 @@ impl<T> Parser<T>
                 let func_stmt = self.parse_func_stmt(ty, lval.name)?;
                 funcs.push(func_stmt);
             } else {
-                let decl_stmt = self.parse_decl_stmt(is_const, ty, lval)?;
-                decls.push(decl_stmt);
+                decls.push(self.parse_decl_stmt(is_const, ty.clone(), lval)?);
+                let mut decl = parse_while_match!(self.iter, TokenType::Comma, {
+                    let lval = self.parse_lval()?;
+                    self.parse_decl_stmt(is_const, ty.clone(), lval)
+                });
+                decls.append(&mut decl);
             }
         }
         Ok(Program {
@@ -94,18 +98,30 @@ impl<T> Parser<T>
             funcs,
         })
     }
-
-    // todo: FuncFParam -> BType Ident ['[' ']' { '[' Exp ']' }]
+    
     fn parse_func_stmt(&mut self, ret_ty: TypeDef, name: Ident) -> Result<Func, ParseError> {
         let start = expect_token!(self.iter, TokenType::LParen)?.span.start;
         let params = parse_while_match!(self.iter, TokenType::Comma, {
             let ty = self.parse_ty()?;
             let name = self.parse_ident()?;
-                Ok(FuncParam {
-                    name,
-                    ty
-                })
-            });
+            let dims = if is_next!(self.iter, TokenType::LBracket) {
+                expect_token!(self.iter, TokenType::LBracket)?;
+                expect_token!(self.iter, TokenType::RBracket)?;
+                let dims = parse_while_match!(self.iter, TokenType::LBracket, {
+                    let dim = self.parse_expr()?;
+                    expect_token!(self.iter, TokenType::RBracket)?;
+                    Ok(Rc::new(dim))
+                });
+                Some(dims)
+            } else {
+                None
+            };
+            Ok(FuncParam {
+                name,
+                dims,
+                ty
+            })
+        });
         expect_token!(self.iter, TokenType::RParen)?;
         let body = self.parse_block_stmt()?;
         let end = body.span.end;
@@ -126,7 +142,7 @@ impl<T> Parser<T>
         let init_val = if is_const || next_if_match!(self.iter, TokenType::Assign) {
             let init_val = self.parse_init_val()?;
             end = init_val.span().end;
-            OK()
+            Some(Rc::new(init_val))
         } else {
             None
         };
@@ -136,7 +152,7 @@ impl<T> Parser<T>
             name: lval.name,
             ty,
             init_val,
-            span: Span { start, end }
+            span: Span { start, end },
         })
     }
 
@@ -155,10 +171,13 @@ impl<T> Parser<T>
 
     fn parse_block_stmt(&mut self) -> Result<BlockStmt, ParseError> {
         let start = expect_token!(self.iter, TokenType::LBrace)?.span.start;
-        let stmts = parse_until_match!(self.iter, TokenType::RBrace, self.parse_stmt());
+        let block_items = parse_until_match!(self.iter, TokenType::RBrace, {
+            todo!();
+            Err(ParseError::ExpectedPattern(String::from("123")))
+        });
         let end = expect_token!(self.iter, TokenType::RBrace)?.span.end;
         Ok(BlockStmt {
-            stmts,
+            block_items,
             span: Span { start, end },
         })
     }
@@ -255,10 +274,10 @@ impl<T> Parser<T>
         let name = self.parse_ident()?;
         let start = name.span.start;
         let mut end = name.span.end;
-        let dims = if is_next!(TokenType::LBracket) {
+        let dims = if is_next!(self.iter, TokenType::LBracket) {
             let dims = parse_while_match!(self.iter, TokenType::LBracket, {
                 let dim = self.parse_expr()?;
-                end = expect_token!(TokenType::RBracket)?.span.end;
+                end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
                 Ok(Rc::new(dim))
             });
             Some(dims)
@@ -269,12 +288,17 @@ impl<T> Parser<T>
         Ok(LVal {
             name,
             dims,
-            span: Span{ start, end }
+            span: Span { start, end },
         })
     }
 
     fn parse_ty(&mut self) -> Result<TypeDef, ParseError> {
-        self.parse_ident().map(|x| TypeDef { ty_name: x, span: x.span.clone() })
+        let ident = self.parse_ident()?;
+        let span = ident.span.clone();
+        Ok(TypeDef {
+            ty_name: ident,
+            span,
+        })
     }
 
     fn parse_ident(&mut self) -> Result<Ident, ParseError> {

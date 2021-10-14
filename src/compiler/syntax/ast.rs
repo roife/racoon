@@ -14,7 +14,7 @@ pub struct Decl {
     pub is_const: bool,
     pub name: Ident,
     pub ty: TypeDef,
-    pub init_val: Option<Rc<Expr>>,
+    pub init_val: Option<Rc<InitVal>>,
     pub span: Span,
 }
 
@@ -26,7 +26,13 @@ pub enum InitVal {
 
 impl InitVal {
     pub fn span(&self) -> Span {
-        todo!()
+        match self {
+            InitVal::Expr(expr) => expr.span.clone(),
+            InitVal::InitVal(vals) => Span {
+                start: vals.first().unwrap().span().start,
+                end: vals.last().unwrap().span().end
+            }
+        }
     }
 }
 
@@ -42,12 +48,13 @@ pub struct Func {
 #[derive(Debug, Clone)]
 pub struct FuncParam {
     pub name: Ident,
+    pub dims: Option<Vec<Rc<Expr>>>,
     pub ty: TypeDef,
 }
 
 #[derive(Debug, Clone)]
 pub struct BlockStmt {
-    pub stmts: Vec<BlockItem>,
+    pub block_items: Vec<BlockItem>,
     pub span: Span,
 }
 
@@ -61,7 +68,6 @@ pub enum BlockItem {
 pub enum Stmt {
     // todo: assignment
     Expr(Expr),
-    // todo: Decl(DeclStmt),
     Block(BlockStmt),
     If(IfStmt),
     While(WhileStmt),
