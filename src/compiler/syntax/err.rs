@@ -5,7 +5,7 @@ pub enum LexError {
     UnexpectedCharacter(char)
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ParseError {
-    None
+    ExpectedPattern(String)
 }

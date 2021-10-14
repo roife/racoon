@@ -7,9 +7,9 @@ use super::{
     err::LexError
 };
 
-macro_rules! next_if_match {
-    ($self:expr, $($pat:pat)|+) => {
-        $self.peek().map_or(false, |token| matches!(token, $($pat)|+))
+macro_rules! next_if_ch {
+    ($self:expr, $ch:expr) => {
+        $self.next_if(|(_, c)| *c == $ch).is_some()
     };
 }
 
@@ -150,8 +150,8 @@ impl<T> Lexer<T>
     fn lex_number(&mut self) -> LexResult {
         let start = self.iter.peek().unwrap().0;
 
-        let radix = if self.iter.next_if(|(_, c)| *c == '0').is_some() {
-            if self.iter.next_if(|(_, c)| *c == 'x').is_some() {
+        let radix = if next_if_ch!(self.iter, '0') {
+            if next_if_ch!(self.iter, 'x') {
                 16
             } else {
                 8
@@ -208,9 +208,9 @@ impl<T> Lexer<T>
         let (start, first_char) = self.iter.next().expect("Start pos not valid");
 
         if first_char == '/' {
-            if self.iter.next_if(|(_, c)| *c == '*').is_some() {
+            if next_if_ch!(self.iter, '*') {
                 return self.lex_comments(true);
-            } else if self.iter.next_if(|(_, c)| *c == '/').is_some() {
+            } else if next_if_ch!(self.iter, '/') {
                 return self.lex_comments(false);
             }
         }
@@ -221,32 +221,32 @@ impl<T> Lexer<T>
             '*' => TokenType::Mul,
             '/' => TokenType::Div,
             '%' => TokenType::Mod,
-            '=' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+            '=' => if next_if_ch!(self.iter, '=') {
                 TokenType::Eq
             } else {
                 TokenType::Assign
             }
-            '<' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+            '<' => if next_if_ch!(self.iter, '=') {
                 TokenType::Le
             } else {
                 TokenType::Lt
             }
-            '>' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+            '>' => if next_if_ch!(self.iter, '=') {
                 TokenType::Ge
             } else {
                 TokenType::Gt
             }
-            '!' => if self.iter.next_if(|(_, c)| *c == '=').is_some() {
+            '!' => if next_if_ch!(self.iter, '=') {
                 TokenType::Ne
             } else {
                 TokenType::Not
             }
-            '|' => if self.iter.next_if(|(_, c)| *c == '|').is_some() {
+            '|' => if next_if_ch!(self.iter, '|') {
                 TokenType::Or
             } else {
                 return Err(LexError::UnexpectedCharacter('|'))
             }
-            '&' => if self.iter.next_if(|(_, c)| *c == '&').is_some() {
+            '&' => if next_if_ch!(self.iter, '&') {
                 TokenType::And
             } else {
                 return Err(LexError::UnexpectedCharacter('&'))
@@ -278,7 +278,7 @@ impl<T> Lexer<T>
             loop {
                 let c = self.iter.next();
                 match c {
-                    Some((_, '*')) if self.iter.next_if(|(_, c)| *c == '/').is_some() => break,
+                    Some((_, '*')) if next_if_ch!(self.iter, '/') => break,
                     Some((_, c)) => comment.push(c),
                     None => return Err(LexError::UnexpectedEOF)
                 }
