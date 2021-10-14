@@ -151,11 +151,7 @@ impl<T> Lexer<T>
         let start = self.iter.peek().unwrap().0;
 
         let radix = if next_if_ch!(self.iter, '0') {
-            if next_if_ch!(self.iter, 'x') {
-                16
-            } else {
-                8
-            }
+            if next_if_ch!(self.iter, 'x') { 16 } else { 8 }
         } else {
             10
         };
@@ -188,8 +184,6 @@ impl<T> Lexer<T>
 
         let token_type = match &ident[..] {
             "const" => TokenType::ConstKw,
-            "int" => TokenType::IntTy,
-            "void" => TokenType::VoidTy,
             "break" => TokenType::BreakKw,
             "continue" => TokenType::ContinueKw,
             "if" => TokenType::IfKw,

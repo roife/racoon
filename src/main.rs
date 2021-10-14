@@ -16,7 +16,7 @@ fn main() {
 
     let lexer = lexer::Lexer::new(input.chars());
 
-    // println!("{:?}", lexer.into_iter().collect::<Vec<_>>());
-    let ast = parser::Parser::new(lexer).parse();
-    println!("{:?}", ast);
+    println!("{:?}", lexer.into_iter().collect::<Vec<_>>());
+    // let ast = parser::Parser::new(lexer).parse();
+    // println!("{:?}", ast);
 }

@@ -5,24 +5,36 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct Program {
-    pub decls: Vec<DeclStmt>,
-    pub funcs: Vec<FuncStmt>
+    pub decls: Vec<Decl>,
+    pub funcs: Vec<Func>
 }
 
 #[derive(Debug, Clone)]
-pub struct DeclStmt {
+pub struct Decl {
     pub is_const: bool,
     pub name: Ident,
-    pub ty: TyDef,
-    pub val: Option<Rc<Expr>>,
+    pub ty: TypeDef,
+    pub init_val: Option<Rc<Expr>>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct FuncStmt {
+pub enum InitVal {
+    Expr(Expr),
+    InitVal(Vec<Rc<InitVal>>)
+}
+
+impl InitVal {
+    pub fn span(&self) -> Span {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Func {
     pub name: Ident,
     pub params: Vec<FuncParam>,
-    pub ret_ty: TyDef,
+    pub ret_ty: TypeDef,
     pub body: BlockStmt,
     pub span: Span,
 }
@@ -30,13 +42,19 @@ pub struct FuncStmt {
 #[derive(Debug, Clone)]
 pub struct FuncParam {
     pub name: Ident,
-    pub ty: TyDef,
+    pub ty: TypeDef,
 }
 
 #[derive(Debug, Clone)]
 pub struct BlockStmt {
-    pub stmts: Vec<Stmt>,
+    pub stmts: Vec<BlockItem>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub enum BlockItem {
+    Stmt(Stmt),
+    Decl(Decl),
 }
 
 #[derive(Debug, Clone)]
@@ -50,7 +68,7 @@ pub enum Stmt {
     Break(Span),
     Continue(Span),
     Return(ReturnStmt),
-    // todo: Empty(Span),
+    Empty(Span),
 }
 
 #[derive(Debug, Clone)]
@@ -76,12 +94,19 @@ pub struct ReturnStmt {
 
 #[derive(Debug, Clone)]
 pub struct Expr {
-
+    pub span: Span
 }
 
 #[derive(Debug, Clone)]
-pub struct TyDef {
-    // todo
+pub struct LVal {
+    pub name: Ident,
+    pub dims: Option<Vec<Rc<Expr>>>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeDef {
+    pub ty_name: Ident,
     pub span: Span,
 }
 
