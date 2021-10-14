@@ -1,12 +1,14 @@
 use std::rc::Rc;
+
 use super::{
-    span::{Span},
+    span::Span,
+    token::{Token, TokenType},
 };
 
 #[derive(Debug, Clone)]
 pub struct Program {
     pub decls: Vec<Decl>,
-    pub funcs: Vec<Func>
+    pub funcs: Vec<Func>,
 }
 
 #[derive(Debug, Clone)]
@@ -21,16 +23,16 @@ pub struct Decl {
 #[derive(Debug, Clone)]
 pub enum InitVal {
     Expr(Expr),
-    InitVal(Vec<Rc<InitVal>>)
+    InitVal(Vec<Rc<InitVal>>),
 }
 
 impl InitVal {
     pub fn span(&self) -> Span {
         match self {
-            InitVal::Expr(expr) => expr.span.clone(),
+            InitVal::Expr(expr) => expr.span().clone(),
             InitVal::InitVal(vals) => Span {
                 start: vals.first().unwrap().span().start,
-                end: vals.last().unwrap().span().end
+                end: vals.last().unwrap().span().end,
             }
         }
     }
@@ -50,7 +52,7 @@ pub struct FuncParam {
     pub name: Ident,
     pub dims: Option<Dim>,
     pub ty: TypeDef,
-    pub span: Span
+    pub span: Span,
 }
 
 #[derive(Debug, Clone)]
@@ -76,7 +78,6 @@ impl BlockItem {
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    // todo: assignment
     Expr(Expr),
     Block(BlockStmt),
     If(IfStmt),
@@ -90,7 +91,7 @@ pub enum Stmt {
 impl Stmt {
     pub fn span(&mut self) -> Span {
         match self {
-            Stmt::Expr(v) => v.span,
+            Stmt::Expr(v) => v.span(),
             Stmt::Block(v) => v.span,
             Stmt::If(v) => v.span,
             Stmt::While(v) => v.span,
@@ -124,8 +125,66 @@ pub struct ReturnStmt {
 }
 
 #[derive(Debug, Clone)]
-pub struct Expr {
-    pub span: Span
+pub enum Expr {
+    Ident(Ident),
+    Assign(AssignExpr),
+    Literal(Literal),
+    Unary(UnaryExpr),
+    Binary(BinaryExpr),
+    Call(CallExpr),
+}
+
+impl Expr {
+    pub fn span(&self) -> Span {
+        match self {
+            Expr::Ident(x) => x.span,
+            Expr::Assign(x) => x.span,
+            Expr::Literal(x) => x.span,
+            Expr::Unary(x) => x.span,
+            Expr::Binary(x) => x.span,
+            Expr::Call(x) => x.span,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AssignExpr {
+    pub lhs: Rc<Expr>,
+    pub rhs: Rc<Expr>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct Literal {
+    pub kind: LiteralKind,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub enum LiteralKind {
+    Integer(i32),
+}
+
+#[derive(Debug, Clone)]
+pub struct UnaryExpr {
+    pub op: UnaryOp,
+    pub expr: Rc<Expr>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct BinaryExpr {
+    pub op: BinaryOp,
+    pub lhs: Rc<Expr>,
+    pub rhs: Rc<Expr>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct CallExpr {
+    pub func: Ident,
+    pub params: Vec<Expr>,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone)]
@@ -151,4 +210,70 @@ pub struct TypeDef {
 pub struct Ident {
     pub name: String,
     pub span: Span,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum UnaryOp {
+    Neg,
+    Pos,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum BinaryOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Gt,
+    Lt,
+    Ge,
+    Le,
+    Eq,
+    Ne,
+}
+
+impl Token {
+    pub fn is_binary_op(&self) -> bool {
+        use super::token::TokenType::*;
+        matches!(
+            self.token_type,
+            Assign | Plus | Minus | Mul | Div | Eq | Ne | Lt | Gt | Le | Ge
+        )
+    }
+
+    pub fn precedence(&self) -> u32 {
+        use super::token::TokenType::*;
+        match self.token_type {
+            Plus | Minus => 10,
+            Mul | Div => 20,
+            Assign => 1,
+            Eq | Ne | Lt | Gt | Le | Ge => 2,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn is_left_assoc(&self) -> bool {
+        use super::token::TokenType::*;
+        match self.token_type {
+            Plus | Minus | Mul | Div | Eq | Ne | Lt | Gt | Le | Ge => true,
+            Assign => false,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_binary_op(&self) -> Option<BinaryOp> {
+        match self.token_type {
+            TokenType::Plus => Some(BinaryOp::Add),
+            TokenType::Minus => Some(BinaryOp::Sub),
+            TokenType::Mul => Some(BinaryOp::Mul),
+            TokenType::Div => Some(BinaryOp::Div),
+            TokenType::Eq => Some(BinaryOp::Eq),
+            TokenType::Ne => Some(BinaryOp::Ne),
+            TokenType::Lt => Some(BinaryOp::Lt),
+            TokenType::Gt => Some(BinaryOp::Gt),
+            TokenType::Le => Some(BinaryOp::Le),
+            TokenType::Ge => Some(BinaryOp::Ge),
+            _ => None,
+        }
+    }
 }
