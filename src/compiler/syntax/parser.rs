@@ -108,11 +108,8 @@ impl<T> Parser<T>
             let mut param_end = name.span.end;
             let dims = if next_if_match!(self.iter, TokenType::LBracket) {
                 expect_token!(self.iter, TokenType::RBracket)?;
-                let dims = parse_while_match!(self.iter, TokenType::LBracket, {
-                    let dim = self.parse_expr()?;
-                    param_end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
-                    Ok(Rc::new(dim))
-                });
+                let dims = self.parse_dim()?;
+                param_end = dims.span.end;
                 Some(dims)
             } else {
                 None
@@ -280,11 +277,8 @@ impl<T> Parser<T>
         let start = name.span.start;
         let mut end = name.span.end;
         let dims = if is_next!(self.iter, TokenType::LBracket) {
-            let dims = parse_while_match!(self.iter, TokenType::LBracket, {
-                let dim = self.parse_expr()?;
-                end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
-                Ok(Rc::new(dim))
-            });
+            let dims = self.parse_dim()?;
+            end = dims.span.end;
             Some(dims)
         } else {
             None
@@ -297,11 +291,24 @@ impl<T> Parser<T>
         })
     }
 
+    fn parse_dim(&mut self) -> Result<Dim, ParseError> {
+        let mut span = self.iter.peek().unwrap().span;
+        let dims = parse_while_match!(self.iter, TokenType::LBracket, {
+            let dim = self.parse_expr()?;
+            span.end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
+            Ok(Rc::new(dim))
+        });
+        Ok(Dim {
+            dims,
+            span,
+        })
+    }
+
     fn parse_ty(&mut self) -> Result<TypeDef, ParseError> {
-        let ident = self.parse_ident()?;
-        let span = ident.span.clone();
+        let ty_name = self.parse_ident()?;
+        let span = ty_name.span.clone();
         Ok(TypeDef {
-            ty_name: ident,
+            ty_name,
             span,
         })
     }

@@ -48,7 +48,7 @@ pub struct Func {
 #[derive(Debug, Clone)]
 pub struct FuncParam {
     pub name: Ident,
-    pub dims: Option<Vec<Rc<Expr>>>,
+    pub dims: Option<Dim>,
     pub ty: TypeDef,
     pub span: Span
 }
@@ -131,7 +131,13 @@ pub struct Expr {
 #[derive(Debug, Clone)]
 pub struct LVal {
     pub name: Ident,
-    pub dims: Option<Vec<Rc<Expr>>>,
+    pub dims: Option<Dim>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct Dim {
+    pub dims: Vec<Rc<Expr>>,
     pub span: Span,
 }
 
