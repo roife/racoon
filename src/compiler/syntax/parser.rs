@@ -1,11 +1,14 @@
-use std::iter::Peekable;
+use std::{
+    iter::Peekable,
+    rc::Rc
+};
 
 use super::{
     ast::*,
-    err::ParseError,
+    err::{ ParseError, ParseError::ExpectedPattern },
     lexer::Lexer,
     span::Span,
-    token::{Token, TokenType},
+    token::{TokenType},
 };
 
 macro_rules! expect_token {
@@ -75,7 +78,7 @@ impl<T> Parser<T>
     fn parse_program(&mut self) -> Result<Program, ParseError> {
         let mut decls = vec![];
         let mut funcs = vec![];
-        loop {
+        while !self.iter.peek().is_none() {
             let is_const = next_if_match!(self.iter, TokenType::ConstKw);
             let ty = self.parse_ty()?;
             let ident = self.parse_ident()?;
@@ -120,6 +123,13 @@ impl<T> Parser<T>
         })
     }
 
+    // Decl -> ConstDecl | VarDecl
+    // ConstDecl -> 'const' BType ConstDef { ',' ConstDef } ';'
+    // VarDecl -> BType VarDef { ',' VarDef } ';'
+    fn parse_decl_stmt(&mut self, is_const: bool, ty: TyDef, first_ident: Ident) -> Result<DeclStmt, ParseError> {
+        todo!()
+    }
+
     // Block -> '{' { BlockItem } '}'
     fn parse_block_stmt(&mut self) -> Result<BlockStmt, ParseError> {
         let start = expect_token!(self.iter, TokenType::LBrace)?.span.start;
@@ -132,14 +142,80 @@ impl<T> Parser<T>
     }
 
     fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
-        todo!()
+        let stmt = if is_next!(self.iter, TokenType::IfKw) {
+            Stmt::If(self.parse_if_stmt()?)
+        } else if is_next!(self.iter, TokenType::WhileKw) {
+            Stmt::While(self.parse_while_stmt()?)
+        } else if is_next!(self.iter, TokenType::BreakKw) {
+            let start = expect_token!(self.iter, TokenType::BreakKw)?.span.start;
+            let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
+            Stmt::Break(Span { start, end })
+        } else if is_next!(self.iter, TokenType::ContinueKw) {
+            let start = expect_token!(self.iter, TokenType::ContinueKw)?.span.start;
+            let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
+            Stmt::Continue(Span { start, end })
+        } else if is_next!(self.iter, TokenType::ReturnKw) {
+            Stmt::Return(self.parse_return_stmt()?)
+        } else {
+            return Err(ParseError::ExpectedPattern(String::from("(Stmt)")));
+        };
+        Ok(stmt)
     }
 
-    // Decl -> ConstDecl | VarDecl
-    // ConstDecl -> 'const' BType ConstDef { ',' ConstDef } ';'
-    // VarDecl -> BType VarDef { ',' VarDef } ';'
-    fn parse_decl_stmt(&mut self, is_const: bool, ty: TyDef, first_ident: Ident) -> Result<DeclStmt, ParseError> {
-        todo!()
+    fn parse_if_stmt(&mut self) -> Result<IfStmt, ParseError> {
+        let start = expect_token!(self.iter, TokenType::IfKw)?.span.start;
+
+        expect_token!(self.iter, TokenType::LParen)?;
+        let cond = Rc::new(self.parse_expr()?);
+        expect_token!(self.iter, TokenType::RParen)?;
+
+        let then_block = Rc::new(self.parse_block_stmt()?);
+
+        let (end, else_block) = if next_if_match!(self.iter, TokenType::ElseKw) {
+            let else_block = self.parse_block_stmt()?;
+            (else_block.span.end, Some(Rc::new(else_block)))
+        } else {
+            (then_block.span.end, None)
+        };
+
+        Ok(IfStmt {
+            cond,
+            then_block,
+            else_block,
+            span: Span { start, end }
+        })
+    }
+
+    fn parse_while_stmt(&mut self) -> Result<WhileStmt, ParseError> {
+        let start = expect_token!(self.iter, TokenType::IfKw)?.span.start;
+
+        expect_token!(self.iter, TokenType::LParen)?;
+        let cond = Rc::new(self.parse_expr()?);
+        expect_token!(self.iter, TokenType::RParen)?;
+
+        let body = Rc::new(self.parse_block_stmt()?);
+
+        let end = body.span.end;
+
+        Ok(WhileStmt {
+            cond,
+            body,
+            span: Span { start, end }
+        })
+    }
+
+    fn parse_return_stmt(&mut self) -> Result<ReturnStmt, ParseError> {
+        let start = expect_token!(self.iter, TokenType::ReturnKw)?.span.start;
+        let val = if is_next!(self.iter, TokenType::Semicolon) {
+            None
+        } else {
+            Some(Rc::new(self.parse_expr()?))
+        };
+        let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
+        Ok(ReturnStmt {
+            val,
+            span: Span { start, end }
+        })
     }
 
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {

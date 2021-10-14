@@ -34,14 +34,43 @@ pub struct FuncParam {
 }
 
 #[derive(Debug, Clone)]
-pub struct TyDef {
-    // todo
+pub struct BlockStmt {
+    pub stmts: Vec<Stmt>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct Ident {
-    pub name: String,
+pub enum Stmt {
+    // todo: assignment
+    Expr(Expr),
+    // todo: Decl(DeclStmt),
+    Block(BlockStmt),
+    If(IfStmt),
+    While(WhileStmt),
+    Break(Span),
+    Continue(Span),
+    Return(ReturnStmt),
+    // todo: Empty(Span),
+}
+
+#[derive(Debug, Clone)]
+pub struct IfStmt {
+    pub cond: Rc<Expr>,
+    pub then_block: Rc<BlockStmt>,
+    pub else_block: Option<Rc<BlockStmt>>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct WhileStmt {
+    pub cond: Rc<Expr>,
+    pub body: Rc<BlockStmt>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReturnStmt {
+    pub val: Option<Rc<Expr>>,
     pub span: Span,
 }
 
@@ -51,12 +80,13 @@ pub struct Expr {
 }
 
 #[derive(Debug, Clone)]
-pub struct BlockStmt {
-    pub stmts: Vec<Stmt>,
+pub struct TyDef {
+    // todo
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct Stmt {
-
+pub struct Ident {
+    pub name: String,
+    pub span: Span,
 }

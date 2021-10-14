@@ -57,14 +57,3 @@ pub struct Span {
     pub start: Pos,
     pub end: Pos,
 }
-
-impl Span {
-    pub fn from(start: Pos, end: Pos) -> Span {
-        assert!(start < end);
-        Span { start, end }
-    }
-
-    pub fn point(pos: Pos) -> Span {
-        Span::from(pos, pos.get_next_pos())
-    }
-}

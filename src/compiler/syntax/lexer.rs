@@ -130,7 +130,7 @@ impl<T> Lexer<T>
                 }
                 Token {
                     token_type: TokenType::Err(e),
-                    span: Span::from(start, end),
+                    span: Span { start, end },
                 }
             }
         };
@@ -170,7 +170,7 @@ impl<T> Lexer<T>
         match i32::from_str_radix(&number, radix) {
             Ok(i) => Ok(Token {
                 token_type: TokenType::IntLiteral(i),
-                span: Span::from(start, end)
+                span: Span { start, end }
             }),
             Err(_) => Err(LexError::IllegalLiteral)
         }
@@ -200,7 +200,7 @@ impl<T> Lexer<T>
         };
         Ok(Token{
             token_type,
-            span: Span::from(start, end)
+            span: Span { start, end }
         })
     }
 
@@ -266,7 +266,7 @@ impl<T> Lexer<T>
 
         Ok(Token{
             token_type,
-            span: Span::from(start, end)
+            span: Span { start, end }
         })
     }
 
@@ -297,7 +297,7 @@ impl<T> Lexer<T>
         let end = self.iter.peek().unwrap().0;
         Ok(Token {
             token_type: TokenType::Comment(comment),
-            span: Span::from(start, end)
+            span: Span { start, end }
         })
     }
 
