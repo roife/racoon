@@ -98,18 +98,19 @@ impl<T> Parser<T>
             funcs,
         })
     }
-    
+
     fn parse_func_stmt(&mut self, ret_ty: TypeDef, name: Ident) -> Result<Func, ParseError> {
         let start = expect_token!(self.iter, TokenType::LParen)?.span.start;
         let params = parse_while_match!(self.iter, TokenType::Comma, {
             let ty = self.parse_ty()?;
             let name = self.parse_ident()?;
-            let dims = if is_next!(self.iter, TokenType::LBracket) {
-                expect_token!(self.iter, TokenType::LBracket)?;
+            let param_start = name.span.start;
+            let mut param_end = name.span.end;
+            let dims = if next_if_match!(self.iter, TokenType::LBracket) {
                 expect_token!(self.iter, TokenType::RBracket)?;
                 let dims = parse_while_match!(self.iter, TokenType::LBracket, {
                     let dim = self.parse_expr()?;
-                    expect_token!(self.iter, TokenType::RBracket)?;
+                    param_end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
                     Ok(Rc::new(dim))
                 });
                 Some(dims)
@@ -119,7 +120,11 @@ impl<T> Parser<T>
             Ok(FuncParam {
                 name,
                 dims,
-                ty
+                ty,
+                span: Span {
+                    start: param_start,
+                    end: param_end
+                },
             })
         });
         expect_token!(self.iter, TokenType::RParen)?;

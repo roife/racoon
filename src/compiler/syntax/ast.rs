@@ -50,6 +50,7 @@ pub struct FuncParam {
     pub name: Ident,
     pub dims: Option<Vec<Rc<Expr>>>,
     pub ty: TypeDef,
+    pub span: Span
 }
 
 #[derive(Debug, Clone)]
@@ -64,6 +65,15 @@ pub enum BlockItem {
     Decl(Decl),
 }
 
+impl BlockItem {
+    pub fn span(&mut self) -> Span {
+        match self {
+            BlockItem::Stmt(v) => v.span(),
+            BlockItem::Decl(v) => v.span
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Stmt {
     // todo: assignment
@@ -75,6 +85,21 @@ pub enum Stmt {
     Continue(Span),
     Return(ReturnStmt),
     Empty(Span),
+}
+
+impl Stmt {
+    pub fn span(&mut self) -> Span {
+        match self {
+            Stmt::Expr(v) => v.span,
+            Stmt::Block(v) => v.span,
+            Stmt::If(v) => v.span,
+            Stmt::While(v) => v.span,
+            Stmt::Break(span) => *span,
+            Stmt::Continue(span) => *span,
+            Stmt::Return(v) => v.span,
+            Stmt::Empty(span) => *span
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
