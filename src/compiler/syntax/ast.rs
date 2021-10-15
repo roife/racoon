@@ -240,6 +240,7 @@ pub struct Ident {
 pub enum UnaryOp {
     Neg,
     Pos,
+    Not
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -255,6 +256,7 @@ pub enum BinaryOp {
     Le,
     Eq,
     Ne,
+    Not,
     And,
     Or
 }
@@ -264,7 +266,7 @@ impl TokenType {
         use super::token::TokenType::*;
         matches!(
             self,
-            Assign | Plus | Minus | Mul | Div | Mod | Eq | Ne | Lt | Gt | Le | Ge | And | Or
+            Assign | Plus | Minus | Mul | Div | Mod | Eq | Ne | Lt | Gt | Le | Ge | Not | And | Or
         )
     }
 
