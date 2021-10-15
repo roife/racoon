@@ -346,15 +346,14 @@ impl<T> Parser<T>
             let op = op_token.token_type;
             let mut rhs = self.parse_unary_expr()?;
 
-            while let Some(next_op_token) = self.iter.next_if(|next_token| {
+            while self.iter.peek().map_or(false, |next_token| {
                 let next_op = &next_token.token_type;
                 next_op.is_binary_op()
                     && ((next_op.prec() > op.prec() && next_op.is_left_assoc())
                     || (next_op.prec() == op.prec() && !next_op.is_left_assoc()))
             }) {
-                let op = next_op_token.token_type;
-                let op_precedence = op.prec();
-                rhs = self.parse_expr_opg(rhs, op_precedence)?;
+                let next_op_prec = self.iter.peek().unwrap().token_type.prec();
+                rhs = self.parse_expr_opg(rhs, next_op_prec)?;
             }
 
             // combine
@@ -433,7 +432,7 @@ impl<T> Parser<T>
         } else {
             Err(ParseError {
                 parse_error_kind: ParseErrorKind::ExpectedPattern(
-                    "Literal or Identifier or Function Call or Parenthesis".into()
+                    String::from("Literal or Identifier or Function call or Parenthesis")
                 ),
                 span: self.iter.peek().map_or(Span::MAX, |x| x.span),
             })
