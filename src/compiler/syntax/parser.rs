@@ -68,8 +68,7 @@ impl<T> Parser<T>
     }
 
     fn parse_program(&mut self) -> Result<Program, ParseError> {
-        let mut decls = vec![];
-        let mut funcs = vec![];
+        let mut program_items = vec![];
 
         while self.iter.peek().is_some() {
             let is_const = next_if_match!(self.iter, TokenType::ConstKw);
@@ -78,17 +77,14 @@ impl<T> Parser<T>
 
             if is_next!(self.iter, TokenType::LParen) {
                 let func = self.parse_func(ty, lval.name)?;
-                funcs.push(func);
+                program_items.push(ProgramItem::Func(func));
             } else {
                 let decl = self.parse_decl(is_const, ty, lval)?;
-                decls.push(decl);
+                program_items.push(ProgramItem::Decl(decl));
             }
         }
 
-        Ok(Program {
-            decls,
-            funcs,
-        })
+        Ok(Program { program_items })
     }
 
     fn parse_decl(&mut self, is_const: bool, ty: TypeDef, lval: LVal) -> Result<Decl, ParseError> {
@@ -347,9 +343,9 @@ impl<T> Parser<T>
 
             while self.iter.peek().map_or(false, |next_token| {
                 let next_op = &next_token.token_type;
-                next_op.is_binary_op()
-                    && ((next_op.prec() > op.prec() && next_op.is_left_assoc())
-                    || (next_op.prec() == op.prec() && !next_op.is_left_assoc()))
+                next_op.is_binary_op() &&
+                    ((next_op.prec() > op.prec() && next_op.is_left_assoc())
+                        || (next_op.prec() == op.prec() && !next_op.is_left_assoc()))
             }) {
                 let next_op_prec = self.iter.peek().unwrap().token_type.prec();
                 rhs = self.parse_expr_opg(rhs, next_op_prec)?;

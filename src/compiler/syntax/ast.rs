@@ -7,8 +7,13 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct Program {
-    pub decls: Vec<Decl>,
-    pub funcs: Vec<Func>,
+    pub program_items: Vec<ProgramItem>
+}
+
+#[derive(Debug, Clone)]
+pub enum ProgramItem {
+    Decl(Decl),
+    Func(Func)
 }
 
 #[derive(Debug, Clone)]
