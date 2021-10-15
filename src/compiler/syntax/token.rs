@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Formatter};
+use std::rc::Rc;
 use super::{
     span::Span,
     err::LexError
@@ -19,7 +20,7 @@ pub enum TokenType {
     Semicolon, Comma,
     LParen, RParen, LBracket, RBracket, LBrace, RBrace,
     Comment(String),
-    Err(LexError)
+    Err(Rc<LexError>)
 }
 
 impl TokenType {

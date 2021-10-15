@@ -5,9 +5,9 @@ use std::{
 
 use super::{
     ast::*,
-    err::{ParseError, ParseError::ExpectedPattern},
+    err::{ParseError},
     lexer::Lexer,
-    span::Span,
+    span::{Span},
     token::TokenType,
 };
 
@@ -192,20 +192,16 @@ impl<T> Parser<T>
         } else if is_next!(self.iter, TokenType::WhileKw) {
             Stmt::While(self.parse_while_stmt()?)
         } else if is_next!(self.iter, TokenType::BreakKw) {
-            let start = expect_token!(self.iter, TokenType::BreakKw)?.span.start;
-            let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
-            Stmt::Break(Span { start, end })
+            Stmt::Break(self.parse_break_stmt()?)
         } else if is_next!(self.iter, TokenType::ContinueKw) {
-            let start = expect_token!(self.iter, TokenType::ContinueKw)?.span.start;
-            let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
-            Stmt::Continue(Span { start, end })
+            Stmt::Continue(self.parse_continue_stmt()?)
         } else if is_next!(self.iter, TokenType::ReturnKw) {
             Stmt::Return(self.parse_return_stmt()?)
         } else if is_next!(self.iter, TokenType::Semicolon) {
             let span = expect_token!(self.iter, TokenType::Semicolon)?.span;
             Stmt::Empty(span)
         } else {
-            return Err(ParseError::ExpectedPattern(String::from("(Stmt)")));
+            Stmt::Expr(self.parse_expr_stmt()?)
         };
         Ok(stmt)
     }
@@ -254,6 +250,18 @@ impl<T> Parser<T>
         })
     }
 
+    fn parse_break_stmt(&mut self) -> Result<Span, ParseError> {
+        let start = expect_token!(self.iter, TokenType::BreakKw)?.span.start;
+        let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
+        Ok(Span { start, end })
+    }
+
+    fn parse_continue_stmt(&mut self) -> Result<Span, ParseError> {
+        let start = expect_token!(self.iter, TokenType::ContinueKw)?.span.start;
+        let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
+        Ok(Span { start, end })
+    }
+
     fn parse_return_stmt(&mut self) -> Result<ReturnStmt, ParseError> {
         let start = expect_token!(self.iter, TokenType::ReturnKw)?.span.start;
         let val = if is_next!(self.iter, TokenType::Semicolon) {
@@ -268,8 +276,132 @@ impl<T> Parser<T>
         })
     }
 
+    fn parse_expr_stmt(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.parse_expr()?;
+        expect_token!(self.iter, TokenType::Semicolon)?;
+        return Ok(expr);
+    }
+
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
-        todo!()
+        let lhs = self.parse_unary_expr()?;
+        self.parse_expr_opg(lhs, 0)
+    }
+
+    fn parse_expr_opg(&mut self, lhs: Expr, precedence: u32) -> Result<Expr, ParseError> {
+        let mut lhs = lhs;
+        while let Some(op_token) = self.iter.next_if(|token| {
+            let op = &token.token_type;
+            op.is_binary_op() && op.precedence() >= precedence
+        }) {
+            // OPG
+            let op = op_token.token_type;
+            let mut rhs = self.parse_unary_expr()?;
+
+            while let Some(next_op_token) = self.iter.next_if(|next_token| {
+                let next_op = &next_token.token_type;
+                next_op.is_binary_op()
+                    && ((next_op.precedence() > op.precedence() && next_op.is_left_assoc())
+                    || (next_op.precedence() == op.precedence() && !next_op.is_left_assoc()))
+            }) {
+                let op = next_op_token.token_type;
+                let op_precedence = op.precedence();
+                rhs = self.parse_expr_opg(rhs, op_precedence)?;
+            }
+
+            // combine
+            let span = Span {
+                start: lhs.span().start,
+                end: rhs.span().end,
+            };
+
+            lhs = match op {
+                TokenType::Assign => {
+                    Expr::Assign(AssignExpr {
+                        lhs: Rc::new(lhs),
+                        rhs: Rc::new(rhs),
+                        allow_assign_const: false,
+                        span,
+                    })
+                }
+                _ => {
+                    let binary_op = op
+                        .to_binary_op().unwrap();
+                    Expr::Binary(BinaryExpr {
+                        lhs: Rc::new(lhs),
+                        rhs: Rc::new(rhs),
+                        op: binary_op,
+                        span,
+                    })
+                }
+            };
+        }
+        Ok(lhs)
+    }
+
+    fn parse_unary_expr(&mut self) -> Result<Expr, ParseError> {
+        let mut pre_op_tokens = vec![];
+        while is_next!(self.iter, TokenType::Plus | TokenType::Minus) {
+            pre_op_tokens.push(self.iter.next().unwrap())
+        }
+
+        let mut expr_item = self.parse_expr_item()?;
+        let end = expr_item.span().end;
+        for prec_op in pre_op_tokens.drain(..).rev() {
+            let op = match prec_op.token_type {
+                TokenType::Plus => UnaryOp::Pos,
+                TokenType::Minus => UnaryOp::Neg,
+                _ => unreachable!(),
+            };
+            expr_item = Expr::Unary(UnaryExpr {
+                op,
+                expr: Rc::new(expr_item),
+                span: Span { start: prec_op.span.start, end }
+            });
+        }
+        Ok(expr_item)
+    }
+
+    fn parse_expr_item(&mut self) -> Result<Expr, ParseError> {
+        if is_next!(self.iter, TokenType::Ident(_)) {
+            let lval = self.parse_lval()?;
+
+            if is_next!(self.iter, TokenType::LParen) {
+                let call = self.parse_func_call(lval.name)?;
+                Ok(Expr::Call(call))
+            } else {
+                Ok(Expr::LVal(lval))
+            }
+        } else if is_next!(self.iter, TokenType::IntLiteral(_)) {
+            let int_literal = expect_token!(self.iter, TokenType::IntLiteral(_))?;
+            Ok(Expr::Literal(LiteralExpr {
+                kind: LiteralKind::Integer(int_literal.token_type.get_int_literal().unwrap()),
+                span: int_literal.span
+            }))
+        } else if is_next!(self.iter, TokenType::LParen) {
+            expect_token!(self.iter, TokenType::LParen)?;
+            let expr = self.parse_expr()?;
+            expect_token!(self.iter, TokenType::RParen)?;
+            Ok(expr)
+        } else {
+            Err(ParseError::ExpectedPattern("Literal or Identifier or Function Call or Parenthesis".into()))
+        }
+    }
+
+    fn parse_func_call(&mut self, func: Ident) -> Result<CallExpr, ParseError> {
+        let start = func.span.start;
+        expect_token!(self.iter, TokenType::LParen)?;
+        let params = parse_while_match!(
+            self.iter,
+            TokenType::Comma,
+            self.parse_expr()
+        );
+        let end = expect_token!(self.iter, TokenType::RParen)?.span.end;
+
+        Ok(CallExpr {
+            func,
+            params,
+            span: Span { start, end },
+        })
     }
 
     fn parse_lval(&mut self) -> Result<LVal, ParseError> {

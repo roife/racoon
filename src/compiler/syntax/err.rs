@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum LexError {
     IllegalLiteral,
     UnexpectedEOF,

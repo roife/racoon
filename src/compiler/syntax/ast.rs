@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use super::{
     span::Span,
-    token::{Token, TokenType},
+    token::{TokenType},
 };
 
 #[derive(Debug, Clone)]
@@ -126,9 +126,9 @@ pub struct ReturnStmt {
 
 #[derive(Debug, Clone)]
 pub enum Expr {
-    Ident(Ident),
+    LVal(LVal),
     Assign(AssignExpr),
-    Literal(Literal),
+    Literal(LiteralExpr),
     Unary(UnaryExpr),
     Binary(BinaryExpr),
     Call(CallExpr),
@@ -137,7 +137,7 @@ pub enum Expr {
 impl Expr {
     pub fn span(&self) -> Span {
         match self {
-            Expr::Ident(x) => x.span,
+            Expr::LVal(x) => x.span,
             Expr::Assign(x) => x.span,
             Expr::Literal(x) => x.span,
             Expr::Unary(x) => x.span,
@@ -151,11 +151,12 @@ impl Expr {
 pub struct AssignExpr {
     pub lhs: Rc<Expr>,
     pub rhs: Rc<Expr>,
+    pub allow_assign_const: bool,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct Literal {
+pub struct LiteralExpr {
     pub kind: LiteralKind,
     pub span: Span,
 }
@@ -232,18 +233,18 @@ pub enum BinaryOp {
     Ne,
 }
 
-impl Token {
+impl TokenType {
     pub fn is_binary_op(&self) -> bool {
         use super::token::TokenType::*;
         matches!(
-            self.token_type,
+            self,
             Assign | Plus | Minus | Mul | Div | Eq | Ne | Lt | Gt | Le | Ge
         )
     }
 
     pub fn precedence(&self) -> u32 {
         use super::token::TokenType::*;
-        match self.token_type {
+        match self {
             Plus | Minus => 10,
             Mul | Div => 20,
             Assign => 1,
@@ -254,7 +255,7 @@ impl Token {
 
     pub fn is_left_assoc(&self) -> bool {
         use super::token::TokenType::*;
-        match self.token_type {
+        match self {
             Plus | Minus | Mul | Div | Eq | Ne | Lt | Gt | Le | Ge => true,
             Assign => false,
             _ => unreachable!(),
@@ -262,7 +263,7 @@ impl Token {
     }
 
     pub fn to_binary_op(&self) -> Option<BinaryOp> {
-        match self.token_type {
+        match self {
             TokenType::Plus => Some(BinaryOp::Add),
             TokenType::Minus => Some(BinaryOp::Sub),
             TokenType::Mul => Some(BinaryOp::Mul),
