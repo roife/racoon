@@ -15,13 +15,13 @@ pub struct Program {
 pub struct Decl {
     pub is_const: bool,
     pub ty: TypeDef,
-    pub sub_decl: Vec<SubDecl>,
+    pub sub_decls: Vec<SubDecl>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct SubDecl {
-    pub name: Ident,
+    pub name: LVal,
     pub init_val: Option<Rc<InitVal>>,
     pub span: Span,
 }
@@ -29,14 +29,14 @@ pub struct SubDecl {
 #[derive(Debug, Clone)]
 pub enum InitVal {
     Expr(Expr),
-    InitVal(Vec<Rc<InitVal>>),
+    ArrayVal(Vec<Rc<InitVal>>),
 }
 
 impl InitVal {
     pub fn span(&self) -> Span {
         match self {
             InitVal::Expr(expr) => expr.span().clone(),
-            InitVal::InitVal(vals) => Span {
+            InitVal::ArrayVal(vals) => Span {
                 start: vals.first().unwrap().span().start,
                 end: vals.last().unwrap().span().end,
             }
@@ -70,17 +70,14 @@ pub struct BlockStmt {
 #[derive(Debug, Clone)]
 pub enum BlockItem {
     Stmt(Stmt),
-    Decl(Vec<Decl>),
+    Decl(Decl),
 }
 
 impl BlockItem {
     pub fn span(&mut self) -> Span {
         match self {
             BlockItem::Stmt(v) => v.span(),
-            BlockItem::Decl(v) => Span {
-                start: v.first().unwrap().span.start,
-                end: v.last().unwrap().span.end,
-            },
+            BlockItem::Decl(v) => v.span,
         }
     }
 }

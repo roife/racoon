@@ -84,17 +84,26 @@ impl<T> Parser<T>
             let is_const = next_if_match!(self.iter, TokenType::ConstKw);
             let ty = self.parse_ty()?;
             let lval = self.parse_lval()?;
+
             if is_next!(self.iter, TokenType::LParen) {
                 let func_stmt = self.parse_func_stmt(ty, lval.name)?;
                 funcs.push(func_stmt);
             } else {
-                decls.push(self.parse_decl(is_const, ty.clone(), lval)?);
-                let mut more_decl = parse_while_match!(self.iter, TokenType::Comma, {
+                let mut sub_decls = vec![self.parse_sub_decl(is_const, lval)?];
+                sub_decls.append(&mut parse_while_match!(self.iter, TokenType::Comma, {
                     let lval = self.parse_lval()?;
-                    self.parse_decl(is_const, ty.clone(), lval)
+                    self.parse_sub_decl(is_const, lval)
+                }));
+
+                let start = ty.span.start;
+                let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
+
+                decls.push(Decl {
+                    is_const,
+                    ty,
+                    sub_decls,
+                    span: Span { start, end }
                 });
-                decls.append(&mut more_decl);
-                expect_token!(self.iter, TokenType::Semicolon)?;
             }
         }
         Ok(Program {
@@ -104,32 +113,13 @@ impl<T> Parser<T>
     }
 
     fn parse_func_stmt(&mut self, ret_ty: TypeDef, name: Ident) -> Result<Func, ParseError> {
-        let start = expect_token!(self.iter, TokenType::LParen)?.span.start;
-        let params = parse_while_match!(self.iter, TokenType::Comma, {
-            let ty = self.parse_ty()?;
-            let name = self.parse_ident()?;
-            let param_start = name.span.start;
-            let mut param_end = name.span.end;
-            let dims = if next_if_match!(self.iter, TokenType::LBracket) {
-                expect_token!(self.iter, TokenType::RBracket)?;
-                let dims = self.parse_dim()?;
-                param_end = dims.span.end;
-                Some(dims)
-            } else {
-                None
-            };
-            Ok(FuncParam {
-                name,
-                dims,
-                ty,
-                span: Span {
-                    start: param_start,
-                    end: param_end
-                },
-            })
-        });
+        expect_token!(self.iter, TokenType::LParen)?;
+        let params = parse_while_match!(self.iter, TokenType::Comma, self.parse_func_param());
+
         expect_token!(self.iter, TokenType::RParen)?;
         let body = self.parse_block_stmt()?;
+
+        let start = ret_ty.span.start;
         let end = body.span.end;
 
         Ok(Func {
@@ -141,22 +131,45 @@ impl<T> Parser<T>
         })
     }
 
-    fn parse_decl(&mut self, is_const: bool, ty: TypeDef, lval: LVal) -> Result<Decl, ParseError> {
+    fn parse_func_param(&mut self) -> Result<FuncParam, ParseError> {
+        let ty = self.parse_ty()?;
+        let name = self.parse_ident()?;
+        let param_start = name.span.start;
+        let mut param_end = name.span.end;
+        let dims = if next_if_match!(self.iter, TokenType::LBracket) {
+            expect_token!(self.iter, TokenType::RBracket)?;
+            let dims = self.parse_dim()?;
+            param_end = dims.span.end;
+            Some(dims)
+        } else {
+            None
+        };
+        Ok(FuncParam {
+            name,
+            dims,
+            ty,
+            span: Span {
+                start: param_start,
+                end: param_end
+            },
+        })
+
+    }
+
+    fn parse_sub_decl(&mut self, is_const: bool, lval: LVal) -> Result<SubDecl, ParseError> {
         let start = lval.name.span.start;
         let mut end = lval.name.span.end;
 
-        let init_val = if is_const || next_if_match!(self.iter, TokenType::Assign) {
+        let init_val = if is_const || is_next!(self.iter, TokenType::Assign) {
+            expect_token!(self.iter, TokenType::Assign)?;
             let init_val = self.parse_init_val()?;
             end = init_val.span().end;
             Some(Rc::new(init_val))
         } else {
             None
         };
-
-        Ok(Decl {
-            is_const,
-            name: lval.name,
-            ty,
+        Ok(SubDecl {
+            name: lval,
             init_val,
             span: Span { start, end },
         })
@@ -168,7 +181,7 @@ impl<T> Parser<T>
                 let sub_init_val = self.parse_init_val()?;
                 Ok(Rc::new(sub_init_val))
             });
-            InitVal::InitVal(init_val)
+            InitVal::ArrayVal(init_val)
         } else {
             InitVal::Expr(self.parse_expr()?)
         };
@@ -193,16 +206,25 @@ impl<T> Parser<T>
         })
     }
 
-    fn parse_decl_stmt(&mut self) -> Result<Vec<Decl>, ParseError> {
+    fn parse_decl_stmt(&mut self) -> Result<Decl, ParseError> {
         let is_const = next_if_match!(self.iter, TokenType::ConstKw);
         let ty = self.parse_ty()?;
-        let decls = parse_while_match!(self.iter, TokenType::Comma, {
+        let sub_decls = parse_while_match!(self.iter, TokenType::Comma, {
             let lval = self.parse_lval()?;
-            self.parse_decl(is_const, ty.clone(), lval)
+            self.parse_sub_decl(is_const, lval)
         });
         println!("{:?}", self.iter.peek());
-        expect_token!(self.iter, TokenType::Semicolon)?;
-        Ok(decls)
+
+        let start = ty.span.start;
+        let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
+
+
+        Ok(Decl {
+            is_const,
+            ty,
+            sub_decls,
+            span: Span { start, end },
+        })
     }
 
     fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
