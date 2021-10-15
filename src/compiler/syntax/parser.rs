@@ -80,7 +80,7 @@ impl<T> Parser<T>
     fn parse_program(&mut self) -> Result<Program, ParseError> {
         let mut decls = vec![];
         let mut funcs = vec![];
-        while !self.iter.peek().is_none() {
+        while self.iter.peek().is_some() {
             let is_const = next_if_match!(self.iter, TokenType::ConstKw);
             let ty = self.parse_ty()?;
             let lval = self.parse_lval()?;
@@ -89,11 +89,11 @@ impl<T> Parser<T>
                 funcs.push(func_stmt);
             } else {
                 decls.push(self.parse_decl(is_const, ty.clone(), lval)?);
-                let mut decl = parse_while_match!(self.iter, TokenType::Comma, {
+                let mut more_decl = parse_while_match!(self.iter, TokenType::Comma, {
                     let lval = self.parse_lval()?;
                     self.parse_decl(is_const, ty.clone(), lval)
                 });
-                decls.append(&mut decl);
+                decls.append(&mut more_decl);
                 expect_token!(self.iter, TokenType::Semicolon)?;
             }
         }
@@ -178,7 +178,7 @@ impl<T> Parser<T>
     fn parse_block_stmt(&mut self) -> Result<BlockStmt, ParseError> {
         let start = expect_token!(self.iter, TokenType::LBrace)?.span.start;
         let block_items = parse_until_match!(self.iter, TokenType::RBrace, {
-            if is_next!(self.iter, TokenType::IntTy | TokenType::VoidTy) {
+            if is_next!(self.iter, TokenType::IntTy | TokenType::VoidTy | TokenType::ConstKw) {
                 let decl = self.parse_decl_stmt()?;
                 Ok(BlockItem::Decl(decl))
             } else {
@@ -194,17 +194,14 @@ impl<T> Parser<T>
     }
 
     fn parse_decl_stmt(&mut self) -> Result<Vec<Decl>, ParseError> {
-        let mut decls = vec![];
         let is_const = next_if_match!(self.iter, TokenType::ConstKw);
         let ty = self.parse_ty()?;
-        let lval = self.parse_lval()?;
-        decls.push(self.parse_decl(is_const, ty.clone(), lval)?);
-        let mut decl = parse_while_match!(self.iter, TokenType::Comma, {
+        let decls = parse_while_match!(self.iter, TokenType::Comma, {
             let lval = self.parse_lval()?;
             self.parse_decl(is_const, ty.clone(), lval)
         });
+        println!("{:?}", self.iter.peek());
         expect_token!(self.iter, TokenType::Semicolon)?;
-        decls.append(&mut decl);
         Ok(decls)
     }
 

@@ -14,8 +14,14 @@ pub struct Program {
 #[derive(Debug, Clone)]
 pub struct Decl {
     pub is_const: bool,
-    pub name: Ident,
     pub ty: TypeDef,
+    pub sub_decl: Vec<SubDecl>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct SubDecl {
+    pub name: Ident,
     pub init_val: Option<Rc<InitVal>>,
     pub span: Span,
 }
