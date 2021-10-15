@@ -113,12 +113,11 @@ impl<T> Parser<T>
     }
 
     fn parse_sub_decl(&mut self, is_const: bool, lval: LVal) -> Result<SubDecl, ParseError> {
-        let Span {start, mut end} = lval.name.span;
-
+        let mut span = lval.span;
         let init_val = if is_const || is_next!(self.iter, TokenType::Assign) {
             expect_token!(self.iter, TokenType::Assign)?;
             let init_val = self.parse_init_val()?;
-            end = init_val.span().end;
+            span.end = init_val.span().end;
             Some(Rc::new(init_val))
         } else {
             None
@@ -128,7 +127,7 @@ impl<T> Parser<T>
             name: lval.name,
             dims: lval.dims,
             init_val,
-            span: Span { start, end },
+            span,
         })
     }
 
@@ -458,11 +457,10 @@ impl<T> Parser<T>
 
     fn parse_lval(&mut self) -> Result<LVal, ParseError> {
         let name = self.parse_ident()?;
-        let start = name.span.start;
-        let mut end = name.span.end;
+        let mut span = name.span;
         let dims = if is_next!(self.iter, TokenType::LBracket) {
             let dims = self.parse_dim()?;
-            end = dims.span.end;
+            span.end = dims.span.end;
             Some(dims)
         } else {
             None
@@ -471,12 +469,12 @@ impl<T> Parser<T>
         Ok(LVal {
             name,
             dims,
-            span: Span { start, end },
+            span,
         })
     }
 
     fn parse_dim(&mut self) -> Result<Dim, ParseError> {
-        let mut span = self.iter.peek().unwrap().span;
+        let mut span = expect_token!(self.iter, TokenType::LBracket).unwrap().span;
         let dims = parse_separate_match!(self.iter, TokenType::LBracket, {
             let dim = self.parse_expr()?;
             span.end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
