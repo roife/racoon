@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct Pos {
     pub lineno: usize,
     pub colno: usize,
@@ -52,8 +52,15 @@ impl PartialOrd for Pos {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub struct Span {
     pub start: Pos,
     pub end: Pos,
+}
+
+impl Span {
+    pub const MAX: Span = Span {
+        start: Pos::MAX,
+        end: Pos::MAX,
+    };
 }

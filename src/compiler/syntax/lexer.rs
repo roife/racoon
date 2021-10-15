@@ -2,6 +2,7 @@ use std::{
     iter::{Iterator, Peekable},
     rc::Rc,
 };
+use crate::compiler::syntax::err::LexErrorKind;
 use super::{
     span::{Pos, Span},
     token::{TokenType, Token},
@@ -118,7 +119,10 @@ impl<T> Lexer<T>
             'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier_keyword(),
             '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '|' | '&' | '^' | '(' | ')' | '['
             | ']' | '{' | '}' | ',' | ';' => self.lex_operator(),
-            c @ _ => Err(LexError::UnexpectedCharacter(c)),
+            c @ _ => Err(LexError{
+                lex_error_kind: LexErrorKind::UnexpectedCharacter(c),
+                span: self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
+            }),
         };
 
         let token = match token_result {
@@ -172,7 +176,10 @@ impl<T> Lexer<T>
                 token_type: TokenType::IntLiteral(i),
                 span: Span { start, end }
             }),
-            Err(_) => Err(LexError::IllegalLiteral)
+            Err(_) => Err(LexError {
+                lex_error_kind: LexErrorKind::IllegalLiteral,
+                span: self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
+            })
         }
     }
 
@@ -190,6 +197,8 @@ impl<T> Lexer<T>
 
         let token_type = match &ident[..] {
             "const" => TokenType::ConstKw,
+            "int" => TokenType::IntTy,
+            "void" => TokenType::VoidTy,
             "break" => TokenType::BreakKw,
             "continue" => TokenType::ContinueKw,
             "if" => TokenType::IfKw,
@@ -244,12 +253,18 @@ impl<T> Lexer<T>
             '|' => if next_if_ch_eq!(self.iter, '|') {
                 TokenType::Or
             } else {
-                return Err(LexError::UnexpectedCharacter('|'))
+                return Err(LexError {
+                    lex_error_kind: LexErrorKind::UnexpectedCharacter('|'),
+                    span: self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
+                })
             }
             '&' => if next_if_ch_eq!(self.iter, '&') {
                 TokenType::And
             } else {
-                return Err(LexError::UnexpectedCharacter('&'))
+                return Err(LexError {
+                    lex_error_kind: LexErrorKind::UnexpectedCharacter('&'),
+                    span: self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
+                })
             }
             '(' => TokenType::LParen,
             ')' => TokenType::RParen,
@@ -280,7 +295,10 @@ impl<T> Lexer<T>
                 match c {
                     Some((_, '*')) if next_if_ch_eq!(self.iter, '/') => break,
                     Some((_, c)) => comment.push(c),
-                    None => return Err(LexError::UnexpectedEOF)
+                    None => return Err(LexError {
+                        lex_error_kind: LexErrorKind::UnexpectedEOF,
+                        span: self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
+                    })
                 }
             }
         } else {

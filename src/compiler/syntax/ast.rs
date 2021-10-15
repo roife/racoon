@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use super::{
     span::Span,
-    token::{TokenType},
+    token::TokenType,
 };
 
 #[derive(Debug, Clone)]
@@ -64,14 +64,17 @@ pub struct BlockStmt {
 #[derive(Debug, Clone)]
 pub enum BlockItem {
     Stmt(Stmt),
-    Decl(Decl),
+    Decl(Vec<Decl>),
 }
 
 impl BlockItem {
     pub fn span(&mut self) -> Span {
         match self {
             BlockItem::Stmt(v) => v.span(),
-            BlockItem::Decl(v) => v.span
+            BlockItem::Decl(v) => Span {
+                start: v.first().unwrap().span.start,
+                end: v.last().unwrap().span.end,
+            },
         }
     }
 }
@@ -203,8 +206,19 @@ pub struct Dim {
 
 #[derive(Debug, Clone)]
 pub struct TypeDef {
-    pub ty_name: Ident,
+    pub ty_kind: TyKind,
     pub span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub enum TyKind {
+    Primitive(PrimitiveTy),
+    Void,
+}
+
+#[derive(Debug, Clone)]
+pub enum PrimitiveTy {
+    Integer,
 }
 
 #[derive(Debug, Clone)]
@@ -242,7 +256,7 @@ impl TokenType {
         )
     }
 
-    pub fn precedence(&self) -> u32 {
+    pub fn prec(&self) -> u32 {
         use super::token::TokenType::*;
         match self {
             Plus | Minus => 10,
@@ -276,5 +290,21 @@ impl TokenType {
             TokenType::Ge => Some(BinaryOp::Ge),
             _ => None,
         }
+    }
+
+    pub fn to_ty_kind(&self) -> Option<TyKind> {
+        match self {
+            TokenType::IntTy => Some(TyKind::Primitive(PrimitiveTy::Integer)),
+            TokenType::VoidTy => Some(TyKind::Void),
+            _ => None,
+        }
+    }
+
+    pub fn is_ty(&self) -> bool {
+        use super::token::TokenType::*;
+        matches!(
+            self,
+            IntTy | VoidTy
+        )
     }
 }

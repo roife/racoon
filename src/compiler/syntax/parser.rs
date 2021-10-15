@@ -5,9 +5,9 @@ use std::{
 
 use super::{
     ast::*,
-    err::{ParseError},
+    err::{ParseError, ParseErrorKind},
     lexer::Lexer,
-    span::{Span},
+    span::Span,
     token::TokenType,
 };
 
@@ -15,7 +15,10 @@ macro_rules! expect_token {
     ($self:expr, $($pat:pat)|+) => {
         $self.next_if(|token| matches!(token.token_type, $($pat)|+))
         .map_or(
-            Err(ParseError::ExpectedPattern(stringify!($($pat)|+).to_owned())),
+            Err(ParseError {
+                parse_error_kind: ParseErrorKind::ExpectedPattern(stringify!($($pat)|+).to_owned()),
+                span: $self.peek().map_or(Span::MAX, |x| x.span),
+            }),
             |token| Ok(token)
         )
     };
@@ -85,12 +88,13 @@ impl<T> Parser<T>
                 let func_stmt = self.parse_func_stmt(ty, lval.name)?;
                 funcs.push(func_stmt);
             } else {
-                decls.push(self.parse_decl_stmt(is_const, ty.clone(), lval)?);
+                decls.push(self.parse_decl(is_const, ty.clone(), lval)?);
                 let mut decl = parse_while_match!(self.iter, TokenType::Comma, {
                     let lval = self.parse_lval()?;
-                    self.parse_decl_stmt(is_const, ty.clone(), lval)
+                    self.parse_decl(is_const, ty.clone(), lval)
                 });
                 decls.append(&mut decl);
+                expect_token!(self.iter, TokenType::Semicolon)?;
             }
         }
         Ok(Program {
@@ -137,7 +141,7 @@ impl<T> Parser<T>
         })
     }
 
-    fn parse_decl_stmt(&mut self, is_const: bool, ty: TypeDef, lval: LVal) -> Result<Decl, ParseError> {
+    fn parse_decl(&mut self, is_const: bool, ty: TypeDef, lval: LVal) -> Result<Decl, ParseError> {
         let start = lval.name.span.start;
         let mut end = lval.name.span.end;
 
@@ -174,14 +178,34 @@ impl<T> Parser<T>
     fn parse_block_stmt(&mut self) -> Result<BlockStmt, ParseError> {
         let start = expect_token!(self.iter, TokenType::LBrace)?.span.start;
         let block_items = parse_until_match!(self.iter, TokenType::RBrace, {
-            todo!();
-            Err(ParseError::ExpectedPattern(String::from("123")))
+            if is_next!(self.iter, TokenType::IntTy | TokenType::VoidTy) {
+                let decl = self.parse_decl_stmt()?;
+                Ok(BlockItem::Decl(decl))
+            } else {
+                let stmt = self.parse_stmt()?;
+                Ok(BlockItem::Stmt(stmt))
+            }
         });
         let end = expect_token!(self.iter, TokenType::RBrace)?.span.end;
         Ok(BlockStmt {
             block_items,
             span: Span { start, end },
         })
+    }
+
+    fn parse_decl_stmt(&mut self) -> Result<Vec<Decl>, ParseError> {
+        let mut decls = vec![];
+        let is_const = next_if_match!(self.iter, TokenType::ConstKw);
+        let ty = self.parse_ty()?;
+        let lval = self.parse_lval()?;
+        decls.push(self.parse_decl(is_const, ty.clone(), lval)?);
+        let mut decl = parse_while_match!(self.iter, TokenType::Comma, {
+            let lval = self.parse_lval()?;
+            self.parse_decl(is_const, ty.clone(), lval)
+        });
+        expect_token!(self.iter, TokenType::Semicolon)?;
+        decls.append(&mut decl);
+        Ok(decls)
     }
 
     fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
@@ -287,11 +311,11 @@ impl<T> Parser<T>
         self.parse_expr_opg(lhs, 0)
     }
 
-    fn parse_expr_opg(&mut self, lhs: Expr, precedence: u32) -> Result<Expr, ParseError> {
+    fn parse_expr_opg(&mut self, lhs: Expr, prec: u32) -> Result<Expr, ParseError> {
         let mut lhs = lhs;
         while let Some(op_token) = self.iter.next_if(|token| {
             let op = &token.token_type;
-            op.is_binary_op() && op.precedence() >= precedence
+            op.is_binary_op() && op.prec() >= prec
         }) {
             // OPG
             let op = op_token.token_type;
@@ -300,11 +324,11 @@ impl<T> Parser<T>
             while let Some(next_op_token) = self.iter.next_if(|next_token| {
                 let next_op = &next_token.token_type;
                 next_op.is_binary_op()
-                    && ((next_op.precedence() > op.precedence() && next_op.is_left_assoc())
-                    || (next_op.precedence() == op.precedence() && !next_op.is_left_assoc()))
+                    && ((next_op.prec() > op.prec() && next_op.is_left_assoc())
+                    || (next_op.prec() == op.prec() && !next_op.is_left_assoc()))
             }) {
                 let op = next_op_token.token_type;
-                let op_precedence = op.precedence();
+                let op_precedence = op.prec();
                 rhs = self.parse_expr_opg(rhs, op_precedence)?;
             }
 
@@ -324,8 +348,7 @@ impl<T> Parser<T>
                     })
                 }
                 _ => {
-                    let binary_op = op
-                        .to_binary_op().unwrap();
+                    let binary_op = op.to_binary_op().unwrap();
                     Expr::Binary(BinaryExpr {
                         lhs: Rc::new(lhs),
                         rhs: Rc::new(rhs),
@@ -383,7 +406,12 @@ impl<T> Parser<T>
             expect_token!(self.iter, TokenType::RParen)?;
             Ok(expr)
         } else {
-            Err(ParseError::ExpectedPattern("Literal or Identifier or Function Call or Parenthesis".into()))
+            Err(ParseError {
+                parse_error_kind: ParseErrorKind::ExpectedPattern(
+                    "Literal or Identifier or Function Call or Parenthesis".into()
+                ),
+                span: self.iter.peek().map_or(Span::MAX, |x| x.span),
+            })
         }
     }
 
@@ -437,11 +465,10 @@ impl<T> Parser<T>
     }
 
     fn parse_ty(&mut self) -> Result<TypeDef, ParseError> {
-        let ty_name = self.parse_ident()?;
-        let span = ty_name.span.clone();
+        let ty_token = expect_token!(self.iter, TokenType::IntTy | TokenType::VoidTy)?;
         Ok(TypeDef {
-            ty_name,
-            span,
+            ty_kind: ty_token.token_type.to_ty_kind().unwrap(),
+            span: ty_token.span,
         })
     }
 

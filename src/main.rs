@@ -14,9 +14,9 @@ fn main() {
     let input = std::fs::read_to_string(input_file)
         .expect("Unable to read from input file");
 
-    let lexer = lexer::Lexer::new(input.chars());
+    // let lexer = lexer::Lexer::new(input.chars());
 
-    // println!("{:?}", lexer.into_iter().collect::<Vec<_>>());
-    let ast = parser::Parser::new(lexer).parse();
-    // println!("{:?}", ast);
+    println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect::<Vec<_>>());
+    // let ast = parser::Parser::new(lexer).parse();
+    println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
 }
