@@ -248,12 +248,15 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    Mod,
     Gt,
     Lt,
     Ge,
     Le,
     Eq,
     Ne,
+    And,
+    Or
 }
 
 impl TokenType {
@@ -261,17 +264,20 @@ impl TokenType {
         use super::token::TokenType::*;
         matches!(
             self,
-            Assign | Plus | Minus | Mul | Div | Eq | Ne | Lt | Gt | Le | Ge
+            Assign | Plus | Minus | Mul | Div | Mod | Eq | Ne | Lt | Gt | Le | Ge | And | Or
         )
     }
 
     pub fn prec(&self) -> u32 {
         use super::token::TokenType::*;
         match self {
-            Plus | Minus => 10,
             Mul | Div => 20,
+            Plus | Minus | Mod => 10,
+            Lt | Gt | Le | Ge => 5,
+            Eq | Ne => 4,
+            And => 3,
+            Or => 2,
             Assign => 1,
-            Eq | Ne | Lt | Gt | Le | Ge => 2,
             _ => unreachable!(),
         }
     }
@@ -279,7 +285,7 @@ impl TokenType {
     pub fn is_left_assoc(&self) -> bool {
         use super::token::TokenType::*;
         match self {
-            Plus | Minus | Mul | Div | Eq | Ne | Lt | Gt | Le | Ge => true,
+            Plus | Minus | Mul | Div | Mod | Eq | Ne | Lt | Gt | Le | Ge | And | Or => true,
             Assign => false,
             _ => unreachable!(),
         }
@@ -291,12 +297,15 @@ impl TokenType {
             TokenType::Minus => Some(BinaryOp::Sub),
             TokenType::Mul => Some(BinaryOp::Mul),
             TokenType::Div => Some(BinaryOp::Div),
+            TokenType::Mod => Some(BinaryOp::Mod),
             TokenType::Eq => Some(BinaryOp::Eq),
             TokenType::Ne => Some(BinaryOp::Ne),
             TokenType::Lt => Some(BinaryOp::Lt),
             TokenType::Gt => Some(BinaryOp::Gt),
             TokenType::Le => Some(BinaryOp::Le),
             TokenType::Ge => Some(BinaryOp::Ge),
+            TokenType::And => Some(BinaryOp::And),
+            TokenType::Or => Some(BinaryOp::Or),
             _ => None,
         }
     }
