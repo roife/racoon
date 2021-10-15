@@ -21,7 +21,8 @@ pub struct Decl {
 
 #[derive(Debug, Clone)]
 pub struct SubDecl {
-    pub name: LVal,
+    pub name: Ident,
+    pub dims: Option<Dim>,
     pub init_val: Option<Rc<InitVal>>,
     pub span: Span,
 }
