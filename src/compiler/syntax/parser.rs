@@ -3,11 +3,12 @@ use std::{
     rc::Rc
 };
 
+use crate::compiler::span::Span;
+
 use super::{
     ast::*,
     err::{ParseError, ParseErrorKind},
     lexer::Lexer,
-    span::Span,
     token::TokenType,
 };
 
@@ -114,7 +115,7 @@ impl<T> Parser<T>
             expect_token!(self.iter, TokenType::Assign)?;
             let init_val = self.parse_init_val()?;
             span.end = init_val.span().end;
-            Some(Rc::new(init_val))
+            Some(init_val)
         } else {
             None
         };
@@ -334,7 +335,7 @@ impl<T> Parser<T>
     fn parse_expr_opg(&mut self, lhs: Expr, prec: u32) -> Result<Expr, ParseError> {
         let mut lhs = lhs;
         while let Some(op_token) = self.iter.next_if(|token| {
-            let op = *token.token_type;
+            let op = &token.token_type;
             op.is_binary_op() && op.prec() >= prec
         }) {
             // OPG
@@ -390,14 +391,14 @@ impl<T> Parser<T>
 
         let mut expr_item = self.parse_expr_item()?;
         let end = expr_item.span().end;
-        pre_op_tokens.drain(..).rev().for_each(|prec_op| {
+        for prec_op in pre_op_tokens.drain(..).rev() {
             let op = prec_op.token_type.to_unary_op().unwrap();
             expr_item = Expr::Unary(UnaryExpr {
                 op,
                 expr: Rc::new(expr_item),
                 span: Span { start: prec_op.span.start, end },
             });
-        });
+        }
         Ok(expr_item)
     }
 
@@ -464,7 +465,7 @@ impl<T> Parser<T>
         let dims = parse_separate_match!(self.iter, TokenType::LBracket, {
             let dim = self.parse_expr()?;
             span.end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
-            Ok(Rc::new(dim))
+            Ok(dim)
         });
         Ok(Dim { dims, span })
     }

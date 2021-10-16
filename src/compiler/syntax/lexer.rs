@@ -3,11 +3,11 @@ use std::{
     rc::Rc,
 };
 
+use crate::compiler::span::{Pos, Span};
 use crate::compiler::syntax::err::LexErrorKind;
 
 use super::{
     err::LexError,
-    span::{Pos, Span},
     token::{Token, TokenType}
 };
 

@@ -1,10 +1,9 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
-use super::{
-    err::LexError,
-    span::Span
-};
+use crate::compiler::span::Span;
+
+use super::err::LexError;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub enum TokenType {

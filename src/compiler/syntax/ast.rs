@@ -1,9 +1,8 @@
 use std::rc::Rc;
 
-use super::{
-    span::Span,
-    token::TokenType,
-};
+use crate::compiler::span::Span;
+
+use super::token::TokenType;
 
 #[derive(Debug, Clone)]
 pub struct Program {
@@ -28,7 +27,7 @@ pub struct Decl {
 pub struct SubDecl {
     pub name: Ident,
     pub dims: Option<Dim>,
-    pub init_val: Option<Rc<InitVal>>,
+    pub init_val: Option<InitVal>,
     pub span: Span,
 }
 
@@ -209,7 +208,7 @@ pub struct LVal {
 
 #[derive(Debug, Clone)]
 pub struct Dim {
-    pub dims: Vec<Rc<Expr>>,
+    pub dims: Vec<Expr>,
     pub span: Span,
 }
 
