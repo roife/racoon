@@ -131,8 +131,7 @@ impl<T> Parser<T>
     fn parse_init_val(&mut self) -> Result<InitVal, ParseError> {
         let init_val = if next_if_match!(self.iter, TokenType::LBrace) {
             let array_vals = parse_separate_match!(self.iter, TokenType::Comma, {
-                let val = self.parse_init_val()?;
-                Ok(Rc::new(val))
+                Ok(Rc::new(self.parse_init_val()?))
             });
             expect_token!(self.iter, TokenType::RBrace)?;
             InitVal::ArrayVal(array_vals)
@@ -262,9 +261,9 @@ impl<T> Parser<T>
         let mut end = then_block.span.end;
 
         let else_block = if next_if_match!(self.iter, TokenType::ElseKw) {
-            let else_block = self.parse_block_stmt()?;
-            end = else_block.span.end;
-            Some(Rc::new(else_block))
+            let block_stmt = Rc::new(self.parse_block_stmt()?);
+            end = block_stmt.span.end;
+            Some(block_stmt)
         } else {
             None
         };
