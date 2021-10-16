@@ -1,4 +1,4 @@
-use super::span::{Span, Pos};
+use super::span::{Pos, Span};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct LexError {

@@ -1,8 +1,9 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+
 use super::{
-    span::Span,
-    err::LexError
+    err::LexError,
+    span::Span
 };
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]

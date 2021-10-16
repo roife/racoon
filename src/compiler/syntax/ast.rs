@@ -240,7 +240,7 @@ pub struct Ident {
 pub enum UnaryOp {
     Neg,
     Pos,
-    Not
+    Not,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -258,7 +258,7 @@ pub enum BinaryOp {
     Ne,
     Not,
     And,
-    Or
+    Or,
 }
 
 impl TokenType {
@@ -316,6 +316,23 @@ impl TokenType {
         match self {
             TokenType::IntTy => Some(TyKind::Primitive(PrimitiveTy::Integer)),
             TokenType::VoidTy => Some(TyKind::Void),
+            _ => None,
+        }
+    }
+
+    pub fn is_unary_op(&self) -> bool {
+        use super::token::TokenType::*;
+        matches!(
+            self,
+            Minus | Plus | Not
+        )
+    }
+
+    pub fn to_unary_op(&self) -> Option<UnaryOp> {
+        match self {
+            TokenType::Plus => Some(UnaryOp::Pos),
+            TokenType::Minus => Some(UnaryOp::Neg),
+            TokenType::Not => Some(UnaryOp::Not),
             _ => None,
         }
     }

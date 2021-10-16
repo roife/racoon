@@ -2,11 +2,13 @@ use std::{
     iter::{Iterator, Peekable},
     rc::Rc,
 };
+
 use crate::compiler::syntax::err::LexErrorKind;
+
 use super::{
+    err::LexError,
     span::{Pos, Span},
-    token::{TokenType, Token},
-    err::LexError
+    token::{Token, TokenType}
 };
 
 macro_rules! next_if_ch_eq {

@@ -104,7 +104,7 @@ impl<T> Parser<T>
             is_const,
             ty,
             sub_decls,
-            span: Span { start, end }
+            span: Span { start, end },
         })
     }
 
@@ -183,7 +183,7 @@ impl<T> Parser<T>
             ty,
             span: Span {
                 start: param_start,
-                end: param_end
+                end: param_end,
             },
         })
     }
@@ -334,7 +334,7 @@ impl<T> Parser<T>
     fn parse_expr_opg(&mut self, lhs: Expr, prec: u32) -> Result<Expr, ParseError> {
         let mut lhs = lhs;
         while let Some(op_token) = self.iter.next_if(|token| {
-            let op = &token.token_type;
+            let op = *token.token_type;
             op.is_binary_op() && op.prec() >= prec
         }) {
             // OPG
@@ -343,9 +343,11 @@ impl<T> Parser<T>
 
             while self.iter.peek().map_or(false, |next_token| {
                 let next_op = &next_token.token_type;
-                next_op.is_binary_op() &&
-                    ((next_op.prec() > op.prec() && next_op.is_left_assoc())
-                        || (next_op.prec() == op.prec() && !next_op.is_left_assoc()))
+                next_op.is_binary_op() && if next_op.is_left_assoc() {
+                    next_op.prec() > op.prec()
+                } else {
+                    next_op.prec() == op.prec()
+                }
             }) {
                 let next_op_prec = self.iter.peek().unwrap().token_type.prec();
                 rhs = self.parse_expr_opg(rhs, next_op_prec)?;
@@ -382,22 +384,18 @@ impl<T> Parser<T>
 
     fn parse_unary_expr(&mut self) -> Result<Expr, ParseError> {
         let mut pre_op_tokens = vec![];
-        while is_next!(self.iter, TokenType::Plus | TokenType::Minus) {
+        while self.iter.peek().map_or(false, |x| x.token_type.is_unary_op()) {
             pre_op_tokens.push(self.iter.next().unwrap())
         }
 
         let mut expr_item = self.parse_expr_item()?;
         let end = expr_item.span().end;
         for prec_op in pre_op_tokens.drain(..).rev() {
-            let op = match prec_op.token_type {
-                TokenType::Plus => UnaryOp::Pos,
-                TokenType::Minus => UnaryOp::Neg,
-                _ => unreachable!(),
-            };
+            let op = prec_op.token_type.to_unary_op().unwrap();
             expr_item = Expr::Unary(UnaryExpr {
                 op,
                 expr: Rc::new(expr_item),
-                span: Span { start: prec_op.span.start, end }
+                span: Span { start: prec_op.span.start, end },
             });
         }
         Ok(expr_item)
@@ -417,7 +415,7 @@ impl<T> Parser<T>
             let int_literal = expect_token!(self.iter, TokenType::IntLiteral(_))?;
             Ok(Expr::Literal(LiteralExpr {
                 kind: LiteralKind::Integer(int_literal.token_type.get_int_literal().unwrap()),
-                span: int_literal.span
+                span: int_literal.span,
             }))
         } else if is_next!(self.iter, TokenType::LParen) {
             expect_token!(self.iter, TokenType::LParen)?;
@@ -437,11 +435,7 @@ impl<T> Parser<T>
     fn parse_func_call(&mut self, func: Ident) -> Result<CallExpr, ParseError> {
         let start = func.span.start;
         expect_token!(self.iter, TokenType::LParen)?;
-        let params = parse_separate_match!(
-            self.iter,
-            TokenType::Comma,
-            self.parse_expr()
-        );
+        let params = parse_separate_match!(self.iter,TokenType::Comma,self.parse_expr());
         let end = expect_token!(self.iter, TokenType::RParen)?.span.end;
 
         Ok(CallExpr {
@@ -462,11 +456,7 @@ impl<T> Parser<T>
             None
         };
 
-        Ok(LVal {
-            name,
-            dims,
-            span,
-        })
+        Ok(LVal { name, dims, span })
     }
 
     fn parse_dim(&mut self) -> Result<Dim, ParseError> {
@@ -476,10 +466,7 @@ impl<T> Parser<T>
             span.end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
             Ok(Rc::new(dim))
         });
-        Ok(Dim {
-            dims,
-            span,
-        })
+        Ok(Dim { dims, span })
     }
 
     fn parse_ty(&mut self) -> Result<TypeDef, ParseError> {
