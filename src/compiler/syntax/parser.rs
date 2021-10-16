@@ -390,14 +390,14 @@ impl<T> Parser<T>
 
         let mut expr_item = self.parse_expr_item()?;
         let end = expr_item.span().end;
-        for prec_op in pre_op_tokens.drain(..).rev() {
+        pre_op_tokens.drain(..).rev().for_each(|prec_op| {
             let op = prec_op.token_type.to_unary_op().unwrap();
             expr_item = Expr::Unary(UnaryExpr {
                 op,
                 expr: Rc::new(expr_item),
                 span: Span { start: prec_op.span.start, end },
             });
-        }
+        });
         Ok(expr_item)
     }
 
