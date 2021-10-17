@@ -414,7 +414,7 @@ impl<T> Parser<T>
         } else if is_next!(self.iter, TokenType::IntLiteral(_)) {
             let int_literal = expect_token!(self.iter, TokenType::IntLiteral(_))?;
             Ok(Expr::Literal(LiteralExpr {
-                kind: LiteralKind::Integer(int_literal.token_type.get_int_literal().unwrap()),
+                kind: LiteralKind::Integer(*int_literal.token_type.as_int_literal().unwrap()),
                 span: int_literal.span,
             }))
         } else if is_next!(self.iter, TokenType::LParen) {
@@ -481,7 +481,7 @@ impl<T> Parser<T>
         let token = expect_token!(self.iter, TokenType::Ident(_))?;
         Ok(Ident {
             span: token.span,
-            name: token.token_type.own_ident_name().unwrap(),
+            name: token.token_type.as_ident().unwrap().to_string(),
         })
     }
 }

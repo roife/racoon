@@ -1,11 +1,12 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use enum_as_inner::EnumAsInner;
 
 use crate::compiler::span::Span;
 
 use super::err::LexError;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, EnumAsInner)]
 pub enum TokenType {
     Ident(String),
     ConstKw,
@@ -22,22 +23,6 @@ pub enum TokenType {
     LParen, RParen, LBracket, RBracket, LBrace, RBrace,
     Comment(String),
     Err(Rc<LexError>)
-}
-
-impl TokenType {
-    pub fn own_ident_name(self) -> Option<String> {
-        match self {
-            TokenType::Ident(name) => Some(name.clone()),
-            _ => None,
-        }
-    }
-
-    pub fn get_int_literal(&self) -> Option<i32> {
-        match self {
-            TokenType::IntLiteral(i) => Some(*i),
-            _ => None
-        }
-    }
 }
 
 #[derive(Clone)]
