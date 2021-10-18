@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::compiler::span::Span;
 
 use super::token::TokenType;
@@ -34,7 +32,7 @@ pub struct SubDecl {
 #[derive(Debug, Clone)]
 pub enum InitVal {
     Expr(Expr),
-    ArrayVal(Vec<Rc<InitVal>>),
+    ArrayVal(Vec<Box<InitVal>>),
 }
 
 impl InitVal {
@@ -116,22 +114,22 @@ impl Stmt {
 
 #[derive(Debug, Clone)]
 pub struct IfStmt {
-    pub cond: Rc<Expr>,
-    pub then_block: Rc<BlockStmt>,
-    pub else_block: Option<Rc<BlockStmt>>,
+    pub cond: Box<Expr>,
+    pub then_block: Box<BlockStmt>,
+    pub else_block: Option<Box<BlockStmt>>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct WhileStmt {
-    pub cond: Rc<Expr>,
-    pub body: Rc<BlockStmt>,
+    pub cond: Box<Expr>,
+    pub body: Box<BlockStmt>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct ReturnStmt {
-    pub val: Option<Rc<Expr>>,
+    pub val: Option<Box<Expr>>,
     pub span: Span,
 }
 
@@ -160,8 +158,8 @@ impl Expr {
 
 #[derive(Debug, Clone)]
 pub struct AssignExpr {
-    pub lhs: Rc<Expr>,
-    pub rhs: Rc<Expr>,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
     pub allow_assign_const: bool,
     pub span: Span,
 }
@@ -180,15 +178,15 @@ pub enum LiteralKind {
 #[derive(Debug, Clone)]
 pub struct UnaryExpr {
     pub op: UnaryOp,
-    pub expr: Rc<Expr>,
+    pub expr: Box<Expr>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct BinaryExpr {
     pub op: BinaryOp,
-    pub lhs: Rc<Expr>,
-    pub rhs: Rc<Expr>,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
     pub span: Span,
 }
 

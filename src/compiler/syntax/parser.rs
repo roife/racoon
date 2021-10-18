@@ -1,6 +1,5 @@
 use std::{
-    iter::Peekable,
-    rc::Rc
+    iter::Peekable
 };
 
 use crate::compiler::span::Span;
@@ -131,7 +130,7 @@ impl<T> Parser<T>
     fn parse_init_val(&mut self) -> Result<InitVal, ParseError> {
         let init_val = if next_if_match!(self.iter, TokenType::LBrace) {
             let array_vals = parse_separate_match!(self.iter, TokenType::Comma, {
-                Ok(Rc::new(self.parse_init_val()?))
+                Ok(Box::new(self.parse_init_val()?))
             });
             expect_token!(self.iter, TokenType::RBrace)?;
             InitVal::ArrayVal(array_vals)
@@ -254,14 +253,14 @@ impl<T> Parser<T>
         let start = expect_token!(self.iter, TokenType::IfKw)?.span.start;
 
         expect_token!(self.iter, TokenType::LParen)?;
-        let cond = Rc::new(self.parse_expr()?);
+        let cond = Box::new(self.parse_expr()?);
         expect_token!(self.iter, TokenType::RParen)?;
 
-        let then_block = Rc::new(self.parse_block_stmt()?);
+        let then_block = Box::new(self.parse_block_stmt()?);
         let mut end = then_block.span.end;
 
         let else_block = if next_if_match!(self.iter, TokenType::ElseKw) {
-            let block_stmt = Rc::new(self.parse_block_stmt()?);
+            let block_stmt = Box::new(self.parse_block_stmt()?);
             end = block_stmt.span.end;
             Some(block_stmt)
         } else {
@@ -280,10 +279,10 @@ impl<T> Parser<T>
         let start = expect_token!(self.iter, TokenType::WhileKw)?.span.start;
 
         expect_token!(self.iter, TokenType::LParen)?;
-        let cond = Rc::new(self.parse_expr()?);
+        let cond = Box::new(self.parse_expr()?);
         expect_token!(self.iter, TokenType::RParen)?;
 
-        let body = Rc::new(self.parse_block_stmt()?);
+        let body = Box::new(self.parse_block_stmt()?);
         let end = body.span.end;
 
         Ok(WhileStmt {
@@ -310,7 +309,7 @@ impl<T> Parser<T>
         let val = if is_next!(self.iter, TokenType::Semicolon) {
             None
         } else {
-            Some(Rc::new(self.parse_expr()?))
+            Some(Box::new(self.parse_expr()?))
         };
         let end = expect_token!(self.iter, TokenType::Semicolon)?.span.end;
 
@@ -362,8 +361,8 @@ impl<T> Parser<T>
             lhs = match op {
                 TokenType::Assign => {
                     Expr::Assign(AssignExpr {
-                        lhs: Rc::new(lhs),
-                        rhs: Rc::new(rhs),
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
                         allow_assign_const: false,
                         span,
                     })
@@ -371,8 +370,8 @@ impl<T> Parser<T>
                 _ => {
                     let binary_op = op.to_binary_op().unwrap();
                     Expr::Binary(BinaryExpr {
-                        lhs: Rc::new(lhs),
-                        rhs: Rc::new(rhs),
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
                         op: binary_op,
                         span,
                     })
@@ -394,7 +393,7 @@ impl<T> Parser<T>
             let op = prec_op.token_type.to_unary_op().unwrap();
             expr_item = Expr::Unary(UnaryExpr {
                 op,
-                expr: Rc::new(expr_item),
+                expr: Box::new(expr_item),
                 span: Span { start: prec_op.span.start, end },
             });
         }
