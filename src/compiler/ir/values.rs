@@ -6,13 +6,13 @@ use std::{
 
 use enum_as_inner::EnumAsInner;
 
-#[derive(Debug, Clone)]
+use crate::compiler::ir::instructions::Inst;
+use crate::compiler::ptr::*;
+
+#[derive(Debug, Clone, EnumAsInner)]
 pub enum Ty {
     Void,
-    Func {
-        ret_ty: Box<Ty>,
-        params: Vec<Box<Ty>>,
-    },
+    Func(FuncTy),
     Int(usize),
     Ptr(Box<Ty>),
     Label,
@@ -20,35 +20,57 @@ pub enum Ty {
 }
 
 #[derive(Debug, Clone)]
+pub struct FuncTy {
+    pub ret_ty: Box<Ty>,
+    pub params: Vec<Box<Ty>>
+}
+
+#[derive(Debug, Clone)]
 pub struct Use {
-    pub value: Weak<RefCell<Value>>,
-    pub user: Weak<RefCell<Value>>,
+    pub value: MutWeak<Value>,
+    pub user: MutWeak<Value>,
+}
+
+impl Use {
+    pub fn from(user: MutWeak<Value>, value: MutWeak<Value>) -> Use {
+        Use { value, user }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Value {
     pub ty: Ty,
     pub uses: Option<LinkedList<Use>>,
+    pub value_kind: ValueKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum ValueKind {
+    Module(Module),
+    Func(Func),
+    BasicBlock(BasicBlock),
+    Constant(Constant),
+    Inst(Inst),
 }
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    pub value: Value,
     // funcs
     // decls
 }
 
 #[derive(Debug, Clone)]
 pub struct Func {
-    pub value: Value,
-    // bbs
+    pub is_builtin: bool,
+    pub name: String,
+    pub params: Vec<MutRc<Value>>,
+    pub basic_blocks: LinkedList<MutRc<BasicBlock>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BasicBlock {
-    pub value: Value,
     pub succ_blks: Vec<Weak<RefCell<BasicBlock>>>,
-    // inst
+    pub insts: LinkedList<MutRc<Inst>>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,65 +80,4 @@ pub enum Constant {
 }
 
 #[derive(Debug, Clone)]
-pub struct Inst {
-    pub value: Value,
-    pub kind: InstKind,
-}
-
-#[derive(Debug, Clone, EnumAsInner)]
-pub enum InstKind {
-    // Binary Instruction
-    Binary {
-        kind: BinaryInstKind,
-        left: Use,
-        right: Use,
-    },
-
-    // Terminator Instruction
-    Branch {
-        cond: Use,
-        true_blk: Use,
-        false_blk: Use,
-    },
-    Jump { nxt_blk: Use },
-    ReturnInst { ret_val: Use },
-
-    // Memory
-    Alloca,
-    Load { addr: Use },
-    Store { addr: Use },
-    GEP {
-        ptr: Use,
-        indices: Vec<Use>,
-    },
-
-    // Conversion
-    // ZExt(ZExtInst),
-
-    // Other
-    Call {
-        func: Use,
-        args: Vec<Use>,
-    },
-    Phi {
-        incoming_vals: Vec<Use>,
-        incoming_blks: Vec<Use>,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum BinaryInstKind {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Lt,
-    Le,
-    Gt,
-    Ge,
-    Eq,
-    Ne,
-    And,
-    Or,
-}
+pub enum GlobalVariable {}

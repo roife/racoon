@@ -23,7 +23,7 @@ pub struct Decl {
 
 #[derive(Debug, Clone)]
 pub struct SubDecl {
-    pub name: Ident,
+    pub var_name: Ident,
     pub dims: Option<Dim>,
     pub init_val: Option<InitVal>,
     pub span: Span,
@@ -32,7 +32,7 @@ pub struct SubDecl {
 #[derive(Debug, Clone)]
 pub enum InitVal {
     Expr(Expr),
-    ArrayVal(Vec<Box<InitVal>>),
+    ArrayVal(Vec<InitVal>),
 }
 
 impl InitVal {
@@ -49,7 +49,7 @@ impl InitVal {
 
 #[derive(Debug, Clone)]
 pub struct Func {
-    pub name: Ident,
+    pub func_name: Ident,
     pub params: Vec<FuncParam>,
     pub ret_ty: TypeDef,
     pub body: BlockStmt,
@@ -58,7 +58,7 @@ pub struct Func {
 
 #[derive(Debug, Clone)]
 pub struct FuncParam {
-    pub name: Ident,
+    pub param_name: Ident,
     pub dims: Option<Dim>,
     pub ty: TypeDef,
     pub span: Span,
@@ -193,13 +193,13 @@ pub struct BinaryExpr {
 #[derive(Debug, Clone)]
 pub struct CallExpr {
     pub func: Ident,
-    pub params: Vec<Expr>,
+    pub args: Vec<Expr>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct LVal {
-    pub name: Ident,
+    pub lval_name: Ident,
     pub dims: Option<Dim>,
     pub span: Span,
 }

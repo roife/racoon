@@ -9,4 +9,3 @@ edition = "2018"
 [dependencies]
 structopt = "0.3"
 enum-as-inner = "0.3.3"
-intrusive-collections = "0.9"

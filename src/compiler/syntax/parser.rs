@@ -76,7 +76,7 @@ impl<T> Parser<T>
             let l_value = self.parse_l_value()?;
 
             if is_next!(self.iter, TokenType::LParen) {
-                let func = self.parse_func(ty, l_value.name)?;
+                let func = self.parse_func(ty, l_value.lval_name)?;
                 program_items.push(ProgramItem::Func(func));
             } else {
                 let decl = self.parse_decl(is_const, ty, l_value)?;
@@ -120,7 +120,7 @@ impl<T> Parser<T>
         };
 
         Ok(SubDecl {
-            name: l_value.name,
+            var_name: l_value.lval_name,
             dims: l_value.dims,
             init_val,
             span,
@@ -130,7 +130,7 @@ impl<T> Parser<T>
     fn parse_init_val(&mut self) -> Result<InitVal, ParseError> {
         let init_val = if next_if_match!(self.iter, TokenType::LBrace) {
             let array_vals = parse_separate_match!(self.iter, TokenType::Comma, {
-                Ok(Box::new(self.parse_init_val()?))
+                Ok(self.parse_init_val()?)
             });
             expect_token!(self.iter, TokenType::RBrace)?;
             InitVal::ArrayVal(array_vals)
@@ -155,7 +155,7 @@ impl<T> Parser<T>
 
         let (start, end) = (ret_ty.span.start, body.span.end);
         Ok(Func {
-            name,
+            func_name: name,
             params,
             ret_ty,
             body,
@@ -177,7 +177,7 @@ impl<T> Parser<T>
             None
         };
         Ok(FuncParam {
-            name,
+            param_name: name,
             dims,
             ty,
             span: Span {
@@ -405,7 +405,7 @@ impl<T> Parser<T>
             let l_value = self.parse_l_value()?;
 
             if is_next!(self.iter, TokenType::LParen) {
-                let call = self.parse_func_call(l_value.name)?;
+                let call = self.parse_func_call(l_value.lval_name)?;
                 Ok(Expr::Call(call))
             } else {
                 Ok(Expr::LVal(l_value))
@@ -439,7 +439,7 @@ impl<T> Parser<T>
 
         Ok(CallExpr {
             func,
-            params,
+            args: params,
             span: Span { start, end },
         })
     }
@@ -455,7 +455,7 @@ impl<T> Parser<T>
             None
         };
 
-        Ok(LVal { name, dims, span })
+        Ok(LVal { lval_name: name, dims, span })
     }
 
     fn parse_dim(&mut self) -> Result<Dim, ParseError> {

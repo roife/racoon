@@ -3,6 +3,7 @@ use structopt::StructOpt;
 use racoon::compiler::syntax::{
     lexer,
     parser,
+    err::ParseError,
 };
 
 mod options;
@@ -14,9 +15,16 @@ fn main() {
     let input = std::fs::read_to_string(input_file)
         .expect("Unable to read from input file");
 
-    // let lexer = lexer::Lexer::new(input.chars());
+    let lexer = lexer::Lexer::new(input.chars());
+    // println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect::<Vec<_>>());
 
-    println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect::<Vec<_>>());
-    // let ast = parser::Parser::new(lexer).parse();
-    println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
+    let ast = match parser::Parser::new(lexer).parse() {
+        Ok(p) => p,
+        Err(e) => {
+            println!("{:?}", e);
+            return;
+            todo!();
+        }
+    };
+    // println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
 }
