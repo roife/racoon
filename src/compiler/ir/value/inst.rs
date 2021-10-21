@@ -1,19 +1,23 @@
 use enum_as_inner::EnumAsInner;
+
 use crate::compiler::syntax::ast::BinaryOp;
+
+use super::{
+    super::arena::ArenaItem,
+    value::Value,
+};
 use super::{
     super::arena::{BBId, InstId},
     ty::Ty,
-    basic_block::BasicBlock,
 };
 
+pub type InstItem = ArenaItem<InstId, InstInfo>;
+
 #[derive(Debug, Clone)]
-pub struct Inst {
+pub struct InstInfo {
     pub kind: InstKind,
     pub ty: Ty,
-
     pub bb: BBId,
-    pub prev: Option<InstId>,
-    pub next: Option<InstId>,
 }
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -40,9 +44,9 @@ pub enum InstKind {
 
 #[derive(Debug, Clone)]
 pub struct BinaryInst {
-    // pub kind: BinaryInstKind,
-    // pub left: InstId,
-    // pub right: InstId,
+    pub kind: BinaryInstKind,
+    pub left: Value,
+    pub right: Value,
 }
 
 #[derive(Debug, Clone)]
@@ -70,13 +74,13 @@ impl BinaryOp {
 
 #[derive(Debug, Clone)]
 pub enum BranchInst {
-    // Br { cond: (), true_blk: BBId, false_blk: BBId },
-    // Jump { nxt_blk: BBId },
+    Br { cond: Value, true_blk: Value, false_blk: Value },
+    Jump { nxt_blk: Value },
 }
 
 #[derive(Debug, Clone)]
 pub struct RetInst {
-    // pub ret_val: InstId,
+    pub ret_val: Value,
 }
 
 #[derive(Debug, Clone)]
@@ -86,17 +90,17 @@ pub struct LoadInst {
 
 #[derive(Debug, Clone)]
 pub struct StoreInst {
-    // pub addr: Use,
+    pub addr: Value,
 }
 
 #[derive(Debug, Clone)]
 pub struct GEPInst {
-    // ptr: Use,
-    // indices: Vec<Use>,
+    ptr: Value,
+    indices: Vec<Value>,
 }
 
 #[derive(Debug, Clone)]
 pub struct CallInst {
-    // func: Use,
-    // args: Vec<Use>,
+    func: Value,
+    args: Vec<Value>,
 }

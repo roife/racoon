@@ -1,7 +1,7 @@
 pub trait IntrusiveLinkedList<Key>
     where Key: Copy + Eq,
 {
-    type Item: IntrusiveListItem<Key = Key>;
+    type Item: IntrusiveLinkedListItem<Key = Key>;
 
     fn get_item(&self, key: Key) -> &Self::Item;
     fn get_item_mut(&mut self, key: Key) -> &mut Self::Item;
@@ -119,7 +119,7 @@ pub trait IntrusiveLinkedList<Key>
 }
 
 /// Items for [`ImplicitLinkedList`]
-pub trait IntrusiveListItem {
+pub trait IntrusiveLinkedListItem {
     type Key: Copy + Eq;
 
     fn next(&self) -> Option<Self::Key>;

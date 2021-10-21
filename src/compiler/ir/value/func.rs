@@ -1,10 +1,14 @@
 use slotmap::SlotMap;
+use crate::compiler::ir::arena::{ArenaItem, FuncId};
+
 use super::{
+    basic_block::BBItem,
+    inst::InstItem,
     super::arena::{BBId, InstId},
     ty::Ty,
-    basic_block::BasicBlock,
-    inst::Inst,
 };
+
+pub type FuncItem = ArenaItem<FuncId, Func>;
 
 #[derive(Debug, Clone)]
 pub struct Func {
@@ -15,8 +19,8 @@ pub struct Func {
 
     pub first_block: Option<BBId>,
 
-    instructions_arena: SlotMap<InstId, Inst>,
-    basic_block_arena: SlotMap<BBId, BasicBlock>,
+    instructions_arena: SlotMap<InstId, InstItem>,
+    basic_block_arena: SlotMap<BBId, BBItem>,
 }
 
 impl Func {
