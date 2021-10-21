@@ -1,5 +1,4 @@
-use crate::compiler::ir::value::ty::Ty;
-use crate::compiler::ir::value::value::Value;
+use crate::compiler::ir::value::{ty::Ty, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct GlobalVar {

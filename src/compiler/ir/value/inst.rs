@@ -1,6 +1,8 @@
 use enum_as_inner::EnumAsInner;
+use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
 
-use crate::compiler::ir::arena::FuncId;
+use crate::compiler::ir::arena::{FuncId, InstId};
+use crate::compiler::ir::value::value::Value;
 use crate::compiler::syntax::ast::BinaryOp;
 
 use super::{
@@ -13,7 +15,36 @@ use super::{
 pub struct Inst {
     pub kind: InstKind,
     pub ty: Ty,
+
     pub bb: BBId,
+    pub prev: Option<InstId>,
+    pub next: Option<InstId>,
+}
+
+impl Value for Inst {
+    fn get_ty(&self) -> Ty {
+        self.ty.clone()
+    }
+}
+
+impl IntrusiveLinkedListItem for Inst {
+    type Key = InstId;
+
+    fn next(&self) -> Option<Self::Key> {
+        self.next
+    }
+
+    fn set_next(&mut self, key: Option<Self::Key>) {
+        self.next = key
+    }
+
+    fn prev(&self) -> Option<Self::Key> {
+        self.prev
+    }
+
+    fn set_prev(&mut self, key: Option<Self::Key>) {
+        self.prev = key
+    }
 }
 
 #[derive(Debug, Clone, EnumAsInner)]

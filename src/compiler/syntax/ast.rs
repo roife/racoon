@@ -336,9 +336,6 @@ impl TokenType {
 
     pub fn is_ty(&self) -> bool {
         use super::token::TokenType::*;
-        matches!(
-            self,
-            IntTy | VoidTy
-        )
+        matches!(self, IntTy | VoidTy)
     }
 }
