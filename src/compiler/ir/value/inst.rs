@@ -1,20 +1,16 @@
 use enum_as_inner::EnumAsInner;
 
+use crate::compiler::ir::arena::FuncId;
 use crate::compiler::syntax::ast::BinaryOp;
 
 use super::{
-    super::arena::ArenaItem,
-    value::Value,
-};
-use super::{
-    super::arena::{BBId, InstId},
+    super::arena::BBId,
     ty::Ty,
+    value::Operand,
 };
-
-pub type InstItem = ArenaItem<InstId, InstInfo>;
 
 #[derive(Debug, Clone)]
-pub struct InstInfo {
+pub struct Inst {
     pub kind: InstKind,
     pub ty: Ty,
     pub bb: BBId,
@@ -45,8 +41,8 @@ pub enum InstKind {
 #[derive(Debug, Clone)]
 pub struct BinaryInst {
     pub kind: BinaryInstKind,
-    pub left: Value,
-    pub right: Value,
+    pub left: Operand,
+    pub right: Operand,
 }
 
 #[derive(Debug, Clone)]
@@ -74,13 +70,13 @@ impl BinaryOp {
 
 #[derive(Debug, Clone)]
 pub enum BranchInst {
-    Br { cond: Value, true_blk: Value, false_blk: Value },
-    Jump { nxt_blk: Value },
+    Br { cond: Operand, true_blk: BBId, false_blk: BBId },
+    Jump { nxt_blk: BBId },
 }
 
 #[derive(Debug, Clone)]
 pub struct RetInst {
-    pub ret_val: Value,
+    pub ret_val: Operand,
 }
 
 #[derive(Debug, Clone)]
@@ -90,17 +86,17 @@ pub struct LoadInst {
 
 #[derive(Debug, Clone)]
 pub struct StoreInst {
-    pub addr: Value,
+    // pub addr: Value,
 }
 
 #[derive(Debug, Clone)]
 pub struct GEPInst {
-    ptr: Value,
-    indices: Vec<Value>,
+    // ptr: Value,
+    // indices: Vec<Value>,
 }
 
 #[derive(Debug, Clone)]
 pub struct CallInst {
-    func: Value,
-    args: Vec<Value>,
+    func: FuncId,
+    args: Vec<Operand>,
 }

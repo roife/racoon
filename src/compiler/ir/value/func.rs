@@ -1,37 +1,37 @@
 use slotmap::SlotMap;
-use crate::compiler::ir::arena::{ArenaItem, FuncId};
 
-use super::{
-    basic_block::BBItem,
-    inst::InstItem,
-    super::arena::{BBId, InstId},
-    ty::Ty,
-};
+use crate::compiler::ir::arena::{BBId, InstId};
+use crate::compiler::ir::value::{basic_block::BasicBlock, inst::Inst};
 
-pub type FuncItem = ArenaItem<FuncId, Func>;
+use super::{ty::Ty, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct Func {
     pub name: String,
-    pub ty: Ty,
+    pub ret_ty: Ty,
     pub is_builtin: bool,
-    // pub params: todo
-
+    // pub params:
     pub first_block: Option<BBId>,
 
-    instructions_arena: SlotMap<InstId, InstItem>,
-    basic_block_arena: SlotMap<BBId, BBItem>,
+    instructions_arena: SlotMap<InstId, Inst>,
+    basic_block_arena: SlotMap<BBId, BasicBlock>,
+}
+
+impl Value for Func {
+    fn get_ty(&self) -> Ty {
+        todo!()
+    }
 }
 
 impl Func {
-    pub fn new(name: &str, ty: Ty, is_builtin: bool) -> Func {
+    pub fn new(name: &str, ret_ty: Ty, is_builtin: bool) -> Func {
         Func {
             name: String::from(name),
-            ty,
+            ret_ty,
             is_builtin,
+            first_block: None,
             instructions_arena: SlotMap::with_key(),
             basic_block_arena: SlotMap::with_key(),
-            first_block: None,
         }
     }
 }

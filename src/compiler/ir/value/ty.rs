@@ -13,14 +13,14 @@ pub enum Ty {
 #[derive(Debug, Clone)]
 pub struct FuncTy {
     pub ret_ty: Ty,
-    pub params: Vec<Ty>,
+    pub params_ty: Vec<Ty>,
 }
 
 impl Ty {
     pub fn func_of(ret_ty: Ty, params: Vec<Ty>) -> Ty {
         Ty::Func(Box::new(FuncTy {
             ret_ty,
-            params,
+            params_ty: params,
         }))
     }
 
