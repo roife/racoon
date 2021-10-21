@@ -307,7 +307,7 @@ impl<T> Lexer<T>
             loop {
                 let c = self.iter.next();
                 match c {
-                    Some((_, '\r')) | Some((_, '\n')) | Some((_, '\0')) => break,
+                    Some((_, '\r' | '\n' | '\0')) => break,
                     Some((_, c)) => comment.push(c),
                     None => break,
                 }

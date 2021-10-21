@@ -12,11 +12,11 @@ use super::{
 };
 
 macro_rules! expect_token {
-    ($self:expr, $($pat:pat)|+) => {
-        $self.next_if(|token| matches!(token.token_type, $($pat)|+))
+    ($self:expr, $pat:pat) => {
+        $self.next_if(|token| matches!(token.token_type, $pat))
         .map_or(
             Err(ParseError {
-                parse_error_kind: ParseErrorKind::ExpectedPattern(stringify!($($pat)|+).to_owned()),
+                parse_error_kind: ParseErrorKind::ExpectedPattern(stringify!($pat).to_owned()),
                 span: $self.peek().map_or(Span::MAX, |x| x.span),
             }),
             |token| Ok(token)
@@ -25,22 +25,22 @@ macro_rules! expect_token {
 }
 
 macro_rules! next_if_match {
-    ($self:expr, $($pat:pat)|+) => {
-        $self.next_if(|token| matches!(token.token_type, $($pat)|+)).is_some()
+    ($self:expr, $pat:pat) => {
+        $self.next_if(|token| matches!(token.token_type, $pat)).is_some()
     };
 }
 
 macro_rules! is_next {
-    ($self:expr, $($pat:pat)|+) => {
-        $self.peek().map_or(false, |token| matches!(token.token_type, $($pat)|+))
+    ($self:expr, $pat:pat) => {
+        $self.peek().map_or(false, |token| matches!(token.token_type, $pat))
     };
 }
 
 macro_rules! parse_separate_match {
-    ($self:expr, $($sep_pat:pat)|+, $parse:expr) => {{
+    ($self:expr, $sep_pat:pat, $parse:expr) => {{
         let first = (|| $parse)()?;
         let mut v = vec![first];
-        while next_if_match!($self, $($sep_pat)|+) {
+        while next_if_match!($self, $sep_pat) {
             let val = (|| $parse)()?;
             v.push(val);
         }
