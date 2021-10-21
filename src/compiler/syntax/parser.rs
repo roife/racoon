@@ -1,6 +1,4 @@
-use std::{
-    iter::Peekable
-};
+use std::iter::Peekable;
 
 use crate::compiler::span::Span;
 

@@ -1,14 +1,12 @@
 use enum_as_inner::EnumAsInner;
-use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
 
-use crate::compiler::ir::arena::{FuncId, InstId};
-use crate::compiler::ir::value::value::Value;
+use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
 use crate::compiler::syntax::ast::BinaryOp;
 
 use super::{
-    super::arena::BBId,
+    super::arena::{BBId, FuncId, InstId},
     ty::Ty,
-    value::Operand,
+    value::{Operand, Value},
 };
 
 #[derive(Debug, Clone)]

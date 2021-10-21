@@ -4,11 +4,10 @@ use std::{
 };
 
 use crate::compiler::span::{Pos, Span};
-use crate::compiler::syntax::err::LexErrorKind;
 
 use super::{
-    err::LexError,
-    token::{Token, TokenType}
+    err::{LexError, LexErrorKind},
+    token::{Token, TokenType},
 };
 
 macro_rules! next_if_ch_eq {
