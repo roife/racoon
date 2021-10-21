@@ -1,5 +1,5 @@
 // pub mod value;
 // pub mod inst;
-mod arena;
-mod err;
-mod value;
+pub mod arena;
+pub mod err;
+pub mod value;

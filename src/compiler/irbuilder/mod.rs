@@ -1,5 +1,4 @@
-// pub mod err;
+pub mod err;
 
 mod context;
-// mod temp;
-// pub mod builder;
+pub mod builder;

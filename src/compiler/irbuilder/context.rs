@@ -2,6 +2,7 @@ use std::collections::{
     hash_map::Entry,
     HashMap,
 };
+use crate::compiler::ir::arena::{BBId, FuncId};
 
 pub struct Var;
 
@@ -61,4 +62,10 @@ impl ScopeBuilder {
         self.scopes.last_mut().expect("No scope found")
             .insert(name, var)
     }
+}
+
+pub struct Context {
+    scope_builder: ScopeBuilder,
+    cur_func: FuncId,
+    cur_bb: BBId,
 }

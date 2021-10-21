@@ -1,25 +1,10 @@
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::RefCell;
-use std::ops::Deref;
-use std::rc::{Rc, Weak};
-
-use crate::compiler::ir::inst::{BinaryInst, CallInst};
-use crate::compiler::ir::value::BasicBlock;
-use crate::compiler::ptr::{MutRc, MutWeak};
-
-use super::{
-    context::ScopeBuilder,
-    err::Error,
-    super::ir::value::{self as ir, Ty, Use, Value},
-    super::span::Span,
-    super::syntax::{ast::*, visitor::AstVisitor},
+use crate::compiler::ir::{
+    arena::{BBId, FuncId},
+    value::{ty::Ty, value::Operand}
 };
-
-struct Context {
-    scope_builder: ScopeBuilder,
-    cur_func: MutWeak<ir::Func>,
-    cur_bb: MutWeak<BasicBlock>,
-}
+use crate::compiler::span::Span;
+use super::{context::{ScopeBuilder, Context}, err::Error};
+use crate::compiler::syntax::{ast::*, visitor::AstVisitor};
 
 pub struct IrBuilder {
     ast_program: Program,
@@ -39,7 +24,7 @@ impl AstVisitor for IrBuilder {
     type ProgramResult = ();
     type FuncResult = Result<(), Error>;
     type StmtResult = Result<(), Error>;
-    type ExprResult = Result<(MutWeak<Value>, Ty), Error>;
+    type ExprResult = Result<(Operand, Ty), Error>;
     type LExprResult = ();
     type TyResult = Result<Ty, Error>;
 
