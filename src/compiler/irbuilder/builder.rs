@@ -1,7 +1,9 @@
+use std::borrow::Borrow;
 use crate::compiler::ir::{
     arena::{BBId, FuncId},
     value::{ty::Ty, value::Operand}
 };
+use crate::compiler::irbuilder::context::NameId;
 use crate::compiler::span::Span;
 use super::{context::{ScopeBuilder, Context}, err::Error};
 use crate::compiler::syntax::{ast::*, visitor::AstVisitor};
@@ -24,7 +26,7 @@ impl AstVisitor for IrBuilder {
     type ProgramResult = ();
     type FuncResult = Result<(), Error>;
     type StmtResult = Result<(), Error>;
-    type ExprResult = Result<(Operand, Ty), Error>;
+    type ExprResult = Result<Operand, Error>;
     type LExprResult = ();
     type TyResult = Result<Ty, Error>;
 
@@ -40,7 +42,7 @@ impl AstVisitor for IrBuilder {
         todo!()
     }
 
-    fn visit_func_param(&mut self, _param: &FuncParam) -> Self::StmtResult {
+    fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
         todo!()
     }
 
@@ -101,6 +103,26 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult {
+        let func_ty: &Box<Ty> = self.ctx.scope_builder
+            .find_name_rec(&expr.func.name)
+            .ok_or_else(|| Error::UnknownName(expr.func.name.clone()))?
+            .ty.as_func()
+            .ok_or_else(|| Error::ExpectedFunction(expr.func.name.clone()))?;
+
+        let mut params = vec![];
+        let mut types = vec![];
+        for sub_expr in &expr.params {
+            let val = self.visit_expr(&sub_expr)?;
+            params.push(val);
+            types.push(self.ctx.cur_func);
+        }
+
+        // if types.len() != func_ty.params.len() {
+        //     return Err(Error::WrongParamLength {
+        //         expected: func_ty.params.len(),
+        //         found: types.len(),
+        //     });
+        // }
         todo!()
     }
 

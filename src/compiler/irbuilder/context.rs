@@ -2,12 +2,29 @@ use std::collections::{
     hash_map::Entry,
     HashMap,
 };
-use crate::compiler::ir::arena::{BBId, FuncId};
 
-pub struct Var;
+use enum_as_inner::EnumAsInner;
+
+use crate::compiler::ir::{
+    arena::{BBId, FuncId, GlobalId, InstId},
+    value::ty::Ty,
+};
+
+pub struct Name {
+    pub is_global: bool,
+    pub ty: Ty,
+    pub id: NameId,
+}
+
+#[derive(Debug, Clone, EnumAsInner)]
+pub enum NameId {
+    Inst(InstId),
+    Func(FuncId),
+    Global(GlobalId),
+}
 
 pub struct Scope {
-    vars: HashMap<String, Var>,
+    vars: HashMap<String, Name>,
 }
 
 impl Scope {
@@ -15,11 +32,11 @@ impl Scope {
         Scope { vars: HashMap::new() }
     }
 
-    pub fn find(&self, name: &str) -> Option<&Var> {
+    pub fn find(&self, name: &str) -> Option<&Name> {
         self.vars.get(name)
     }
 
-    pub fn insert(&mut self, name: String, value: Var) -> Option<&Var> {
+    pub fn insert(&mut self, name: String, value: Name) -> Option<&Name> {
         let entry = self.vars.entry(name);
         match entry {
             Entry::Occupied(_) => None,
@@ -47,7 +64,7 @@ impl ScopeBuilder {
         self.scopes.pop();
     }
 
-    pub fn find_name_rec(&self, name: &str) -> Option<&Var> {
+    pub fn find_name_rec(&self, name: &str) -> Option<&Name> {
         for scope in self.scopes.iter().rev() {
             if let Some(value) = scope.find(name) {
                 return Some(value)
@@ -56,16 +73,20 @@ impl ScopeBuilder {
         None
     }
 
-    pub fn insert(&mut self, name: &str) -> Option<&Var> {
+    pub fn insert(&mut self, name: &str, id: NameId, ty: Ty, is_global: bool) -> Option<&Name> {
         let name = String::from(name);
-        let var: Var = Var;
+        let var = Name {
+            is_global,
+            ty,
+            id
+        };
         self.scopes.last_mut().expect("No scope found")
             .insert(name, var)
     }
 }
 
 pub struct Context {
-    scope_builder: ScopeBuilder,
-    cur_func: FuncId,
-    cur_bb: BBId,
+    pub scope_builder: ScopeBuilder,
+    pub cur_func: FuncId,
+    pub cur_bb: BBId,
 }

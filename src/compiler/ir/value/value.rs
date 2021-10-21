@@ -10,3 +10,12 @@ pub enum Operand {
     Inst(InstId),
     Constant(Constant)
 }
+
+impl Value for Operand {
+    fn get_ty(&self) -> Ty {
+        match self {
+            Operand::Inst(i) => todo!(),
+            Operand::Constant(c) => c.get_ty()
+        }
+    }
+}
