@@ -12,9 +12,6 @@ pub struct Func {
     pub is_builtin: bool,
     // pub params:
     pub first_block: Option<BBId>,
-
-    instructions_arena: SlotMap<InstId, Inst>,
-    basic_block_arena: SlotMap<BBId, BasicBlock>,
 }
 
 impl Value for Func {
@@ -30,8 +27,6 @@ impl Func {
             ret_ty,
             is_builtin,
             first_block: None,
-            instructions_arena: SlotMap::with_key(),
-            basic_block_arena: SlotMap::with_key(),
         }
     }
 }

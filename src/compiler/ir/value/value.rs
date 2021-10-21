@@ -19,3 +19,9 @@ impl Value for Operand {
         }
     }
 }
+
+impl From<InstId> for Operand {
+    fn from(inst_id: InstId) -> Self {
+        Operand::Inst(inst_id)
+    }
+}

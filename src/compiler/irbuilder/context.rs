@@ -11,9 +11,8 @@ use crate::compiler::ir::{
 };
 
 pub struct Name {
-    pub is_global: bool,
-    pub ty: Ty,
     pub id: NameId,
+    pub ty: Ty,
 }
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -73,10 +72,9 @@ impl ScopeBuilder {
         None
     }
 
-    pub fn insert(&mut self, name: &str, id: NameId, ty: Ty, is_global: bool) -> Option<&Name> {
+    pub fn insert(&mut self, name: &str, id: NameId, ty: Ty) -> Option<&Name> {
         let name = String::from(name);
         let var = Name {
-            is_global,
             ty,
             id
         };

@@ -69,13 +69,13 @@ pub enum InstKind {
 
 #[derive(Debug, Clone)]
 pub struct BinaryInst {
-    pub kind: BinaryInstKind,
+    pub op: BinaryInstOp,
     pub left: Operand,
     pub right: Operand,
 }
 
 #[derive(Debug, Clone)]
-pub enum BinaryInstKind {
+pub enum BinaryInstOp {
     Add,
     Sub,
     Mul,
@@ -92,7 +92,7 @@ pub enum BinaryInstKind {
 }
 
 impl BinaryOp {
-    pub fn to_binary_inst_kind(&self) -> BinaryInstKind {
+    pub fn to_binary_inst_kind(&self) -> BinaryInstOp {
         todo!()
     }
 }
@@ -126,6 +126,6 @@ pub struct GEPInst {
 
 #[derive(Debug, Clone)]
 pub struct CallInst {
-    func: FuncId,
-    args: Vec<Operand>,
+    pub func: FuncId,
+    pub args: Vec<Operand>,
 }

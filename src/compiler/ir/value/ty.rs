@@ -17,6 +17,14 @@ pub struct FuncTy {
 }
 
 impl Ty {
+    pub fn bool() -> Ty {
+        Ty::Int(1)
+    }
+
+    pub fn int() -> Ty {
+        Ty::Int(32)
+    }
+
     pub fn func_of(ret_ty: Ty, params: Vec<Ty>) -> Ty {
         Ty::Func(Box::new(FuncTy {
             ret_ty,

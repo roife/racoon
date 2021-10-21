@@ -253,7 +253,6 @@ pub enum BinaryOp {
     Le,
     Eq,
     Ne,
-    Not,
     And,
     Or,
 }
