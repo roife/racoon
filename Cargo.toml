@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 structopt = "0.3"
 enum-as-inner = "0.3.3"
+slotmap = "1.0"

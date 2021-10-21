@@ -1,36 +1,28 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    rc::Weak,
+use std::collections::{
+    hash_map::Entry,
+    HashMap,
 };
-use crate::compiler::ptr::MutWeak;
 
-use super::{
-    err::Error,
-    super::ir::values::Value,
-};
+pub struct Var;
 
 pub struct Scope {
-    vars: HashMap<String, MutWeak<Value>>,
+    vars: HashMap<String, Var>,
 }
 
 impl Scope {
     pub fn new() -> Scope {
-        Scope {
-            vars: HashMap::new()
-        }
+        Scope { vars: HashMap::new() }
     }
 
-    pub fn find(&self, name: &str) -> Option<MutWeak<Value>> {
-        self.vars.get(name).map(|val| val.clone())
+    pub fn find(&self, name: &str) -> Option<&Var> {
+        self.vars.get(name)
     }
 
-    pub fn check_and_push_name(&mut self, name: &str, value: MutWeak<Value>) -> Result<(), Error> {
-        if self.find(name).is_none() {
-            self.vars.insert(String::from(name), value);
-            Ok(())
-        } else {
-            Err(Error::DuplicateName(String::from(name)))
+    pub fn insert(&mut self, name: String, value: Var) -> Option<&Var> {
+        let entry = self.vars.entry(name);
+        match entry {
+            Entry::Occupied(_) => None,
+            Entry::Vacant(e) => Some(e.insert(value))
         }
     }
 }
@@ -54,19 +46,19 @@ impl ScopeBuilder {
         self.scopes.pop();
     }
 
-    pub fn find_name_rec(&self, name: &str) -> Result<MutWeak<Value>, Error> {
+    pub fn find_name_rec(&self, name: &str) -> Option<&Var> {
         for scope in self.scopes.iter().rev() {
             if let Some(value) = scope.find(name) {
-                return Ok(value)
+                return Some(value)
             }
         }
-        Err(Error::UnknownName(String::from(name)))
+        None
     }
 
-    pub fn push_name(&mut self, name: &str, value: MutWeak<Value>) -> Result<(), Error> {
-        match self.scopes.last_mut() {
-            None => unreachable!(),
-            Some(scope) => scope.check_and_push_name(name, value),
-        }
+    pub fn insert(&mut self, name: &str) -> Option<&Var> {
+        let name = String::from(name);
+        let var: Var = Var;
+        self.scopes.last_mut().expect("No scope found")
+            .insert(name, var)
     }
 }

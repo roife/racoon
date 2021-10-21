@@ -1,5 +1,5 @@
 use std::rc::Weak;
-use crate::compiler::ir::values::BasicBlock;
+use crate::compiler::ir::value::BasicBlock;
 use crate::compiler::ptr::{MutRc, MutWeak};
 
 impl BasicBlock {

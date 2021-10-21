@@ -1,4 +1,4 @@
-use crate::compiler::ir::values::Ty;
+use crate::compiler::ir::value::Ty;
 
 #[derive(Debug)]
 pub enum Error {
