@@ -10,13 +10,8 @@ use crate::compiler::ir::{
     value::ty::Ty,
 };
 
-pub struct Name {
-    pub id: NameId,
-    pub ty: Ty,
-}
-
 #[derive(Debug, Clone, EnumAsInner)]
-pub enum NameId {
+pub enum Name {
     Inst(InstId),
     Func(FuncId),
     Global(GlobalId),
@@ -72,14 +67,10 @@ impl ScopeBuilder {
         None
     }
 
-    pub fn insert(&mut self, name: &str, id: NameId, ty: Ty) -> Option<&Name> {
+    pub fn insert(&mut self, name: &str, id: Name) -> Option<&Name> {
         let name = String::from(name);
-        let var = Name {
-            ty,
-            id
-        };
         self.scopes.last_mut().expect("No scope found")
-            .insert(name, var)
+            .insert(name, id)
     }
 }
 
@@ -87,4 +78,7 @@ pub struct Context {
     pub scope_builder: ScopeBuilder,
     pub cur_func: FuncId,
     pub cur_bb: BBId,
+
+    pub break_out: BBId,
+    pub continue_in: BBId,
 }

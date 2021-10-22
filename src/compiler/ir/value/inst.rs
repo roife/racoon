@@ -93,7 +93,21 @@ pub enum BinaryInstOp {
 
 impl BinaryOp {
     pub fn to_binary_inst_kind(&self) -> BinaryInstOp {
-        todo!()
+        match self {
+            BinaryOp::Add => BinaryInstOp::Add,
+            BinaryOp::Sub => BinaryInstOp::Sub,
+            BinaryOp::Mul => BinaryInstOp::Mul,
+            BinaryOp::Div => BinaryInstOp::Div,
+            BinaryOp::Mod => BinaryInstOp::Mod,
+            BinaryOp::Gt => BinaryInstOp::Gt,
+            BinaryOp::Lt => BinaryInstOp::Lt,
+            BinaryOp::Ge => BinaryInstOp::Ge,
+            BinaryOp::Le => BinaryInstOp::Le,
+            BinaryOp::Eq => BinaryInstOp::Eq,
+            BinaryOp::Ne => BinaryInstOp::Ne,
+            BinaryOp::And => BinaryInstOp::And,
+            BinaryOp::Or => BinaryInstOp::Or,
+        }
     }
 }
 

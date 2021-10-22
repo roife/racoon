@@ -25,3 +25,9 @@ impl From<InstId> for Operand {
         Operand::Inst(inst_id)
     }
 }
+
+impl From<i32> for Operand {
+    fn from(i: i32) -> Self {
+        Operand::Constant(Constant::Int(i))
+    }
+}

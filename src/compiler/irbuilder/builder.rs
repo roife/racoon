@@ -14,7 +14,7 @@ use crate::compiler::syntax::{
 };
 
 use super::{
-    context::{Context, NameId, ScopeBuilder},
+    context::{Context, Name, ScopeBuilder},
     err::Error,
 };
 
@@ -38,7 +38,7 @@ impl AstVisitor for IrBuilder {
     type ProgramResult = ();
     type FuncResult = Result<(), Error>;
     type StmtResult = Result<(), Error>;
-    type ExprResult = Result<(Operand, Ty), Error>;
+    type ExprResult = Result<Operand, Error>;
     type LExprResult = ();
     type TyResult = Result<Ty, Error>;
 
@@ -59,7 +59,13 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Self::StmtResult {
-        todo!()
+        self.ctx.scope_builder.push_scope();
+        let x = stmt.block_items.iter().try_for_each(|sub_stmt| match sub_stmt {
+            BlockItem::Stmt(x) => self.visit_stmt(x),
+            BlockItem::Decl(x) => self.visit_decl(x),
+        })?;
+        self.ctx.scope_builder.pop_scope();
+        Ok(())
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) -> Self::StmtResult {
@@ -87,14 +93,22 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_empty_stmt(&mut self, _span: Span) -> Self::StmtResult {
-        todo!()
+        Ok(())
     }
 
     fn visit_expr(&mut self, expr: &Expr) -> Self::ExprResult {
+        // match expr {
+        //     Expr::LVal(lvalue) => self.visit_lexpr(expr),
+        //     Expr::Assign(x) => self.visit_assign_expr(x),
+        //     Expr::Literal(x) => self.visit_literal_expr(x),
+        //     Expr::Unary(x) => self.visit_unary_expr(x),
+        //     Expr::Binary(x) => self.visit_binary_expr(x),
+        //     Expr::Call(x) => self.visit_call_expr(x),
+        // }
         todo!()
     }
 
-    fn visit_lexpr(&mut self, _expr: &Expr) -> Self::LExprResult {
+    fn visit_lexpr(&mut self, expr: &Expr) -> Self::LExprResult {
         todo!()
     }
 
@@ -104,83 +118,45 @@ impl AstVisitor for IrBuilder {
 
     fn visit_literal_expr(&mut self, expr: &LiteralExpr) -> Self::ExprResult {
         let constant = match expr.kind {
-            LiteralKind::Integer(i) => (Operand::Constant(Constant::Int(i)), Ty::int())
+            LiteralKind::Integer(i) => Operand::Constant(Constant::Int(i))
         };
         Ok(constant)
     }
 
     fn visit_unary_expr(&mut self, expr: &UnaryExpr) -> Self::ExprResult {
-        let (val, ty) = self.visit_expr(&expr.expr)?;
+        // let val = self.visit_expr(&expr.expr)?;
+        // let inst = match expr.op {
+        //     UnaryOp::Neg => BinaryInst {
+        //         op: BinaryInstOp::Sub,
+        //         left: Operand::from(0),
+        //         right: val,
+        //     },
+        //     UnaryOp::Pos => val,
+        //     UnaryOp::Not => todo!()
+        // };
         todo!()
     }
 
     fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Self::ExprResult {
-        let (lhs_val, lhs_ty) = self.visit_expr(&expr.lhs)?;
-        let (rhs_val, rhs_ty) = self.visit_expr(&expr.rhs)?;
+        let left = self.visit_expr(&expr.lhs)?;
+        let right = self.visit_expr(&expr.rhs)?;
+        let op = expr.op.to_binary_inst_kind();
 
-        assert_type_eq(&lhs_ty, &rhs_ty)?;
-
-        if matches!(expr.op, BinaryOp::And | BinaryOp::Or) {
-            todo!()
-        }
-
-        let (op, ty) = match expr.op {
-            BinaryOp::Add => (BinaryInstOp::Add, lhs_ty),
-            BinaryOp::Sub => (BinaryInstOp::Sub, lhs_ty),
-            BinaryOp::Mul => (BinaryInstOp::Mul, lhs_ty),
-            BinaryOp::Div => (BinaryInstOp::Div, lhs_ty),
-            BinaryOp::Mod => (BinaryInstOp::Mod, lhs_ty),
-            BinaryOp::Gt => (BinaryInstOp::Gt, Ty::bool()),
-            BinaryOp::Lt => (BinaryInstOp::Lt, Ty::bool()),
-            BinaryOp::Ge => (BinaryInstOp::Ge, Ty::bool()),
-            BinaryOp::Le => (BinaryInstOp::Le, Ty::bool()),
-            BinaryOp::Eq => (BinaryInstOp::Eq, Ty::bool()),
-            BinaryOp::Ne => (BinaryInstOp::Ne, Ty::bool()),
-            BinaryOp::And => (BinaryInstOp::And, Ty::bool()),
-            BinaryOp::Or => (BinaryInstOp::Or, Ty::bool()),
-        };
-
-        let binary_inst = BinaryInst {
-            op,
-            left: lhs_val,
-            right: rhs_val,
-        };
+        let binary_inst = BinaryInst { op, left, right };
         todo!()
     }
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult {
         let func = self.ctx.scope_builder.find_name_rec(&expr.func.name)
-            .ok_or_else(|| Error::UnknownName(expr.func.name.clone()))?;
-        let func_ty = func.ty.as_func()
+            .ok_or_else(|| Error::UnknownName(expr.func.name.clone()))?
+            .as_func()
             .ok_or_else(|| Error::ExpectedFunction(expr.func.name.clone()))?
             .clone();
-        let func_id = func.id.as_func().unwrap().clone();
+        let args = expr.args.iter()
+            .map(|x| self.visit_expr(&x))
+            .collect::<Result<Vec<_>, _>>()?;
 
-        let mut args = vec![];
-        let mut arg_tys = vec![];
-        for sub_expr in &expr.args {
-            let (val, ty) = self.visit_expr(&sub_expr)?;
-            args.push(val);
-            arg_tys.push(ty);
-        }
-
-        // type check
-        if arg_tys.len() != func_ty.params_ty.len() {
-            return Err(Error::WrongParamLength {
-                expected: func_ty.params_ty.len(),
-                found: arg_tys.len(),
-            });
-        }
-
-        for (arg_ty, param_ty) in arg_tys.iter().zip(func_ty.params_ty.iter()) {
-            assert_type_eq(arg_ty, param_ty)?;
-        }
-
-        // insert inst
-        let call_inst = CallInst {
-            func: func_id,
-            args,
-        };
+        let call_inst = CallInst { func, args };
         todo!()
     }
 
