@@ -9,6 +9,7 @@ use crate::compiler::ir::{
     arena::{BBId, FuncId, GlobalId, InstId},
     value::ty::Ty,
 };
+use crate::compiler::ir::value::basic_block::BasicBlock;
 use crate::compiler::ir::value::func::Func;
 use crate::compiler::ir::value::inst::InstKind;
 use crate::compiler::ir::value::module::Module;
@@ -77,20 +78,40 @@ impl<T> ScopeBuilder<T> {
     }
 }
 
+struct BreakTarget {
+    pub break_out: BBId,
+    pub continue_in: BBId,
+}
+
 pub struct Context<'a> {
     pub scope_builder: ScopeBuilder<NameId>,
-    pub cur_module: &'a mut Module,
-    pub cur_func: FuncId,
-    pub cur_bb: BBId,
+    break_targets: Vec<BreakTarget>,
+    cur_module: &'a mut Module,
+    cur_func: FuncId,
+    cur_bb: BBId,
 }
 
 impl<'a> Context<'a> {
-    pub fn get_cur_func_mut(&mut self) -> Option<&mut Func> {
-        self.cur_module.get_func_mut(self.cur_func)
+    fn get_cur_func_mut(&mut self) -> &mut Func {
+        self.cur_module.get_func_mut(self.cur_func).unwrap()
     }
 
-    pub fn inst_new_at_end(&mut self, inst_kind: InstKind, ty: Ty) -> InstId {
+    fn get_cur_bb_mut(&mut self) -> &mut BasicBlock {
         let bb = self.cur_bb;
-        self.get_cur_func_mut().unwrap().inst_new_at_end_of(inst_kind, ty, bb)
+        self.get_cur_func_mut().get_bb_mut(bb).unwrap()
+    }
+
+    pub fn set_cur_bb(&mut self, bb: BBId) {
+        self.cur_bb = bb;
+    }
+
+    pub fn build_inst_at_end(&mut self, inst_kind: InstKind, ty: Ty) -> InstId {
+        let bb = self.cur_bb;
+        self.get_cur_func_mut().build_inst_at_end(inst_kind, ty, bb)
+    }
+
+    pub fn build_bb_after_cur(&mut self) -> BBId {
+        let bb = self.cur_bb;
+        self.get_cur_func_mut().build_bb_after_cur(bb)
     }
 }

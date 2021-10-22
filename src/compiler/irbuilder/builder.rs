@@ -2,11 +2,14 @@ use std::borrow::Borrow;
 
 use crate::compiler::ir::{
     arena::{BBId, FuncId},
-    value::{module::Module, ty::Ty, value::Operand},
+    value::{
+        constant::Constant,
+        inst::*,
+        module::Module,
+        ty::Ty,
+        value::Operand,
+    },
 };
-use crate::compiler::ir::value::constant::Constant;
-use crate::compiler::ir::value::inst::{BinaryInst, BinaryInstOp, CallInst, InstKind};
-use crate::compiler::ir::value::ty::FuncTy;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
     ast::*,
@@ -87,6 +90,10 @@ impl<'a> AstVisitor for IrBuilder<'a> {
     }
 
     fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Self::StmtResult {
+        let cond = self.visit_expr(&stmt.cond)?;
+
+        // cond blk
+        let cond_bb = self.ctx.build_bb_after_cur();
         todo!()
     }
 
@@ -103,7 +110,16 @@ impl<'a> AstVisitor for IrBuilder<'a> {
     }
 
     fn visit_return_stmt(&mut self, stmt: &ReturnStmt) -> Self::StmtResult {
-        todo!()
+        let val = stmt.val.as_ref()
+            .and_then(|val| Some(self.visit_expr(&val)))
+            .map_or(Ok(None), |r| r.map(Some))?;
+
+        let inst = RetInst { val };
+        self.ctx.build_inst_at_end(InstKind::ReturnInst(inst), Ty::Void);
+
+        let nxt_bb = self.ctx.build_bb_after_cur();
+        self.ctx.set_cur_bb(nxt_bb);
+        Ok(())
     }
 
     fn visit_empty_stmt(&mut self, _span: Span) -> Self::StmtResult {
@@ -139,19 +155,19 @@ impl<'a> AstVisitor for IrBuilder<'a> {
 
     fn visit_unary_expr(&mut self, expr: &UnaryExpr) -> Self::ExprResult {
         let val = self.visit_expr(&expr.expr)?;
-        let inst = match expr.op {
+        match expr.op {
             UnaryOp::Neg => {
-                let binary_inst = BinaryInst {
+                let inst = BinaryInst {
                     op: BinaryInstOp::Sub,
                     left: Operand::from(0),
                     right: val,
                 };
-                todo!()
+                let id = self.ctx.build_inst_at_end(InstKind::Binary(inst), todo!());
+                Ok(id.into())
             }
-            UnaryOp::Pos => val,
+            UnaryOp::Pos => Ok(val),
             UnaryOp::Not => todo!()
-        };
-        todo!()
+        }
     }
 
     fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Self::ExprResult {
@@ -159,8 +175,9 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         let right = self.visit_expr(&expr.rhs)?;
         let op = expr.op.to_binary_inst_kind();
 
-        let binary_inst = BinaryInst { op, left, right };
-        todo!()
+        let inst = BinaryInst { op, left, right };
+        let id = self.ctx.build_inst_at_end(InstKind::Binary(inst), todo!());
+        Ok(id.into())
     }
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult {
@@ -173,9 +190,8 @@ impl<'a> AstVisitor for IrBuilder<'a> {
             .map(|x| self.visit_expr(&x))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let call_inst = CallInst { func, args };
-        let ty: Ty = Ty::Void;
-        let id = self.ctx.inst_new_at_end(InstKind::Call(call_inst), ty);
+        let inst = CallInst { func, args };
+        let id = self.ctx.build_inst_at_end(InstKind::Call(inst), todo!());
         Ok(id.into())
     }
 

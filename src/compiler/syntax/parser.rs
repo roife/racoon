@@ -365,15 +365,12 @@ impl<T> Parser<T>
                         span,
                     })
                 }
-                _ => {
-                    let binary_op = op.to_binary_op().unwrap();
-                    Expr::Binary(BinaryExpr {
-                        lhs: Box::new(lhs),
-                        rhs: Box::new(rhs),
-                        op: binary_op,
-                        span,
-                    })
-                }
+                _ => Expr::Binary(BinaryExpr {
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                    op: op.to_binary_op().unwrap(),
+                    span,
+                })
             };
         }
         Ok(lhs)

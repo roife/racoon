@@ -2,7 +2,7 @@ use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
 use super::{ty::Ty, value::Value};
 use super::super::arena::{BBId, InstId};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BasicBlock {
     pub insts_head: Option<InstId>,
     pub insts_tail: Option<InstId>,

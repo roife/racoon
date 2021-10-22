@@ -119,7 +119,7 @@ pub enum BranchInst {
 
 #[derive(Debug, Clone)]
 pub struct RetInst {
-    pub ret_val: Operand,
+    pub val: Option<Operand>,
 }
 
 #[derive(Debug, Clone)]
