@@ -5,7 +5,7 @@ use crate::compiler::ir::{
     value::{module::Module, ty::Ty, value::Operand},
 };
 use crate::compiler::ir::value::constant::Constant;
-use crate::compiler::ir::value::inst::{BinaryInst, BinaryInstOp, CallInst};
+use crate::compiler::ir::value::inst::{BinaryInst, BinaryInstOp, CallInst, InstKind};
 use crate::compiler::ir::value::ty::FuncTy;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
@@ -14,18 +14,18 @@ use crate::compiler::syntax::{
 };
 
 use super::{
-    context::{Context, Name, ScopeBuilder},
+    context::{Context, NameId, ScopeBuilder},
     err::Error,
 };
 
-pub struct IrBuilder {
+pub struct IrBuilder<'a> {
     ast_program: Program,
     ir_module: Module,
-    ctx: Context,
+    ctx: Context<'a>,
 }
 
-impl IrBuilder {
-    pub fn new(ast_program: Program) -> IrBuilder {
+impl<'a> IrBuilder<'a> {
+    pub fn new(ast_program: Program) -> IrBuilder<'a> {
         IrBuilder {
             ast_program,
             ir_module: todo!(),
@@ -34,7 +34,7 @@ impl IrBuilder {
     }
 }
 
-impl AstVisitor for IrBuilder {
+impl<'a> AstVisitor for IrBuilder<'a> {
     type ProgramResult = ();
     type FuncResult = Result<(), Error>;
     type StmtResult = Result<(), Error>;
@@ -69,7 +69,21 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) -> Self::StmtResult {
-        todo!()
+        match stmt {
+            Stmt::Expr(x) => todo!(),
+            Stmt::Block(x) => self.visit_block_stmt(x),
+            Stmt::If(x) => self.visit_if_stmt(x),
+            Stmt::While(x) => self.visit_while_stmt(x),
+            Stmt::Break(x) => self.visit_break_stmt(*x),
+            Stmt::Continue(x) => self.visit_continue_stmt(*x),
+            Stmt::Return(x) => self.visit_return_stmt(x),
+            Stmt::Empty(x) => self.visit_empty_stmt(*x),
+        }
+    }
+
+    fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult {
+        self.visit_expr(stmt);
+        Ok(())
     }
 
     fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Self::StmtResult {
@@ -124,16 +138,19 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_unary_expr(&mut self, expr: &UnaryExpr) -> Self::ExprResult {
-        // let val = self.visit_expr(&expr.expr)?;
-        // let inst = match expr.op {
-        //     UnaryOp::Neg => BinaryInst {
-        //         op: BinaryInstOp::Sub,
-        //         left: Operand::from(0),
-        //         right: val,
-        //     },
-        //     UnaryOp::Pos => val,
-        //     UnaryOp::Not => todo!()
-        // };
+        let val = self.visit_expr(&expr.expr)?;
+        let inst = match expr.op {
+            UnaryOp::Neg => {
+                let binary_inst = BinaryInst {
+                    op: BinaryInstOp::Sub,
+                    left: Operand::from(0),
+                    right: val,
+                };
+                todo!()
+            }
+            UnaryOp::Pos => val,
+            UnaryOp::Not => todo!()
+        };
         todo!()
     }
 
@@ -157,7 +174,9 @@ impl AstVisitor for IrBuilder {
             .collect::<Result<Vec<_>, _>>()?;
 
         let call_inst = CallInst { func, args };
-        todo!()
+        let ty: Ty = Ty::Void;
+        let id = self.ctx.inst_new_at_end(InstKind::Call(call_inst), ty);
+        Ok(id.into())
     }
 
     fn visit_ty(&mut self, ty_def: &TypeDef) -> Self::TyResult {
@@ -169,8 +188,4 @@ impl AstVisitor for IrBuilder {
         };
         Ok(ty)
     }
-}
-
-fn assert_type_eq(lhs: &Ty, rhs: &Ty) -> Result<(), Error> {
-    todo!()
 }

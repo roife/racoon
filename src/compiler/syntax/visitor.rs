@@ -21,6 +21,8 @@ pub trait AstVisitor {
 
     fn visit_stmt(&mut self, stmt: &Stmt) -> Self::StmtResult;
 
+    fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult;
+
     fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Self::StmtResult;
 
     fn visit_while_stmt(&mut self, stmt: &WhileStmt) -> Self::StmtResult;
