@@ -112,7 +112,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         // nxt bb
         let nxt_bb = self.ctx.build_bb();
 
-        self.ctx.build_inst_at_end_of(
+        self.ctx.build_inst_end(
             InstKind::Branch(BranchInst::Br {
                 cond,
                 true_bb: then_bb,
@@ -120,12 +120,12 @@ impl<'a> AstVisitor for IrBuilder<'a> {
             }),
             IrTy::Void,
             old_bb);
-        self.ctx.build_inst_at_end_of(
+        self.ctx.build_inst_end(
             InstKind::Branch(BranchInst::Jump { nxt_bb }),
             IrTy::Void,
             then_bb_end);
         if let Some(else_bb_end) = else_bb_end {
-            self.ctx.build_inst_at_end_of(
+            self.ctx.build_inst_end(
                 InstKind::Branch(BranchInst::Jump { nxt_bb }),
                 IrTy::Void,
                 *else_bb_end);
@@ -153,12 +153,12 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         self.ctx.pop_break_target();
         let loop_end_bb = self.ctx.get_cur_bb_id();
 
-        self.ctx.build_inst_at_end_of(
+        self.ctx.build_inst_end(
             InstKind::Branch(BranchInst::Jump { nxt_bb: cond_bb }),
             IrTy::Void,
             old_bb);
 
-        self.ctx.build_inst_at_end_of(
+        self.ctx.build_inst_end(
             InstKind::Branch(BranchInst::Br {
                 cond,
                 true_bb: loop_bb,
@@ -167,7 +167,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
             IrTy::Void,
             cond_bb);
 
-        self.ctx.build_inst_at_end_of(
+        self.ctx.build_inst_end(
             InstKind::Branch(BranchInst::Jump { nxt_bb }),
             IrTy::Void,
             loop_end_bb);
@@ -177,11 +177,25 @@ impl<'a> AstVisitor for IrBuilder<'a> {
     }
 
     fn visit_break_stmt(&mut self, _span: Span) -> Self::StmtResult {
-        todo!()
+        let break_target = self.ctx.get_break_target()
+            .ok_or(Error::BreakOutsideLoop)?;
+        self.ctx.build_inst_end_of_cur(
+            InstKind::Branch(BranchInst::Jump { nxt_bb: break_target }),
+            IrTy::Void);
+        let nxt_bb = self.ctx.build_bb();
+        self.ctx.set_cur_bb(nxt_bb);
+        Ok(())
     }
 
     fn visit_continue_stmt(&mut self, _span: Span) -> Self::StmtResult {
-        todo!()
+        let continue_target = self.ctx.get_continue_target()
+            .ok_or(Error::ContinueOutsideLoop)?;
+        self.ctx.build_inst_end_of_cur(
+            InstKind::Branch(BranchInst::Jump { nxt_bb: continue_target }),
+            IrTy::Void);
+        let nxt_bb = self.ctx.build_bb();
+        self.ctx.set_cur_bb(nxt_bb);
+        Ok(())
     }
 
     fn visit_return_stmt(&mut self, stmt: &ReturnStmt) -> Self::StmtResult {
@@ -190,7 +204,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
             .map_or(Ok(None), |r| r.map(Some))?;
 
         let inst = RetInst { val };
-        self.ctx.build_inst_at_end_of_cur(InstKind::ReturnInst(inst), IrTy::Void);
+        self.ctx.build_inst_end_of_cur(InstKind::ReturnInst(inst), IrTy::Void);
 
         let nxt_bb = self.ctx.build_bb();
         self.ctx.set_cur_bb(nxt_bb);
@@ -237,7 +251,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
                     left: Operand::from(0),
                     right: val,
                 };
-                let id = self.ctx.build_inst_at_end_of_cur(InstKind::Binary(inst), expr.ty.into());
+                let id = self.ctx.build_inst_end_of_cur(InstKind::Binary(inst), expr.ty.into());
                 Ok(id.into())
             }
             UnaryOp::Pos => Ok(val),
@@ -248,7 +262,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
                         ori_val: val,
                         target_ty: IrTy::int(),
                     };
-                    let id = self.ctx.build_inst_at_end_of_cur(InstKind::ZExt(zext_inst), IrTy::int());
+                    let id = self.ctx.build_inst_end_of_cur(InstKind::ZExt(zext_inst), IrTy::int());
                     val = Operand::from(id);
                 }
                 let inst = BinaryInst {
@@ -256,7 +270,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
                     left: val,
                     right: Operand::from(0),
                 };
-                let id = self.ctx.build_inst_at_end_of_cur(InstKind::Binary(inst), IrTy::bool());
+                let id = self.ctx.build_inst_end_of_cur(InstKind::Binary(inst), IrTy::bool());
                 Ok(id.into())
             }
         }
@@ -268,7 +282,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         let op = expr.op.to_binary_inst_kind();
 
         let inst = BinaryInst { op, left, right };
-        let id = self.ctx.build_inst_at_end_of_cur(InstKind::Binary(inst), expr.ty.into());
+        let id = self.ctx.build_inst_end_of_cur(InstKind::Binary(inst), expr.ty.into());
         Ok(id.into())
     }
 
@@ -284,7 +298,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
 
         let ret_ty = self.ctx.get_func_ret_ty();
         let inst = CallInst { func, args };
-        let id = self.ctx.build_inst_at_end_of_cur(InstKind::Call(inst), ret_ty);
+        let id = self.ctx.build_inst_end_of_cur(InstKind::Call(inst), ret_ty);
         Ok(id.into())
     }
 

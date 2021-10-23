@@ -114,13 +114,13 @@ impl<'a> IrBuilderContext<'a> {
         self.cur_bb = bb;
     }
 
-    pub fn build_inst_at_end_of(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
+    pub fn build_inst_end(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
         self.get_cur_func_mut().build_inst_at_end(inst_kind, ty, bb)
     }
 
-    pub fn build_inst_at_end_of_cur(&mut self, inst_kind: InstKind, ty: IrTy) -> InstId {
+    pub fn build_inst_end_of_cur(&mut self, inst_kind: InstKind, ty: IrTy) -> InstId {
         let cur_bb = self.cur_bb;
-        self.build_inst_at_end_of(inst_kind, ty, cur_bb)
+        self.build_inst_end(inst_kind, ty, cur_bb)
     }
 
     pub fn build_bb(&mut self) -> BBId {

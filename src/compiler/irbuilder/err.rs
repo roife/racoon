@@ -7,5 +7,7 @@ pub enum Error {
     DuplicateName(String),
     WrongParamLength { expected: usize, found: usize },
     ExpectedFunction(String),
+    BreakOutsideLoop,
+    ContinueOutsideLoop,
     None
 }
