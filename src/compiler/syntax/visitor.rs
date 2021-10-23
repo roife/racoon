@@ -1,3 +1,4 @@
+use crate::compiler::ir::value::ty::IrTy;
 use super::ast::*;
 use super::super::span::Span;
 
@@ -13,7 +14,9 @@ pub trait AstVisitor {
 
     fn visit_decl(&mut self, decl: &Decl) -> Self::StmtResult;
 
-    fn visit_func(&mut self, func: &Func) -> Self::FuncResult;
+    fn visit_sub_decl(&mut self, sub_decl: &SubDecl, ty: IrTy) -> Self::StmtResult;
+
+    fn visit_func(&mut self, func: &AstFunc) -> Self::FuncResult;
 
     fn visit_func_param(&mut self, _param: &FuncParam) -> Self::StmtResult;
 

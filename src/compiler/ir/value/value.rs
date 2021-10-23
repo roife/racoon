@@ -11,15 +11,6 @@ pub enum Operand {
     Constant(Constant)
 }
 
-impl Value for Operand {
-    fn get_ty(&self) -> IrTy {
-        match self {
-            Operand::Inst(i) => todo!(),
-            Operand::Constant(c) => c.get_ty()
-        }
-    }
-}
-
 impl From<InstId> for Operand {
     fn from(inst_id: InstId) -> Self {
         Operand::Inst(inst_id)

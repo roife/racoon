@@ -10,7 +10,7 @@ pub struct Program {
 #[derive(Debug, Clone)]
 pub enum ProgramItem {
     Decl(Decl),
-    Func(Func)
+    Func(AstFunc)
 }
 
 #[derive(Debug, Clone)]
@@ -23,7 +23,7 @@ pub struct Decl {
 
 #[derive(Debug, Clone)]
 pub struct SubDecl {
-    pub var_name: Ident,
+    pub name: Ident,
     pub dims: Option<Dim>,
     pub init_val: Option<InitVal>,
     pub span: Span,
@@ -48,7 +48,7 @@ impl InitVal {
 }
 
 #[derive(Debug, Clone)]
-pub struct Func {
+pub struct AstFunc {
     pub func_name: Ident,
     pub params: Vec<FuncParam>,
     pub ret_ty: TypeDef,

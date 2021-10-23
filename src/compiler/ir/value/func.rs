@@ -5,29 +5,30 @@ use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}
 use crate::compiler::ir::value::inst::BranchInst;
 
 #[derive(Debug, Clone)]
-pub struct Func {
+pub struct IrFunc {
     pub name: String,
     pub ret_ty: IrTy,
     pub is_builtin: bool,
-    // pub params:
+    pub params: Vec<InstId>,
     pub first_block: Option<BBId>,
 
     inst_arena: SlotMap<InstId, Inst>,
     bb_arena: SlotMap<BBId, BasicBlock>,
 }
 
-impl Value for Func {
+impl Value for IrFunc {
     fn get_ty(&self) -> IrTy {
         todo!()
     }
 }
 
-impl Func {
-    pub fn new(name: &str, ret_ty: IrTy, is_builtin: bool) -> Func {
-        Func {
+impl IrFunc {
+    pub fn new(name: &str, ret_ty: IrTy, is_builtin: bool) -> IrFunc {
+        IrFunc {
             name: String::from(name),
             ret_ty,
             is_builtin,
+            params: vec![],
             first_block: None,
             inst_arena: SlotMap::with_key(),
             bb_arena: SlotMap::with_key(),
@@ -35,7 +36,7 @@ impl Func {
     }
 }
 
-impl Func {
+impl IrFunc {
     pub fn get_inst(&self, inst_id: InstId) -> Option<&Inst> {
         self.inst_arena.get(inst_id)
     }
@@ -103,7 +104,7 @@ impl Func {
     }
 }
 
-impl Func {
+impl IrFunc {
     pub fn get_bb(&self, bb_id: BBId) -> Option<&BasicBlock> {
         self.bb_arena.get(bb_id)
     }
@@ -112,7 +113,7 @@ impl Func {
         self.bb_arena.get_mut(bb_id)
     }
 
-    fn new_bb(&mut self) -> BBId {
+    pub fn build_bb(&mut self) -> BBId {
         self.bb_arena.insert(BasicBlock::default())
     }
 
@@ -125,13 +126,13 @@ impl Func {
     }
 
     pub fn build_bb_after_cur(&mut self, cur_bb: BBId) -> BBId {
-        let new_bb = self.new_bb();
+        let new_bb = self.build_bb();
         self.set_bb_after_cur(new_bb, cur_bb);
         new_bb
     }
 
     pub fn build_bb_before_cur(&mut self, cur_bb: BBId) -> BBId {
-        let new_bb = self.new_bb();
+        let new_bb = self.build_bb();
         self.set_bb_before_cur(new_bb, cur_bb);
         new_bb
     }

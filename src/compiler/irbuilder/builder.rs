@@ -3,6 +3,7 @@ use std::borrow::Borrow;
 use crate::compiler::ir::{
     arena::{BBId, FuncId},
     value::{
+        self as ir,
         constant::Constant,
         inst::*,
         module::Module,
@@ -10,7 +11,9 @@ use crate::compiler::ir::{
         value::Operand,
     },
 };
+use crate::compiler::ir::value::func::IrFunc;
 use crate::compiler::ir::value::inst::BranchInst::Jump;
+use crate::compiler::ir::value::inst::InstKind::Alloca;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
     ast::*,
@@ -18,27 +21,25 @@ use crate::compiler::syntax::{
 };
 
 use super::{
-    context::{IrBuilderContext, NameId, ScopeBuilder},
+    context::{IrCtx, NameId, ScopeBuilder},
     err::Error,
 };
 
-pub struct IrBuilder<'a> {
+pub struct IrBuilder {
     ast_program: Program,
-    ir_module: Module,
-    ctx: IrBuilderContext<'a>,
+    ctx: IrCtx,
 }
 
-impl<'a> IrBuilder<'a> {
-    pub fn new(ast_program: Program) -> IrBuilder<'a> {
+impl IrBuilder {
+    pub fn new(ast_program: Program) -> IrBuilder {
         IrBuilder {
             ast_program,
-            ir_module: todo!(),
-            ctx: todo!(),
+            ctx: IrCtx::new()
         }
     }
 }
 
-impl<'a> AstVisitor for IrBuilder<'a> {
+impl AstVisitor for IrBuilder {
     type ProgramResult = ();
     type FuncResult = Result<(), Error>;
     type StmtResult = Result<(), Error>;
@@ -51,14 +52,52 @@ impl<'a> AstVisitor for IrBuilder<'a> {
     }
 
     fn visit_decl(&mut self, decl: &Decl) -> Self::StmtResult {
+        let ty = self.visit_ty(&decl.ty)?;
+
+        for sub_decl in &decl.sub_decls {
+            self.visit_sub_decl(&sub_decl, ty.clone())?;
+        }
+
         todo!()
     }
 
-    fn visit_func(&mut self, func: &Func) -> Self::FuncResult {
+    fn visit_sub_decl(&mut self, sub_decl: &SubDecl, ty: IrTy) -> Self::StmtResult {
+        // let inst = self.ctx.build_inst_end_of_cur(
+        //     InstKind::Alloca(AllocaInst { alloca_ty: IrTy }),
+        //     IrTy::ptr_of(IrTy)
+        // );
+        // self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Inst(inst))
+        //     .ok_or(Error::DuplicateName(sub_decl.name.name.clone()))?;
+        // Ok(())
         todo!()
+    }
+
+    fn visit_func(&mut self, ast_func: &AstFunc) -> Self::FuncResult {
+        self.ctx.scope_builder.push_scope();
+
+        let ret_ty = self.visit_ty(&ast_func.ret_ty)?;
+        let func = self.ctx.build_func(IrFunc::new(&ast_func.func_name.name, ret_ty, false));
+        self.ctx.scope_builder.insert(&ast_func.func_name.name, NameId::Func(func))
+            .ok_or(Error::DuplicateName(ast_func.func_name.name.clone()))?;
+        self.ctx.set_cur_func(func);
+
+        let init_bb = self.ctx.build_bb();
+        self.ctx.set_cur_bb(init_bb);
+        ast_func.params.iter().try_for_each(|param| self.visit_func_param(param))?;
+        self.visit_block_stmt(&ast_func.body)?;
+
+        self.ctx.scope_builder.pop_scope();
+        Ok(())
     }
 
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
+        let ty = self.visit_ty(&param.ty)?;
+        let inst = self.ctx.build_inst_end_of_cur(
+            InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
+            IrTy::ptr_of(ty.clone())
+        );
+        self.ctx.scope_builder.insert(&param.param_name.name, NameId::Inst(inst))
+            .ok_or(Error::DuplicateName(param.param_name.name.clone()))?;
         todo!()
     }
 
@@ -95,7 +134,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         let old_bb = self.ctx.get_cur_bb_id();
 
         // then blk
-        let then_bb = self.ctx.build_bb();
+        let then_bb = self.ctx.build_bb_after_cur();
         self.ctx.set_cur_bb(then_bb);
         self.visit_block_stmt(&stmt.then_block)?;
         let then_bb_end = self.ctx.get_cur_bb_id();
@@ -103,14 +142,14 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         // else bb
         let (else_bb, else_bb_end) = &stmt.else_block.as_ref()
             .map_or(Ok((None, None)), |else_blk| {
-                let else_bb = self.ctx.build_bb();
+                let else_bb = self.ctx.build_bb_after_cur();
                 self.ctx.set_cur_bb(else_bb);
                 self.visit_block_stmt(&else_blk)?;
                 Ok((Some(else_bb), Some(self.ctx.get_cur_bb_id())))
             })?;
 
         // nxt bb
-        let nxt_bb = self.ctx.build_bb();
+        let nxt_bb = self.ctx.build_bb_after_cur();
 
         self.ctx.build_inst_end(
             InstKind::Branch(BranchInst::Br {
@@ -139,18 +178,18 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         let old_bb = self.ctx.get_cur_bb_id();
 
         // cond_bb
-        let cond_bb = self.ctx.build_bb();
+        let cond_bb = self.ctx.build_bb_after_cur();
         self.ctx.set_cur_bb(cond_bb);
         let cond = self.visit_expr(&stmt.cond)?;
 
         // loop_bb, nxt_bb
-        let loop_bb = self.ctx.build_bb();
-        let nxt_bb = self.ctx.build_bb();
+        let loop_bb = self.ctx.build_bb_after_cur();
+        let nxt_bb = self.ctx.build_bb_after_cur();
 
         self.ctx.set_cur_bb(loop_bb);
         self.ctx.push_break_target(nxt_bb, cond_bb);
         self.visit_block_stmt(&stmt.body)?;
-        self.ctx.pop_break_target();
+        self.ctx.pop_loop_target();
         let loop_end_bb = self.ctx.get_cur_bb_id();
 
         self.ctx.build_inst_end(
@@ -182,7 +221,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         self.ctx.build_inst_end_of_cur(
             InstKind::Branch(BranchInst::Jump { nxt_bb: break_target }),
             IrTy::Void);
-        let nxt_bb = self.ctx.build_bb();
+        let nxt_bb = self.ctx.build_bb_after_cur();
         self.ctx.set_cur_bb(nxt_bb);
         Ok(())
     }
@@ -193,7 +232,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         self.ctx.build_inst_end_of_cur(
             InstKind::Branch(BranchInst::Jump { nxt_bb: continue_target }),
             IrTy::Void);
-        let nxt_bb = self.ctx.build_bb();
+        let nxt_bb = self.ctx.build_bb_after_cur();
         self.ctx.set_cur_bb(nxt_bb);
         Ok(())
     }
@@ -206,7 +245,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         let inst = RetInst { val };
         self.ctx.build_inst_end_of_cur(InstKind::ReturnInst(inst), IrTy::Void);
 
-        let nxt_bb = self.ctx.build_bb();
+        let nxt_bb = self.ctx.build_bb_after_cur();
         self.ctx.set_cur_bb(nxt_bb);
         Ok(())
     }
@@ -288,9 +327,9 @@ impl<'a> AstVisitor for IrBuilder<'a> {
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult {
         let func = self.ctx.scope_builder.find_name_rec(&expr.func.name)
-            .ok_or_else(|| Error::UnknownName(expr.func.name.clone()))?
+            .ok_or(Error::UnknownName(expr.func.name.clone()))?
             .as_func()
-            .ok_or_else(|| Error::ExpectedFunction(expr.func.name.clone()))?
+            .ok_or(Error::ExpectedFunction(expr.func.name.clone()))?
             .clone();
         let args = expr.args.iter()
             .map(|x| self.visit_expr(&x))

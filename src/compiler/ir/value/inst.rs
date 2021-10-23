@@ -55,7 +55,7 @@ pub enum InstKind {
     ReturnInst(RetInst),
 
     // Memory
-    Alloca,
+    Alloca(AllocaInst),
     Load(LoadInst),
     Store(StoreInst),
     GEP(GEPInst),
@@ -123,13 +123,19 @@ pub struct RetInst {
 }
 
 #[derive(Debug, Clone)]
+pub struct AllocaInst {
+    pub alloca_ty: IrTy,
+}
+
+#[derive(Debug, Clone)]
 pub struct LoadInst {
-    // pub addr: Use,
+    pub addr: InstId,
 }
 
 #[derive(Debug, Clone)]
 pub struct StoreInst {
-    // pub addr: Value,
+    pub addr: InstId,
+    pub data: Operand,
 }
 
 #[derive(Debug, Clone)]

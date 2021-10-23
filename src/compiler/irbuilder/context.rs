@@ -10,7 +10,7 @@ use crate::compiler::ir::{
     value::ty::IrTy,
 };
 use crate::compiler::ir::value::basic_block::BasicBlock;
-use crate::compiler::ir::value::func::Func;
+use crate::compiler::ir::value::func::IrFunc;
 use crate::compiler::ir::value::inst::InstKind;
 use crate::compiler::ir::value::module::Module;
 
@@ -83,21 +83,31 @@ struct BCTarget {
     pub continue_target: BBId,
 }
 
-pub struct IrBuilderContext<'a> {
+pub struct IrCtx {
     pub scope_builder: ScopeBuilder<NameId>,
-    cur_module: &'a mut Module,
+    pub cur_module: Module,
     cur_func: FuncId,
     cur_bb: BBId,
 
-    bc_targets: Vec<BCTarget>,
+    loop_targets: Vec<BCTarget>,
 }
 
-impl<'a> IrBuilderContext<'a> {
+impl IrCtx {
+    pub fn new() -> IrCtx {
+        IrCtx {
+            scope_builder: ScopeBuilder::new(),
+            cur_module: Module::new(),
+            cur_func: Default::default(),
+            cur_bb: Default::default(),
+            loop_targets: vec![]
+        }
+    }
+
     pub fn get_cur_bb_id(&self) -> BBId {
         self.cur_bb
     }
 
-    fn get_cur_func_mut(&mut self) -> &mut Func {
+    fn get_cur_func_mut(&mut self) -> &mut IrFunc {
         self.cur_module.get_func_mut(self.cur_func).unwrap()
     }
 
@@ -114,6 +124,10 @@ impl<'a> IrBuilderContext<'a> {
         self.cur_bb = bb;
     }
 
+    pub fn set_cur_func(&mut self, func: FuncId) {
+        self.cur_func = func;
+    }
+
     pub fn build_inst_end(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
         self.get_cur_func_mut().build_inst_at_end(inst_kind, ty, bb)
     }
@@ -123,29 +137,37 @@ impl<'a> IrBuilderContext<'a> {
         self.build_inst_end(inst_kind, ty, cur_bb)
     }
 
-    pub fn build_bb(&mut self) -> BBId {
+    pub fn build_bb_after_cur(&mut self) -> BBId {
         let bb = self.cur_bb;
         self.get_cur_func_mut().build_bb_after_cur(bb)
     }
+
+    pub fn build_bb(&mut self) -> BBId {
+        self.get_cur_func_mut().build_bb()
+    }
+
+    pub fn build_func(&mut self, func: IrFunc) -> FuncId {
+        self.cur_module.build_func(func)
+    }
 }
 
-impl<'a> IrBuilderContext<'a> {
+impl IrCtx {
     pub fn push_break_target(&mut self, break_target: BBId, continue_target: BBId) {
-        self.bc_targets.push(BCTarget {
+        self.loop_targets.push(BCTarget {
             break_target,
             continue_target
         });
     }
 
-    pub fn pop_break_target(&mut self) {
-        self.bc_targets.pop();
+    pub fn pop_loop_target(&mut self) {
+        self.loop_targets.pop();
     }
 
     pub fn get_break_target(&self) -> Option<BBId> {
-        Some(self.bc_targets.last()?.break_target)
+        Some(self.loop_targets.last()?.break_target)
     }
 
     pub fn get_continue_target(&self) -> Option<BBId> {
-        Some(self.bc_targets.last()?.continue_target)
+        Some(self.loop_targets.last()?.continue_target)
     }
 }

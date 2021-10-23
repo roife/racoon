@@ -118,7 +118,7 @@ impl<T> Parser<T>
         };
 
         Ok(SubDecl {
-            var_name: lvalue.lval_name,
+            name: lvalue.lval_name,
             dims: lvalue.dims,
             init_val,
             span,
@@ -140,7 +140,7 @@ impl<T> Parser<T>
         Ok(init_val)
     }
 
-    fn parse_func(&mut self, ret_ty: TypeDef, name: Ident) -> Result<Func, ParseError> {
+    fn parse_func(&mut self, ret_ty: TypeDef, name: Ident) -> Result<AstFunc, ParseError> {
         expect_token!(self.iter, TokenType::LParen)?;
         let params = if is_next!(self.iter, TokenType::RParen) {
             vec![]
@@ -152,7 +152,7 @@ impl<T> Parser<T>
         let body = self.parse_block_stmt()?;
 
         let (start, end) = (ret_ty.span.start, body.span.end);
-        Ok(Func {
+        Ok(AstFunc {
             func_name: name,
             params,
             ret_ty,
