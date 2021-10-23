@@ -7,6 +7,7 @@ use crate::compiler::ir::{
         value::Operand,
     },
 };
+use crate::compiler::ir::arena::InstId;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
     ast::*,
@@ -37,7 +38,7 @@ impl AstVisitor for IrBuilder {
     type FuncResult = Result<(), Error>;
     type StmtResult = Result<(), Error>;
     type ExprResult = Result<Operand, Error>;
-    type LExprResult = ();
+    type LExprResult = Result<InstId, Error>;
     type TyResult = Result<IrTy, Error>;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
@@ -264,6 +265,10 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Self::ExprResult {
+        let lv_addr = self.visit_lexpr(&expr.lhs)?;
+        let rv = self.visit_expr(&expr.rhs)?;
+        let inst = StoreInst { addr: lv_addr, data: rv };
+        self.ctx.build_inst_end_of_cur(InstKind::Store(inst), IrTy::Void);
         todo!()
     }
 

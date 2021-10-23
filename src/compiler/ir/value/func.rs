@@ -1,14 +1,20 @@
 use slotmap::SlotMap;
+use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 
 use crate::compiler::ir::arena::{BBId, InstId};
 use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
+
+#[derive(Debug, Clone)]
+pub struct IrFuncParam {
+    pub ty: IrTy,
+}
 
 #[derive(Debug, Clone)]
 pub struct IrFunc {
     pub name: String,
     pub ret_ty: IrTy,
     pub is_builtin: bool,
-    pub params: Vec<InstId>,
+    pub params: Vec<IrFuncParam>,
     pub first_block: Option<BBId>,
 
     inst_arena: SlotMap<InstId, Inst>,
@@ -17,7 +23,10 @@ pub struct IrFunc {
 
 impl Value for IrFunc {
     fn get_ty(&self) -> IrTy {
-        todo!()
+        let param_tys = self.params.iter()
+            .map(|param| param.ty.clone())
+            .collect::<Vec<_>>();
+        IrTy::func_of(self.ret_ty.clone(), param_tys)
     }
 }
 
@@ -55,11 +64,25 @@ impl IrFunc {
     }
 
     pub fn set_inst_before_cur(&mut self, before: InstId, cur_inst: InstId) {
-        todo!()
+        self.inst_arena.attach_before(before, cur_inst);
+        let bb = self.get_inst(cur_inst).unwrap().bb;
+        self.get_inst_mut(before).unwrap().bb = bb;
+
+        let bb = self.get_bb_mut(bb).unwrap();
+        if bb.insts_head == Some(cur_inst) {
+            bb.insts_head = Some(before);
+        }
     }
 
     pub fn set_inst_after_cur(&mut self, after: InstId, cur_inst: InstId) {
-        todo!()
+        self.inst_arena.attach_after(after, cur_inst);
+        let bb = self.get_inst(cur_inst).unwrap().bb;
+        self.get_inst_mut(after).unwrap().bb = bb;
+
+        let bb = self.get_bb_mut(bb).unwrap();
+        if bb.insts_tail == Some(cur_inst) {
+            bb.insts_tail = Some(after);
+        }
     }
 
     pub fn build_inst_after_cur(&mut self, inst_kind: InstKind, ty: IrTy, cur_inst: InstId) -> InstId {
@@ -117,11 +140,11 @@ impl IrFunc {
     }
 
     pub fn set_bb_before_cur(&mut self, before: BBId, cur_bb: BBId) {
-        todo!()
+        self.bb_arena.attach_before(before, cur_bb);
     }
 
     pub fn set_bb_after_cur(&mut self, after: BBId, cur_bb: BBId) {
-        todo!()
+        self.bb_arena.attach_after(after, cur_bb);
     }
 
     pub fn build_bb_after_cur(&mut self, cur_bb: BBId) -> BBId {

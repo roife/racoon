@@ -18,41 +18,40 @@ pub trait IntrusiveLinkedList<Key>
     /// Position this item after the given item.
     fn attach_after(&mut self, after: Key, cur: Key) {
         debug_assert!(
-            self.get_item(cur).is_freestanding(),
+            self.get_item(after).is_freestanding(),
             "The value attached should be freestanding"
         );
 
-        let after_item = self.get_item_mut(after);
-        let next = after_item.next();
-        after_item.set_next(Some(cur));
-
         let cur_item = self.get_item_mut(cur);
-        cur_item.set_prev(Some(after));
-        cur_item.set_next(next);
+        let next = cur_item.next();
+        cur_item.set_next(Some(after));
+
+        let after_item = self.get_item_mut(after);
+        after_item.set_prev(Some(cur));
+        after_item.set_next(next);
 
         if let Some(idx) = next {
-            self.get_item_mut(idx).set_prev(Some(cur));
+            self.get_item_mut(idx).set_prev(Some(after));
         };
     }
 
     /// Position this item before the given item.
-    fn attach_before(&mut self, before: Key, this: Key) {
+    fn attach_before(&mut self, before: Key, cur: Key) {
         debug_assert!(
-            self.get_item(this).is_freestanding(),
+            self.get_item(before).is_freestanding(),
             "The value attached should be freestanding"
         );
 
-        let before_item = self.get_item_mut(before);
-        let prev = before_item.prev();
-        before_item.set_prev(Some(this));
+        let cur_item = self.get_item_mut(cur);
+        let prev = cur_item.prev();
+        cur_item.set_prev(Some(before));
 
-        let current = self.get_item_mut(this);
-        current.set_next(Some(before));
-        current.set_prev(prev);
+        let before_item = self.get_item_mut(before);
+        before_item.set_next(Some(cur));
+        before_item.set_prev(prev);
 
         if let Some(idx) = prev {
-            let prev = self.get_item_mut(idx);
-            prev.set_next(Some(this));
+            self.get_item_mut(idx).set_next(Some(before));
         };
     }
 
