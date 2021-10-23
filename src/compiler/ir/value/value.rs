@@ -1,8 +1,8 @@
 use crate::compiler::ir::arena::{InstId};
-use crate::compiler::ir::value::{ty::Ty, constant::Constant};
+use crate::compiler::ir::value::{ty::IrTy, constant::Constant};
 
 pub trait Value {
-    fn get_ty(&self) -> Ty;
+    fn get_ty(&self) -> IrTy;
 }
 
 #[derive(Debug, Clone)]
@@ -12,7 +12,7 @@ pub enum Operand {
 }
 
 impl Value for Operand {
-    fn get_ty(&self) -> Ty {
+    fn get_ty(&self) -> IrTy {
         match self {
             Operand::Inst(i) => todo!(),
             Operand::Constant(c) => c.get_ty()

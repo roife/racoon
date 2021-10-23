@@ -1,38 +1,38 @@
 use enum_as_inner::EnumAsInner;
 
 #[derive(Debug, Clone, EnumAsInner)]
-pub enum Ty {
+pub enum IrTy {
     Void,
     Func(Box<FuncTy>),
     Int(usize),
-    Ptr(Box<Ty>),
+    Ptr(Box<IrTy>),
     Label,
-    Array(Box<Ty>),
+    Array(Box<IrTy>),
 }
 
 #[derive(Debug, Clone)]
 pub struct FuncTy {
-    pub ret_ty: Ty,
-    pub params_ty: Vec<Ty>,
+    pub ret_ty: IrTy,
+    pub params_ty: Vec<IrTy>,
 }
 
-impl Ty {
-    pub fn bool() -> Ty {
-        Ty::Int(1)
+impl IrTy {
+    pub fn bool() -> IrTy {
+        IrTy::Int(1)
     }
 
-    pub fn int() -> Ty {
-        Ty::Int(32)
+    pub fn int() -> IrTy {
+        IrTy::Int(32)
     }
 
-    pub fn func_of(ret_ty: Ty, params: Vec<Ty>) -> Ty {
-        Ty::Func(Box::new(FuncTy {
+    pub fn func_of(ret_ty: IrTy, params: Vec<IrTy>) -> IrTy {
+        IrTy::Func(Box::new(FuncTy {
             ret_ty,
             params_ty: params,
         }))
     }
 
-    pub fn ptr_of(ty: Ty) -> Ty {
-        Ty::Ptr(Box::new(ty))
+    pub fn ptr_of(ty: IrTy) -> IrTy {
+        IrTy::Ptr(Box::new(ty))
     }
 }

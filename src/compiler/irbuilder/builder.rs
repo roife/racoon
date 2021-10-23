@@ -6,7 +6,7 @@ use crate::compiler::ir::{
         constant::Constant,
         inst::*,
         module::Module,
-        ty::Ty,
+        ty::IrTy,
         value::Operand,
     },
 };
@@ -43,7 +43,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
     type StmtResult = Result<(), Error>;
     type ExprResult = Result<Operand, Error>;
     type LExprResult = ();
-    type TyResult = Result<Ty, Error>;
+    type TyResult = Result<IrTy, Error>;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
         todo!()
@@ -115,9 +115,9 @@ impl<'a> AstVisitor for IrBuilder<'a> {
             .map_or(Ok(None), |r| r.map(Some))?;
 
         let inst = RetInst { val };
-        self.ctx.build_inst_at_end(InstKind::ReturnInst(inst), Ty::Void);
+        self.ctx.build_inst_at_end(InstKind::ReturnInst(inst), IrTy::Void);
 
-        let nxt_bb = self.ctx.build_bb_after_cur();
+        let nxt_bb = self.ctx.build_bb_after_cur(); // todo? maybe a bug
         self.ctx.set_cur_bb(nxt_bb);
         Ok(())
     }
@@ -154,7 +154,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
     }
 
     fn visit_unary_expr(&mut self, expr: &UnaryExpr) -> Self::ExprResult {
-        let val = self.visit_expr(&expr.expr)?;
+        let mut val = self.visit_expr(&expr.expr)?;
         match expr.op {
             UnaryOp::Neg => {
                 let inst = BinaryInst {
@@ -162,11 +162,28 @@ impl<'a> AstVisitor for IrBuilder<'a> {
                     left: Operand::from(0),
                     right: val,
                 };
-                let id = self.ctx.build_inst_at_end(InstKind::Binary(inst), todo!());
+                let id = self.ctx.build_inst_at_end(InstKind::Binary(inst), expr.ty.into());
                 Ok(id.into())
             }
             UnaryOp::Pos => Ok(val),
-            UnaryOp::Not => todo!()
+            UnaryOp::Not => {
+                let sub_expr_ty = expr.expr.ty();
+                if let AstTy::Bool = sub_expr_ty {
+                    let zext_inst = ZExtInst {
+                        ori_val: val,
+                        target_ty: IrTy::int(),
+                    };
+                    let id = self.ctx.build_inst_at_end(InstKind::ZExt(zext_inst), IrTy::int());
+                    val = Operand::from(id);
+                }
+                let inst = BinaryInst {
+                    op: BinaryInstOp::Ne,
+                    left: val,
+                    right: Operand::from(0),
+                };
+                let id = self.ctx.build_inst_at_end(InstKind::Binary(inst), expr.ty.into());
+                Ok(id.into())
+            }
         }
     }
 
@@ -176,7 +193,7 @@ impl<'a> AstVisitor for IrBuilder<'a> {
         let op = expr.op.to_binary_inst_kind();
 
         let inst = BinaryInst { op, left, right };
-        let id = self.ctx.build_inst_at_end(InstKind::Binary(inst), todo!());
+        let id = self.ctx.build_inst_at_end(InstKind::Binary(inst), expr.ty.into());
         Ok(id.into())
     }
 
@@ -190,18 +207,30 @@ impl<'a> AstVisitor for IrBuilder<'a> {
             .map(|x| self.visit_expr(&x))
             .collect::<Result<Vec<_>, _>>()?;
 
+        let ret_ty = self.ctx.get_func_ret_ty();
         let inst = CallInst { func, args };
-        let id = self.ctx.build_inst_at_end(InstKind::Call(inst), todo!());
+        let id = self.ctx.build_inst_at_end(InstKind::Call(inst), ret_ty);
         Ok(id.into())
     }
 
     fn visit_ty(&mut self, ty_def: &TypeDef) -> Self::TyResult {
         let ty = match &ty_def.ty_kind {
             TyKind::Primitive(prim_ty) => match prim_ty {
-                PrimitiveTy::Integer => Ty::Int(32)
+                PrimitiveTy::Integer => IrTy::Int(32)
             }
-            TyKind::Void => Ty::Void
+            TyKind::Void => IrTy::Void
         };
         Ok(ty)
+    }
+}
+
+impl From<AstTy> for IrTy {
+    fn from(ast_ty: AstTy) -> Self {
+        match ast_ty {
+            AstTy::Void => IrTy::Void,
+            AstTy::Int => IrTy::Int(32),
+            AstTy::Bool => IrTy::Int(1),
+            AstTy::Unknown => unreachable!()
+        }
     }
 }

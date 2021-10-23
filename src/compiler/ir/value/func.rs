@@ -5,12 +5,12 @@ use crate::compiler::ir::arena::{BBId, InstId};
 use crate::compiler::ir::value::{basic_block::BasicBlock, inst::Inst};
 use crate::compiler::ir::value::inst::InstKind;
 
-use super::{ty::Ty, value::Value};
+use super::{ty::IrTy, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct Func {
     pub name: String,
-    pub ret_ty: Ty,
+    pub ret_ty: IrTy,
     pub is_builtin: bool,
     // pub params:
     pub first_block: Option<BBId>,
@@ -20,13 +20,13 @@ pub struct Func {
 }
 
 impl Value for Func {
-    fn get_ty(&self) -> Ty {
+    fn get_ty(&self) -> IrTy {
         todo!()
     }
 }
 
 impl Func {
-    pub fn new(name: &str, ret_ty: Ty, is_builtin: bool) -> Func {
+    pub fn new(name: &str, ret_ty: IrTy, is_builtin: bool) -> Func {
         Func {
             name: String::from(name),
             ret_ty,
@@ -47,7 +47,7 @@ impl Func {
         self.inst_arena.get_mut(inst_id)
     }
 
-    fn new_inst(&mut self, inst_kind: InstKind, ty: Ty, bb: BBId) -> InstId {
+    fn new_inst(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
         self.inst_arena.insert(Inst {
             kind: inst_kind,
             ty,
@@ -65,21 +65,21 @@ impl Func {
         todo!()
     }
 
-    pub fn build_inst_after_cur(&mut self, inst_kind: InstKind, ty: Ty, cur_inst: InstId) -> InstId {
+    pub fn build_inst_after_cur(&mut self, inst_kind: InstKind, ty: IrTy, cur_inst: InstId) -> InstId {
         let bb = self.get_inst(cur_inst).unwrap().bb;
         let new_inst = self.new_inst(inst_kind, ty, bb);
         self.set_inst_after_cur(new_inst, cur_inst);
         new_inst
     }
 
-    pub fn build_inst_before_cur(&mut self, inst_kind: InstKind, ty: Ty, cur_inst: InstId) -> InstId {
+    pub fn build_inst_before_cur(&mut self, inst_kind: InstKind, ty: IrTy, cur_inst: InstId) -> InstId {
         let bb = self.get_inst(cur_inst).unwrap().bb;
         let new_inst = self.new_inst(inst_kind, ty, bb);
         self.set_inst_before_cur(new_inst, cur_inst);
         new_inst
     }
 
-    pub fn build_inst_at_end(&mut self, inst_kind: InstKind, ty: Ty, bb: BBId) -> InstId {
+    pub fn build_inst_at_end(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
         let new_inst = self.new_inst(inst_kind, ty, bb);
         let bb = self.get_bb_mut(bb).unwrap();
         let old_tail = bb.insts_tail.replace(new_inst);
@@ -92,7 +92,7 @@ impl Func {
         new_inst
     }
 
-    pub fn build_inst_at_start(&mut self, inst_kind: InstKind, ty: Ty, bb: BBId) -> InstId {
+    pub fn build_inst_at_start(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
         let new_inst = self.new_inst(inst_kind, ty, bb);
         let bb = self.get_bb_mut(bb).unwrap();
         let old_head = bb.insts_head.replace(new_inst);

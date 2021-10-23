@@ -154,6 +154,17 @@ impl Expr {
             Expr::Call(x) => x.span,
         }
     }
+
+    pub fn ty(&self) -> AstTy {
+        match self {
+            Expr::LVal(x) => x.ty,
+            Expr::Assign(x) => x.ty,
+            Expr::Literal(x) => x.ty,
+            Expr::Unary(x) => x.ty,
+            Expr::Binary(x) => x.ty,
+            Expr::Call(x) => x.ty,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -162,12 +173,14 @@ pub struct AssignExpr {
     pub rhs: Box<Expr>,
     pub allow_assign_const: bool,
     pub span: Span,
+    pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
 pub struct LiteralExpr {
     pub kind: LiteralKind,
     pub span: Span,
+    pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
@@ -180,6 +193,7 @@ pub struct UnaryExpr {
     pub op: UnaryOp,
     pub expr: Box<Expr>,
     pub span: Span,
+    pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
@@ -188,6 +202,7 @@ pub struct BinaryExpr {
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
     pub span: Span,
+    pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
@@ -195,6 +210,7 @@ pub struct CallExpr {
     pub func: Ident,
     pub args: Vec<Expr>,
     pub span: Span,
+    pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
@@ -202,6 +218,7 @@ pub struct LVal {
     pub lval_name: Ident,
     pub dims: Option<Dim>,
     pub span: Span,
+    pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
@@ -255,6 +272,14 @@ pub enum BinaryOp {
     Ne,
     And,
     Or,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum AstTy {
+    Unknown,
+    Void,
+    Int,
+    Bool,
 }
 
 impl TokenType {

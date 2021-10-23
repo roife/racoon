@@ -363,6 +363,7 @@ impl<T> Parser<T>
                         rhs: Box::new(rhs),
                         allow_assign_const: false,
                         span,
+                        ty: AstTy::Unknown,
                     })
                 }
                 _ => Expr::Binary(BinaryExpr {
@@ -370,6 +371,7 @@ impl<T> Parser<T>
                     rhs: Box::new(rhs),
                     op: op.to_binary_op().unwrap(),
                     span,
+                    ty: AstTy::Unknown,
                 })
             };
         }
@@ -390,6 +392,7 @@ impl<T> Parser<T>
                 op,
                 expr: Box::new(expr_item),
                 span: Span { start: prec_op.span.start, end },
+                ty: AstTy::Unknown,
             });
         }
         Ok(expr_item)
@@ -410,6 +413,7 @@ impl<T> Parser<T>
             Ok(Expr::Literal(LiteralExpr {
                 kind: LiteralKind::Integer(*int_literal.token_type.as_int_literal().unwrap()),
                 span: int_literal.span,
+                ty: AstTy::Unknown,
             }))
         } else if is_next!(self.iter, TokenType::LParen) {
             expect_token!(self.iter, TokenType::LParen)?;
@@ -436,6 +440,7 @@ impl<T> Parser<T>
             func,
             args: params,
             span: Span { start, end },
+            ty: AstTy::Unknown,
         })
     }
 
@@ -450,7 +455,7 @@ impl<T> Parser<T>
             None
         };
 
-        Ok(LVal { lval_name: name, dims, span })
+        Ok(LVal { lval_name: name, dims, span, ty: AstTy::Unknown })
     }
 
     fn parse_dim(&mut self) -> Result<Dim, ParseError> {

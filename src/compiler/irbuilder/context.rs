@@ -7,7 +7,7 @@ use enum_as_inner::EnumAsInner;
 
 use crate::compiler::ir::{
     arena::{BBId, FuncId, GlobalId, InstId},
-    value::ty::Ty,
+    value::ty::IrTy,
 };
 use crate::compiler::ir::value::basic_block::BasicBlock;
 use crate::compiler::ir::value::func::Func;
@@ -101,11 +101,15 @@ impl<'a> Context<'a> {
         self.get_cur_func_mut().get_bb_mut(bb).unwrap()
     }
 
+    pub fn get_func_ret_ty(&self) -> IrTy {
+        self.cur_module.get_func(self.cur_func).unwrap().ret_ty.clone()
+    }
+
     pub fn set_cur_bb(&mut self, bb: BBId) {
         self.cur_bb = bb;
     }
 
-    pub fn build_inst_at_end(&mut self, inst_kind: InstKind, ty: Ty) -> InstId {
+    pub fn build_inst_at_end(&mut self, inst_kind: InstKind, ty: IrTy) -> InstId {
         let bb = self.cur_bb;
         self.get_cur_func_mut().build_inst_at_end(inst_kind, ty, bb)
     }

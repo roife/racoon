@@ -1,4 +1,4 @@
-use super::{ty::Ty, value::Value};
+use super::{ty::IrTy, value::Value};
 
 #[derive(Debug, Clone)]
 pub enum Constant {
@@ -6,9 +6,9 @@ pub enum Constant {
 }
 
 impl Value for Constant {
-    fn get_ty(&self) -> Ty {
+    fn get_ty(&self) -> IrTy {
         match self {
-            Constant::Int(_) => Ty::Int(32),
+            Constant::Int(_) => IrTy::Int(32),
         }
     }
 }

@@ -1,8 +1,8 @@
-use crate::compiler::ir::value::ty::Ty;
+use crate::compiler::ir::value::ty::IrTy;
 
 #[derive(Debug)]
 pub enum Error {
-    TypeMismatch { expected: Ty, found: Ty },
+    TypeMismatch { expected: IrTy, found: IrTy },
     UnknownName(String),
     DuplicateName(String),
     WrongParamLength { expected: usize, found: usize },

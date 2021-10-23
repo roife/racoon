@@ -1,5 +1,5 @@
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
-use super::{ty::Ty, value::Value};
+use super::{ty::IrTy, value::Value};
 use super::super::arena::{BBId, InstId};
 
 #[derive(Debug, Clone, Default)]
@@ -12,8 +12,8 @@ pub struct BasicBlock {
 }
 
 impl Value for BasicBlock {
-    fn get_ty(&self) -> Ty {
-        Ty::Label
+    fn get_ty(&self) -> IrTy {
+        IrTy::Label
     }
 }
 

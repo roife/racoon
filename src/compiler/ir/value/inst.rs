@@ -5,14 +5,14 @@ use crate::compiler::syntax::ast::BinaryOp;
 
 use super::{
     super::arena::{BBId, FuncId, InstId},
-    ty::Ty,
+    ty::IrTy,
     value::{Operand, Value},
 };
 
 #[derive(Debug, Clone)]
 pub struct Inst {
     pub kind: InstKind,
-    pub ty: Ty,
+    pub ty: IrTy,
 
     pub bb: BBId,
     pub prev: Option<InstId>,
@@ -20,7 +20,7 @@ pub struct Inst {
 }
 
 impl Value for Inst {
-    fn get_ty(&self) -> Ty {
+    fn get_ty(&self) -> IrTy {
         self.ty.clone()
     }
 }
@@ -61,7 +61,7 @@ pub enum InstKind {
     GEP(GEPInst),
 
     // Conversion
-    // ZExt(ZExtInst),
+    ZExt(ZExtInst),
 
     // Other
     Call(CallInst),
@@ -136,6 +136,12 @@ pub struct StoreInst {
 pub struct GEPInst {
     // ptr: Value,
     // indices: Vec<Value>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ZExtInst {
+    pub(crate) ori_val: Operand,
+    pub(crate) target_ty: IrTy,
 }
 
 #[derive(Debug, Clone)]
