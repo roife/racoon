@@ -1,8 +1,10 @@
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
-use crate::compiler::ir::arena::FuncId;
 
-use super::{ty::IrTy, value::Value};
-use super::super::arena::{BBId, InstId};
+use super::{
+    super::arena::{BBId, InstId},
+    ty::IrTy,
+    value::Value,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct BasicBlock {

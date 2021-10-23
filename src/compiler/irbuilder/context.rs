@@ -7,12 +7,8 @@ use enum_as_inner::EnumAsInner;
 
 use crate::compiler::ir::{
     arena::{BBId, FuncId, GlobalId, InstId},
-    value::ty::IrTy,
+    value::{module::Module, basic_block::BasicBlock, func::IrFunc, inst::InstKind, ty::IrTy},
 };
-use crate::compiler::ir::value::basic_block::BasicBlock;
-use crate::compiler::ir::value::func::IrFunc;
-use crate::compiler::ir::value::inst::InstKind;
-use crate::compiler::ir::value::module::Module;
 
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum NameId {

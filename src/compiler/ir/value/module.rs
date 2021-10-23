@@ -1,8 +1,8 @@
 use slotmap::SlotMap;
 
-use crate::compiler::ir::arena::{BBId, FuncId, GlobalId, InstId};
+use crate::compiler::ir::arena::{FuncId, GlobalId};
 
-use super::{basic_block::BasicBlock, func::IrFunc, global::GlobalVar, inst::Inst};
+use super::{func::IrFunc, global::GlobalVar};
 
 #[derive(Debug, Clone)]
 pub struct Module {

@@ -2,7 +2,6 @@ use slotmap::SlotMap;
 
 use crate::compiler::ir::arena::{BBId, InstId};
 use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
-use crate::compiler::ir::value::inst::BranchInst;
 
 #[derive(Debug, Clone)]
 pub struct IrFunc {

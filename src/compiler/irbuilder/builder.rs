@@ -1,19 +1,12 @@
-use std::borrow::Borrow;
-
 use crate::compiler::ir::{
-    arena::{BBId, FuncId},
     value::{
-        self as ir,
         constant::Constant,
+        func::IrFunc,
         inst::*,
-        module::Module,
         ty::IrTy,
         value::Operand,
     },
 };
-use crate::compiler::ir::value::func::IrFunc;
-use crate::compiler::ir::value::inst::BranchInst::Jump;
-use crate::compiler::ir::value::inst::InstKind::Alloca;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
     ast::*,
@@ -21,7 +14,7 @@ use crate::compiler::syntax::{
 };
 
 use super::{
-    context::{IrCtx, NameId, ScopeBuilder},
+    context::{IrCtx, NameId},
     err::Error,
 };
 
@@ -103,7 +96,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Self::StmtResult {
         self.ctx.scope_builder.push_scope();
-        let x = stmt.block_items.iter().try_for_each(|sub_stmt| match sub_stmt {
+        stmt.block_items.iter().try_for_each(|sub_stmt| match sub_stmt {
             BlockItem::Stmt(x) => self.visit_stmt(x),
             BlockItem::Decl(x) => self.visit_decl(x),
         })?;
@@ -125,7 +118,7 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult {
-        self.visit_expr(stmt);
+        self.visit_expr(stmt)?;
         Ok(())
     }
 
