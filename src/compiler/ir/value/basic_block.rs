@@ -1,4 +1,6 @@
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
+use crate::compiler::ir::arena::FuncId;
+
 use super::{ty::IrTy, value::Value};
 use super::super::arena::{BBId, InstId};
 

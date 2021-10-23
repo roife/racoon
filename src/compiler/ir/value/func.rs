@@ -1,11 +1,8 @@
 use slotmap::SlotMap;
-use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 
 use crate::compiler::ir::arena::{BBId, InstId};
-use crate::compiler::ir::value::{basic_block::BasicBlock, inst::Inst};
-use crate::compiler::ir::value::inst::InstKind;
-
-use super::{ty::IrTy, value::Value};
+use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
+use crate::compiler::ir::value::inst::BranchInst;
 
 #[derive(Debug, Clone)]
 pub struct Func {

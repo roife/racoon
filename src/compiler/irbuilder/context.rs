@@ -78,20 +78,25 @@ impl<T> ScopeBuilder<T> {
     }
 }
 
-struct BreakTarget {
-    pub break_out: BBId,
-    pub continue_in: BBId,
+struct BCTarget {
+    pub break_target: BBId,
+    pub continue_target: BBId,
 }
 
-pub struct Context<'a> {
+pub struct IrBuilderContext<'a> {
     pub scope_builder: ScopeBuilder<NameId>,
-    break_targets: Vec<BreakTarget>,
     cur_module: &'a mut Module,
     cur_func: FuncId,
     cur_bb: BBId,
+
+    bc_targets: Vec<BCTarget>,
 }
 
-impl<'a> Context<'a> {
+impl<'a> IrBuilderContext<'a> {
+    pub fn get_cur_bb_id(&self) -> BBId {
+        self.cur_bb
+    }
+
     fn get_cur_func_mut(&mut self) -> &mut Func {
         self.cur_module.get_func_mut(self.cur_func).unwrap()
     }
@@ -109,13 +114,38 @@ impl<'a> Context<'a> {
         self.cur_bb = bb;
     }
 
-    pub fn build_inst_at_end(&mut self, inst_kind: InstKind, ty: IrTy) -> InstId {
-        let bb = self.cur_bb;
+    pub fn build_inst_at_end_of(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
         self.get_cur_func_mut().build_inst_at_end(inst_kind, ty, bb)
     }
 
-    pub fn build_bb_after_cur(&mut self) -> BBId {
+    pub fn build_inst_at_end_of_cur(&mut self, inst_kind: InstKind, ty: IrTy) -> InstId {
+        let cur_bb = self.cur_bb;
+        self.build_inst_at_end_of(inst_kind, ty, cur_bb)
+    }
+
+    pub fn build_bb(&mut self) -> BBId {
         let bb = self.cur_bb;
         self.get_cur_func_mut().build_bb_after_cur(bb)
+    }
+}
+
+impl<'a> IrBuilderContext<'a> {
+    pub fn push_break_target(&mut self, break_target: BBId, continue_target: BBId) {
+        self.bc_targets.push(BCTarget {
+            break_target,
+            continue_target
+        });
+    }
+
+    pub fn pop_break_target(&mut self) {
+        self.bc_targets.pop();
+    }
+
+    pub fn get_break_target(&self) -> Option<BBId> {
+        Some(self.bc_targets.last()?.break_target)
+    }
+
+    pub fn get_continue_target(&self) -> Option<BBId> {
+        Some(self.bc_targets.last()?.continue_target)
     }
 }

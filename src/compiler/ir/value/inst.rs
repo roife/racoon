@@ -113,8 +113,8 @@ impl BinaryOp {
 
 #[derive(Debug, Clone)]
 pub enum BranchInst {
-    Br { cond: Operand, true_blk: BBId, false_blk: BBId },
-    Jump { nxt_blk: BBId },
+    Br { cond: Operand, true_bb: BBId, false_bb: BBId },
+    Jump { nxt_bb: BBId },
 }
 
 #[derive(Debug, Clone)]
