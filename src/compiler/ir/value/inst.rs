@@ -129,12 +129,12 @@ pub struct AllocaInst {
 
 #[derive(Debug, Clone)]
 pub struct LoadInst {
-    pub addr: InstId,
+    pub addr: Operand,
 }
 
 #[derive(Debug, Clone)]
 pub struct StoreInst {
-    pub addr: InstId,
+    pub addr: Operand,
     pub data: Operand,
 }
 

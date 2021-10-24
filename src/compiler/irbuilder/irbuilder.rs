@@ -43,7 +43,7 @@ impl AstVisitor for IrBuilder {
     type FuncResult = Result<(), SemanticError>;
     type StmtResult = Result<(), SemanticError>;
     type ExprResult = Result<Operand, SemanticError>;
-    type LExprResult = Result<InstId, SemanticError>;
+    type LExprResult = Result<Operand, SemanticError>;
     type TyResult = Result<IrTy, SemanticError>;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
@@ -266,14 +266,17 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_lexpr(&mut self, expr: &Expr) -> Self::LExprResult {
+        let val= expr.as_l_val().unwrap(); // todo
+        let base_addr = self.ctx.scope_builder.find_name_rec(&val.lval_name.name)
+            .ok_or(SemanticError::UnknownName(val.lval_name.name.clone()))?;
         todo!()
     }
 
     fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Self::ExprResult {
-        let lv_addr = self.visit_lexpr(&expr.lhs)?;
-        let rv = self.visit_expr(&expr.rhs)?;
-        let inst = StoreInst { addr: lv_addr, data: rv };
-        self.ctx.build_inst_end_of_cur(InstKind::Store(inst), IrTy::Void);
+        // let lv_addr = self.visit_lexpr(&expr.lhs)?;
+        // let rv = self.visit_expr(&expr.rhs)?;
+        // let inst = StoreInst { addr: lv_addr, data: rv };
+        // self.ctx.build_inst_end_of_cur(InstKind::Store(inst), IrTy::Void);
         todo!()
     }
 
@@ -345,11 +348,11 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_ty(&mut self, ty_def: &TypeDef) -> Self::TyResult {
-        let ty = match &ty_def.ty_kind {
-            TyKind::Primitive(prim_ty) => match prim_ty {
+        let ty = match &ty_def.ty_ident {
+            TyIdent::Primitive(prim_ty) => match prim_ty {
                 PrimitiveTy::Integer => IrTy::Int(32)
             }
-            TyKind::Void => IrTy::Void
+            TyIdent::Void => IrTy::Void
         };
         Ok(ty)
     }

@@ -1,5 +1,5 @@
-use crate::compiler::ir::arena::{InstId};
-use crate::compiler::ir::value::{ty::IrTy, constant::Constant};
+use crate::compiler::ir::arena::{GlobalId, InstId};
+use crate::compiler::ir::value::{constant::Constant, ty::IrTy};
 
 pub trait Value {
     fn get_ty(&self) -> IrTy;
@@ -8,7 +8,8 @@ pub trait Value {
 #[derive(Debug, Clone)]
 pub enum Operand {
     Inst(InstId),
-    Constant(Constant)
+    Constant(Constant),
+    Global(GlobalId),
 }
 
 impl From<InstId> for Operand {

@@ -1,5 +1,5 @@
 use crate::compiler::span::Span;
-
+use enum_as_inner::EnumAsInner;
 use super::token::TokenType;
 
 #[derive(Debug, Clone)]
@@ -24,7 +24,7 @@ pub struct Decl {
 #[derive(Debug, Clone)]
 pub struct SubDecl {
     pub name: Ident,
-    pub dims: Option<Dim>,
+    pub subs: Option<Subs>,
     pub init_val: Option<InitVal>,
     pub span: Span,
 }
@@ -59,7 +59,7 @@ pub struct AstFunc {
 #[derive(Debug, Clone)]
 pub struct FuncParam {
     pub param_name: Ident,
-    pub dims: Option<Dim>,
+    pub subs: Option<Subs>,
     pub ty: TypeDef,
     pub span: Span,
 }
@@ -133,7 +133,7 @@ pub struct ReturnStmt {
     pub span: Span,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumAsInner)]
 pub enum Expr {
     LVal(LVal),
     Assign(AssignExpr),
@@ -216,25 +216,25 @@ pub struct CallExpr {
 #[derive(Debug, Clone)]
 pub struct LVal {
     pub lval_name: Ident,
-    pub dims: Option<Dim>,
+    pub subs: Option<Subs>,
     pub span: Span,
     pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
-pub struct Dim {
-    pub dims: Vec<Expr>,
+pub struct Subs {
+    pub subs: Vec<Expr>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct TypeDef {
-    pub ty_kind: TyKind,
+    pub ty_ident: TyIdent,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
-pub enum TyKind {
+pub enum TyIdent {
     Primitive(PrimitiveTy),
     Void,
 }
@@ -333,10 +333,10 @@ impl TokenType {
         }
     }
 
-    pub fn to_ty_kind(&self) -> Option<TyKind> {
+    pub fn to_ty_ident(&self) -> Option<TyIdent> {
         match self {
-            TokenType::IntTy => Some(TyKind::Primitive(PrimitiveTy::Integer)),
-            TokenType::VoidTy => Some(TyKind::Void),
+            TokenType::IntTy => Some(TyIdent::Primitive(PrimitiveTy::Integer)),
+            TokenType::VoidTy => Some(TyIdent::Void),
             _ => None,
         }
     }

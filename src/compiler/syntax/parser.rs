@@ -119,7 +119,7 @@ impl<T> Parser<T>
 
         Ok(SubDecl {
             name: lvalue.lval_name,
-            dims: lvalue.dims,
+            subs: lvalue.subs,
             init_val,
             span,
         })
@@ -166,17 +166,17 @@ impl<T> Parser<T>
         let name = self.parse_ident()?;
         let param_start = name.span.start;
         let mut param_end = name.span.end;
-        let dims = if next_if_match!(self.iter, TokenType::LBracket) {
+        let subs = if next_if_match!(self.iter, TokenType::LBracket) {
             expect_token!(self.iter, TokenType::RBracket)?;
-            let dims = self.parse_dim()?;
-            param_end = dims.span.end;
-            Some(dims)
+            let subs = self.parse_dim()?;
+            param_end = subs.span.end;
+            Some(subs)
         } else {
             None
         };
         Ok(FuncParam {
             param_name: name,
-            dims,
+            subs: subs,
             ty,
             span: Span {
                 start: param_start,
@@ -447,31 +447,31 @@ impl<T> Parser<T>
     fn parse_lvalue(&mut self) -> Result<LVal, ParseError> {
         let name = self.parse_ident()?;
         let mut span = name.span;
-        let dims = if is_next!(self.iter, TokenType::LBracket) {
-            let dims = self.parse_dim()?;
-            span.end = dims.span.end;
-            Some(dims)
+        let subs = if is_next!(self.iter, TokenType::LBracket) {
+            let subs = self.parse_dim()?;
+            span.end = subs.span.end;
+            Some(subs)
         } else {
             None
         };
 
-        Ok(LVal { lval_name: name, dims, span, ty: AstTy::Unknown })
+        Ok(LVal { lval_name: name, subs: subs, span, ty: AstTy::Unknown })
     }
 
-    fn parse_dim(&mut self) -> Result<Dim, ParseError> {
+    fn parse_dim(&mut self) -> Result<Subs, ParseError> {
         let mut span = expect_token!(self.iter, TokenType::LBracket).unwrap().span;
-        let dims = parse_separate_match!(self.iter, TokenType::LBracket, {
+        let subs = parse_separate_match!(self.iter, TokenType::LBracket, {
             let dim = self.parse_expr()?;
             span.end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
             Ok(dim)
         });
-        Ok(Dim { dims, span })
+        Ok(Subs { subs: subs, span })
     }
 
     fn parse_ty(&mut self) -> Result<TypeDef, ParseError> {
         let ty_token = expect_token!(self.iter, TokenType::IntTy | TokenType::VoidTy)?;
         Ok(TypeDef {
-            ty_kind: ty_token.token_type.to_ty_kind().unwrap(),
+            ty_ident: ty_token.token_type.to_ty_ident().unwrap(),
             span: ty_token.span,
         })
     }
