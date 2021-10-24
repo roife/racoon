@@ -1,4 +1,6 @@
-use structopt;
+use std::fs;
+use std::io::Write;
+
 use structopt::StructOpt;
 
 use racoon::compiler::{
@@ -12,13 +14,14 @@ fn main() {
     let options = options::Options::from_args();
 
     let input_file = options.input_file;
-    let input = std::fs::read_to_string(input_file)
-        .expect("Unable to read from input file");
+    let input = fs::read_to_string(input_file)
+        .expect("Failed to read from input file");
 
     let lexer = lexer::Lexer::new(input.chars());
     // println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect::<Vec<_>>());
 
     let mut parser = parser::Parser::new(lexer);
+    // println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
     let ast = match parser.parse() {
         Ok(p) => p,
         Err(e) => {
@@ -26,8 +29,6 @@ fn main() {
             return;
         }
     };
-
-    // println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
 
     let mut ir_builder = irbuilder::IrBuilder::new();
     let ir = match ir_builder.visit(&ast) {
@@ -37,4 +38,13 @@ fn main() {
             return;
         }
     };
+
+    let output_file = options.output_file;
+    let mut output = Box::new(
+        fs::OpenOptions::new()
+            .write(true)
+            .open(output_file)
+            .expect("Failed to open output file")
+    );
+    writeln!(output, "{}", ir).expect("Failed to write output file");
 }

@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use slotmap::SlotMap;
 
 use crate::compiler::ir::arena::{FuncId, GlobalId};
@@ -32,5 +33,11 @@ impl Module {
 
     pub fn get_global(&self, global_id: GlobalId) -> Option<&GlobalVar> {
         self.global_arena.get(global_id)
+    }
+}
+
+impl Display for Module {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }
