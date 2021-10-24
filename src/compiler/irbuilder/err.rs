@@ -1,7 +1,7 @@
 use crate::compiler::ir::value::ty::IrTy;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum SemanticError {
     TypeMismatch { expected: IrTy, found: IrTy },
     UnknownName(String),
     DuplicateName(String),

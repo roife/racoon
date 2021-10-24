@@ -1,5 +1,7 @@
+use std::borrow::Borrow;
 use crate::compiler::ir::{
     value::{
+        module::Module,
         constant::Constant,
         func::IrFunc,
         inst::*,
@@ -16,30 +18,33 @@ use crate::compiler::syntax::{
 
 use super::{
     context::{IrCtx, NameId},
-    err::Error,
+    err::SemanticError,
 };
 
 pub struct IrBuilder {
-    ast_program: Program,
-    ctx: IrCtx,
+    pub ctx: IrCtx,
 }
 
 impl IrBuilder {
-    pub fn new(ast_program: Program) -> IrBuilder {
+    pub fn new() -> IrBuilder {
         IrBuilder {
-            ast_program,
             ctx: IrCtx::new()
         }
+    }
+
+    pub fn visit(&mut self, program: &Program) -> Result<(), SemanticError> {
+        self.visit_program(program)?;
+        Ok(())
     }
 }
 
 impl AstVisitor for IrBuilder {
-    type ProgramResult = ();
-    type FuncResult = Result<(), Error>;
-    type StmtResult = Result<(), Error>;
-    type ExprResult = Result<Operand, Error>;
-    type LExprResult = Result<InstId, Error>;
-    type TyResult = Result<IrTy, Error>;
+    type ProgramResult = Result<(), SemanticError>;
+    type FuncResult = Result<(), SemanticError>;
+    type StmtResult = Result<(), SemanticError>;
+    type ExprResult = Result<Operand, SemanticError>;
+    type LExprResult = Result<InstId, SemanticError>;
+    type TyResult = Result<IrTy, SemanticError>;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
         todo!()
@@ -72,7 +77,7 @@ impl AstVisitor for IrBuilder {
         let ret_ty = self.visit_ty(&ast_func.ret_ty)?;
         let func = self.ctx.build_func(IrFunc::new(&ast_func.func_name.name, ret_ty, false));
         self.ctx.scope_builder.insert(&ast_func.func_name.name, NameId::Func(func))
-            .ok_or(Error::DuplicateName(ast_func.func_name.name.clone()))?;
+            .ok_or(SemanticError::DuplicateName(ast_func.func_name.name.clone()))?;
         self.ctx.set_cur_func(func);
 
         let init_bb = self.ctx.build_bb();
@@ -91,7 +96,7 @@ impl AstVisitor for IrBuilder {
             IrTy::ptr_of(ty.clone())
         );
         self.ctx.scope_builder.insert(&param.param_name.name, NameId::Inst(inst))
-            .ok_or(Error::DuplicateName(param.param_name.name.clone()))?;
+            .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
         todo!()
     }
 
@@ -211,7 +216,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_break_stmt(&mut self, _span: Span) -> Self::StmtResult {
         let break_target = self.ctx.get_break_target()
-            .ok_or(Error::BreakOutsideLoop)?;
+            .ok_or(SemanticError::BreakOutsideLoop)?;
         self.ctx.build_inst_end_of_cur(
             InstKind::Branch(BranchInst::Jump { nxt_bb: break_target }),
             IrTy::Void);
@@ -222,7 +227,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_continue_stmt(&mut self, _span: Span) -> Self::StmtResult {
         let continue_target = self.ctx.get_continue_target()
-            .ok_or(Error::ContinueOutsideLoop)?;
+            .ok_or(SemanticError::ContinueOutsideLoop)?;
         self.ctx.build_inst_end_of_cur(
             InstKind::Branch(BranchInst::Jump { nxt_bb: continue_target }),
             IrTy::Void);
@@ -325,9 +330,9 @@ impl AstVisitor for IrBuilder {
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult {
         let func = self.ctx.scope_builder.find_name_rec(&expr.func.name)
-            .ok_or(Error::UnknownName(expr.func.name.clone()))?
+            .ok_or(SemanticError::UnknownName(expr.func.name.clone()))?
             .as_func()
-            .ok_or(Error::ExpectedFunction(expr.func.name.clone()))?
+            .ok_or(SemanticError::ExpectedFunction(expr.func.name.clone()))?
             .clone();
         let args = expr.args.iter()
             .map(|x| self.visit_expr(&x))

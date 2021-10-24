@@ -1,5 +1,5 @@
 pub mod err;
 
 mod context;
-pub mod builder;
+pub mod irbuilder;
 pub mod typeck;

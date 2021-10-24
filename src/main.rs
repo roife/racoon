@@ -1,9 +1,9 @@
 use structopt;
 use structopt::StructOpt;
-use racoon::compiler::syntax::{
-    lexer,
-    parser,
-    err::ParseError,
+
+use racoon::compiler::{
+    irbuilder::*,
+    syntax::*,
 };
 
 mod options;
@@ -18,13 +18,23 @@ fn main() {
     let lexer = lexer::Lexer::new(input.chars());
     // println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect::<Vec<_>>());
 
-    let ast = match parser::Parser::new(lexer).parse() {
+    let mut parser = parser::Parser::new(lexer);
+    let ast = match parser.parse() {
         Ok(p) => p,
         Err(e) => {
             println!("{:?}", e);
             return;
-            todo!();
         }
     };
+
     // println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
+
+    let mut ir_builder = irbuilder::IrBuilder::new();
+    let ir = match ir_builder.visit(&ast) {
+        Ok(_) => ir_builder.ctx.cur_module,
+        Err(e) => {
+            println!("{:?}", e);
+            return;
+        }
+    };
 }

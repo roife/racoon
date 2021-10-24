@@ -4,7 +4,7 @@ use crate::compiler::ir::arena::{FuncId, GlobalId};
 
 use super::{func::IrFunc, global::GlobalVar};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Module {
     global_arena: SlotMap<GlobalId, GlobalVar>,
     func_arena: SlotMap<FuncId, IrFunc>,

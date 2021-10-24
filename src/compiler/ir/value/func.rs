@@ -9,7 +9,7 @@ pub struct IrFuncParam {
     pub ty: IrTy,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct IrFunc {
     pub name: String,
     pub ret_ty: IrTy,
