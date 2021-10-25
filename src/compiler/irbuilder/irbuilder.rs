@@ -100,7 +100,7 @@ impl AstVisitor for IrBuilder {
                 let init_val = self.visit_const_init_val(init_val)?;
 
                 let global = self.ctx.build_global(GlobalVar::new(
-                    sub_decl.ty.clone().into(),
+                    IrTy::ptr_of(sub_decl.ty.clone().into()),
                     &sub_decl.name.name));
                 self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
                     .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;

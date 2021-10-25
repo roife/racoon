@@ -68,6 +68,8 @@ pub trait AstVisitorMut {
 
     fn visit_program(&mut self, program: &mut Program) -> Self::ProgramResult;
 
+    fn visit_const_init_val(&mut self, init_val: &mut InitVal) -> Self::ConstInitValResult;
+
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult;
 
     fn visit_func(&mut self, func: &mut AstFunc) -> Self::FuncResult;

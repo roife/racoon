@@ -21,7 +21,7 @@ macro_rules! expect_type {
 }
 
 pub struct TypeChecker {
-    pub scopes: ScopeBuilder<AstTy>,
+    pub scopes: ScopeBuilder<(AstTy, Option<LiteralExpr>)>,
     pub cur_func_ret_ty: AstTy,
 }
 
@@ -41,6 +41,19 @@ impl AstVisitorMut for TypeChecker {
                 ProgramItem::Func(x) => self.visit_func(x),
             }
         })
+    }
+
+    fn visit_const_init_val(&mut self, init_val: &mut InitVal) -> Self::ConstInitValResult {
+        // for sub_decl in &decl.sub_decls {
+        //     if let Some(init_val) = &sub_decl.init_val {
+        //         let init_val = self.visit_const_init_val(&mut init_val)?;
+        //
+        //         self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
+        //             .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
+        //     }
+        // }
+        // Ok(())
+        todo!()
     }
 
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
@@ -248,7 +261,7 @@ impl AstVisitorMut for TypeChecker {
 
         let (ret_ty, param_tys) = self.scopes.find_name_rec(&expr.func.name)
             .ok_or(SemanticError::UnknownName(expr.func.name.clone()))?
-            .as_func()
+            .0.as_func()
             .ok_or(SemanticError::ExpectedFunction(expr.func.name.clone()))?;
 
         expr.args.iter().zip(param_tys)

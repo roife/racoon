@@ -27,6 +27,6 @@ impl Value for GlobalVar {
 
 impl Display for GlobalVar {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "@{}", self.name)
+        write!(f, "{} @{}", self.ty, self.name)
     }
 }
