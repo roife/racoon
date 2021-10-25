@@ -9,14 +9,13 @@ use super::err::SemanticError::*;
 
 macro_rules! expect_type {
     ($self:expr, $pat:pat) => {{
-        let ty = $self.clone();
-        if matches!(ty, $pat) {
+        if matches!($self, $pat) {
             Err(TypeMismatch {
                 expected: String::from(stringify!($pat)),
                 found: $self
             })
         } else {
-            Ok(ty)
+            Ok(())
         }
     }};
 }
@@ -254,7 +253,7 @@ impl AstVisitorMut for TypeChecker {
             .ok_or(SemanticError::ExpectedFunction(expr.func.name.clone()))?;
 
         expr.args.iter().zip(param_tys)
-            .try_for_each(|(x, y)| assert_type_eq(&x.ty(), &y))?;
+            .try_for_each(|(x, y)| expect_type!(x.ty(), y))?;
 
         expr.ty = ret_ty.as_ref().clone();
         Ok(None)
@@ -269,14 +268,4 @@ impl AstVisitorMut for TypeChecker {
         };
         Ok(ty)
     }
-}
-
-fn assert_type_eq(lhs: &AstTy, rhs: &AstTy) -> Result<(), SemanticError> {
-    if lhs != rhs {
-        return Err(TypeMismatch {
-            expected: String::from(stringify!(lhs)),
-            found: rhs.clone(),
-        });
-    }
-    Ok(())
 }
