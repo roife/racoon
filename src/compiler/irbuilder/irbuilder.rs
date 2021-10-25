@@ -1,15 +1,13 @@
-use std::borrow::Borrow;
 use crate::compiler::ir::{
     value::{
-        module::Module,
         constant::Constant,
         func::IrFunc,
+        global::GlobalVar,
         inst::*,
         ty::IrTy,
         value::Operand,
     },
 };
-use crate::compiler::ir::arena::InstId;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
     ast::*,
@@ -47,28 +45,34 @@ impl AstVisitor for IrBuilder {
     type TyResult = Result<IrTy, SemanticError>;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
+        // for program_item in program.program_items {
+        //     match program_item {
+        //         ProgramItem::Decl(_) => {}
+        //         ProgramItem::Func(_) => {}
+        //     }
+        // }
         todo!()
     }
 
-    fn visit_decl(&mut self, decl: &Decl) -> Self::StmtResult {
-        let ty = self.visit_ty(&decl.ty)?;
-
-        for sub_decl in &decl.sub_decls {
-            self.visit_sub_decl(&sub_decl, ty.clone())?;
-        }
-
-        todo!()
-    }
-
-    fn visit_sub_decl(&mut self, sub_decl: &SubDecl, ty: IrTy) -> Self::StmtResult {
-        // let inst = self.ctx.build_inst_end_of_cur(
-        //     InstKind::Alloca(AllocaInst { alloca_ty: IrTy }),
-        //     IrTy::ptr_of(IrTy)
-        // );
-        // self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Inst(inst))
-        //     .ok_or(Error::DuplicateName(sub_decl.name.name.clone()))?;
-        // Ok(())
-        todo!()
+    fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
+        // let is_const = decl.is_const;
+        // let ty = self.visit_ty(&decl.ty)?;
+        //
+        // for sub_decl in &decl.sub_decls {
+        //     let global = self.ctx.build_global(GlobalVar::new(sub_decl.ty.into(), &sub_decl.name.name));
+        //     self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
+        //         .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
+        //     if let Some(init_val) = &sub_decl.init_val {
+        //         match init_val {
+        //             InitVal::Expr(expr) => {
+        //                 self.visit_expr()
+        //             }
+        //             InitVal::ArrayVal(_) => {}
+        //         }
+        //         todo!()
+        //     }
+        // }
+        Ok(())
     }
 
     fn visit_func(&mut self, ast_func: &AstFunc) -> Self::FuncResult {
@@ -90,13 +94,13 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
-        let ty = self.visit_ty(&param.ty)?;
-        let inst = self.ctx.build_inst_end_of_cur(
-            InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
-            IrTy::ptr_of(ty.clone())
-        );
-        self.ctx.scope_builder.insert(&param.param_name.name, NameId::Inst(inst))
-            .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
+        // let ty = self.visit_ty(&param.ty)?;
+        // let inst = self.ctx.build_inst_end_of_cur(
+        //     InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
+        //     IrTy::ptr_of(ty.clone())
+        // );
+        // self.ctx.scope_builder.insert(&param.param_name.name, NameId::Inst(inst))
+        //     .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
         todo!()
     }
 
@@ -104,7 +108,7 @@ impl AstVisitor for IrBuilder {
         self.ctx.scope_builder.push_scope();
         stmt.block_items.iter().try_for_each(|sub_stmt| match sub_stmt {
             BlockItem::Stmt(x) => self.visit_stmt(x),
-            BlockItem::Decl(x) => self.visit_decl(x),
+            BlockItem::Decl(x) => self.visit_decl_stmt(x),
         })?;
         self.ctx.scope_builder.pop_scope();
         Ok(())
@@ -123,6 +127,10 @@ impl AstVisitor for IrBuilder {
         }
     }
 
+    fn visit_decl_stmt(&mut self, decl: &Decl) -> Self::StmtResult {
+        todo!()
+    }
+
     fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult {
         self.visit_expr(stmt)?;
         Ok(())
@@ -135,7 +143,7 @@ impl AstVisitor for IrBuilder {
         // then blk
         let then_bb = self.ctx.build_bb_after_cur();
         self.ctx.set_cur_bb(then_bb);
-        self.visit_block_stmt(&stmt.then_block)?;
+        self.visit_stmt(&stmt.then_block)?;
         let then_bb_end = self.ctx.get_cur_bb_id();
 
         // else bb
@@ -143,7 +151,7 @@ impl AstVisitor for IrBuilder {
             .map_or(Ok((None, None)), |else_blk| {
                 let else_bb = self.ctx.build_bb_after_cur();
                 self.ctx.set_cur_bb(else_bb);
-                self.visit_block_stmt(&else_blk)?;
+                self.visit_stmt(&else_blk)?;
                 Ok((Some(else_bb), Some(self.ctx.get_cur_bb_id())))
             })?;
 
@@ -187,7 +195,7 @@ impl AstVisitor for IrBuilder {
 
         self.ctx.set_cur_bb(loop_bb);
         self.ctx.push_break_target(nxt_bb, cond_bb);
-        self.visit_block_stmt(&stmt.body)?;
+        self.visit_stmt(&stmt.body)?;
         self.ctx.pop_loop_target();
         let loop_end_bb = self.ctx.get_cur_bb_id();
 
@@ -254,15 +262,14 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_expr(&mut self, expr: &Expr) -> Self::ExprResult {
-        // match expr {
-        //     Expr::LVal(lvalue) => self.visit_lexpr(expr),
-        //     Expr::Assign(x) => self.visit_assign_expr(x),
-        //     Expr::Literal(x) => self.visit_literal_expr(x),
-        //     Expr::Unary(x) => self.visit_unary_expr(x),
-        //     Expr::Binary(x) => self.visit_binary_expr(x),
-        //     Expr::Call(x) => self.visit_call_expr(x),
-        // }
-        todo!()
+        match expr {
+            Expr::LVal(lvalue) => self.visit_lexpr(expr),
+            Expr::Assign(x) => self.visit_assign_expr(x),
+            Expr::Literal(x) => self.visit_literal_expr(x),
+            Expr::Unary(x) => self.visit_unary_expr(x),
+            Expr::Binary(x) => self.visit_binary_expr(x),
+            Expr::Call(x) => self.visit_call_expr(x),
+        }
     }
 
     fn visit_lexpr(&mut self, expr: &Expr) -> Self::LExprResult {

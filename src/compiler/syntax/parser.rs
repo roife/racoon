@@ -122,6 +122,7 @@ impl<T> Parser<T>
             subs: lvalue.subs,
             init_val,
             span,
+            ty: AstTy::Unknown,
         })
     }
 
@@ -254,12 +255,12 @@ impl<T> Parser<T>
         let cond = Box::new(self.parse_expr()?);
         expect_token!(self.iter, TokenType::RParen)?;
 
-        let then_block = Box::new(self.parse_block_stmt()?);
-        let mut end = then_block.span.end;
+        let then_block = Box::new(self.parse_stmt()?);
+        let mut end = then_block.span().end;
 
         let else_block = if next_if_match!(self.iter, TokenType::ElseKw) {
-            let block_stmt = Box::new(self.parse_block_stmt()?);
-            end = block_stmt.span.end;
+            let block_stmt = Box::new(self.parse_stmt()?);
+            end = block_stmt.span().end;
             Some(block_stmt)
         } else {
             None
@@ -280,8 +281,8 @@ impl<T> Parser<T>
         let cond = Box::new(self.parse_expr()?);
         expect_token!(self.iter, TokenType::RParen)?;
 
-        let body = Box::new(self.parse_block_stmt()?);
-        let end = body.span.end;
+        let body = Box::new(self.parse_stmt()?);
+        let end = body.span().end;
 
         Ok(WhileStmt {
             cond,

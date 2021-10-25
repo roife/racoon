@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use enum_as_inner::EnumAsInner;
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -34,5 +35,19 @@ impl IrTy {
 
     pub fn ptr_of(ty: IrTy) -> IrTy {
         IrTy::Ptr(Box::new(ty))
+    }
+}
+
+impl Display for IrTy {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            IrTy::Void => String::from("void"),
+            IrTy::Func(_) => format!("todo"),
+            IrTy::Int(x) => format!("i{}", x),
+            IrTy::Ptr(t) => format!("{}*", t),
+            IrTy::Label => format!("todo"),
+            IrTy::Array(_) => format!("todo"),
+        };
+        write!(f, "{}", s)
     }
 }

@@ -1,4 +1,3 @@
-use crate::compiler::ir::value::ty::IrTy;
 use super::ast::*;
 use super::super::span::Span;
 
@@ -12,9 +11,7 @@ pub trait AstVisitor {
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult;
 
-    fn visit_decl(&mut self, decl: &Decl) -> Self::StmtResult;
-
-    fn visit_sub_decl(&mut self, sub_decl: &SubDecl, ty: IrTy) -> Self::StmtResult;
+    fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult;
 
     fn visit_func(&mut self, func: &AstFunc) -> Self::FuncResult;
 
@@ -23,6 +20,8 @@ pub trait AstVisitor {
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Self::StmtResult;
 
     fn visit_stmt(&mut self, stmt: &Stmt) -> Self::StmtResult;
+
+    fn visit_decl_stmt(&mut self, decl: &Decl) -> Self::StmtResult;
 
     fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult;
 
@@ -65,9 +64,7 @@ pub trait AstVisitorMut {
 
     fn visit_program(&mut self, program: &mut Program) -> Self::ProgramResult;
 
-    fn visit_decl(&mut self, decl: &mut Decl) -> Self::StmtResult;
-
-    fn visit_sub_decl(&mut self, sub_decl: &mut SubDecl, ty: IrTy) -> Self::StmtResult;
+    fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult;
 
     fn visit_func(&mut self, func: &mut AstFunc) -> Self::FuncResult;
 
@@ -76,6 +73,8 @@ pub trait AstVisitorMut {
     fn visit_block_stmt(&mut self, stmt: &mut BlockStmt) -> Self::StmtResult;
 
     fn visit_stmt(&mut self, stmt: &mut Stmt) -> Self::StmtResult;
+
+    fn visit_decl_stmt(&mut self, decl: &mut Decl) -> Self::StmtResult;
 
     fn visit_expr_stmt(&mut self, stmt: &mut Expr) -> Self::StmtResult;
 

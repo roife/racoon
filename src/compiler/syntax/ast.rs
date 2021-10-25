@@ -27,6 +27,7 @@ pub struct SubDecl {
     pub subs: Option<Subs>,
     pub init_val: Option<InitVal>,
     pub span: Span,
+    pub ty: AstTy,
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +99,7 @@ pub enum Stmt {
 }
 
 impl Stmt {
-    pub fn span(&mut self) -> Span {
+    pub fn span(&self) -> Span {
         match self {
             Stmt::Expr(v) => v.span(),
             Stmt::Block(v) => v.span,
@@ -115,15 +116,15 @@ impl Stmt {
 #[derive(Debug, Clone)]
 pub struct IfStmt {
     pub cond: Box<Expr>,
-    pub then_block: Box<BlockStmt>,
-    pub else_block: Option<Box<BlockStmt>>,
+    pub then_block: Box<Stmt>,
+    pub else_block: Option<Box<Stmt>>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct WhileStmt {
     pub cond: Box<Expr>,
-    pub body: Box<BlockStmt>,
+    pub body: Box<Stmt>,
     pub span: Span,
 }
 

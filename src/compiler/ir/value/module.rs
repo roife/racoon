@@ -23,6 +23,10 @@ impl Module {
         self.func_arena.insert(func)
     }
 
+    pub fn build_global(&mut self, global: GlobalVar) -> GlobalId {
+        self.global_arena.insert(global)
+    }
+
     pub fn get_func(&self, func_id: FuncId) -> Option<&IrFunc> {
         self.func_arena.get(func_id)
     }

@@ -9,6 +9,7 @@ use crate::compiler::ir::{
     arena::{BBId, FuncId, GlobalId, InstId},
     value::{module::Module, basic_block::BasicBlock, func::IrFunc, inst::InstKind, ty::IrTy},
 };
+use crate::compiler::ir::value::global::GlobalVar;
 
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum NameId {
@@ -144,6 +145,10 @@ impl IrCtx {
 
     pub fn build_func(&mut self, func: IrFunc) -> FuncId {
         self.cur_module.build_func(func)
+    }
+
+    pub fn build_global(&mut self, global: GlobalVar) -> GlobalId {
+        self.cur_module.build_global(global)
     }
 }
 
