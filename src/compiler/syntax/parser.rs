@@ -111,7 +111,7 @@ impl<T> Parser<T>
         let init_val = if is_const || is_next!(self.iter, TokenType::Assign) {
             expect_token!(self.iter, TokenType::Assign)?;
             let init_val = self.parse_init_val()?;
-            span.end = init_val.span().end;
+            span.end = init_val.span.end;
             Some(init_val)
         } else {
             None
@@ -127,15 +127,25 @@ impl<T> Parser<T>
     }
 
     fn parse_init_val(&mut self) -> Result<InitVal, ParseError> {
-        let init_val = if next_if_match!(self.iter, TokenType::LBrace) {
+        let init_val = if is_next!(self.iter, TokenType::LBrace) {
+            let start = expect_token!(self.iter, TokenType::LBrace)?.span.start;
             let array_vals = parse_separate_match!(self.iter, TokenType::Comma, {
                 Ok(self.parse_init_val()?)
             });
-            expect_token!(self.iter, TokenType::RBrace)?;
-            InitVal::ArrayVal(array_vals)
+            let end = expect_token!(self.iter, TokenType::RBrace)?.span.end;
+            InitVal {
+                ty: AstTy::Unknown,
+                kind: InitValKind::ArrayVal(array_vals),
+                span: Span { start, end },
+            }
         } else {
             let expr_val = self.parse_expr()?;
-            InitVal::Expr(expr_val)
+            let span = expr_val.span().clone();
+            InitVal {
+                ty: AstTy::Unknown,
+                kind: InitValKind::Expr(expr_val),
+                span,
+            }
         };
 
         Ok(init_val)

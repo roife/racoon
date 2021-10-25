@@ -72,8 +72,6 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
-        let ty = self.visit_ty(&decl.ty)?;
-
         for sub_decl in &decl.sub_decls {
             if let Some(init_val) = &sub_decl.init_val {
                 let init_val = self.visit_const_init_val(init_val)?;

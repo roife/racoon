@@ -1,10 +1,12 @@
-use crate::compiler::span::Span;
 use enum_as_inner::EnumAsInner;
+
+use crate::compiler::span::Span;
+
 use super::token::TokenType;
 
 #[derive(Debug, Clone)]
 pub struct Program {
-    pub program_items: Vec<ProgramItem>
+    pub program_items: Vec<ProgramItem>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,21 +33,16 @@ pub struct SubDecl {
 }
 
 #[derive(Debug, Clone)]
-pub enum InitVal {
-    Expr(Expr),
-    ArrayVal(Vec<InitVal>),
+pub struct InitVal {
+    pub ty: AstTy,
+    pub kind: InitValKind,
+    pub span: Span,
 }
 
-impl InitVal {
-    pub fn span(&self) -> Span {
-        match self {
-            InitVal::Expr(expr) => expr.span().clone(),
-            InitVal::ArrayVal(vals) => Span {
-                start: vals.first().unwrap().span().start,
-                end: vals.last().unwrap().span().end,
-            }
-        }
-    }
+#[derive(Debug, Clone)]
+pub enum InitValKind {
+    Expr(Expr),
+    ArrayVal(Vec<InitVal>),
 }
 
 #[derive(Debug, Clone)]
