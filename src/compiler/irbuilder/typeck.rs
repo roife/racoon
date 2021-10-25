@@ -113,13 +113,12 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_return_stmt(&mut self, stmt: &mut ReturnStmt) -> Self::StmtResult {
-        // let ret_ty = match &stmt.val {
-        //     None => AstTy::Void,
-        //     Some(val) => val.ty().clone()
-        // };
-        // let expected = self.cur_func_ret_ty.clone();
-        // expect_type!(ret_ty, expected);
-        todo!()
+        let ret_ty = match &stmt.val {
+            None => AstTy::Void,
+            Some(val) => val.ty()
+        };
+        let expected = &self.cur_func_ret_ty;
+        assert_type_eq(&ret_ty, expected)
     }
 
     fn visit_empty_stmt(&mut self, _span: Span) -> Self::StmtResult {
@@ -253,7 +252,7 @@ impl AstVisitorMut for TypeChecker {
             .ok_or(SemanticError::ExpectedFunction(expr.func.name.clone()))?;
 
         expr.args.iter().zip(param_tys)
-            .try_for_each(|(x, y)| expect_type!(x.ty(), y))?;
+            .try_for_each(|(x, y)| assert_type_eq(&x.ty(), y))?;
 
         expr.ty = ret_ty.as_ref().clone();
         Ok(None)
@@ -268,4 +267,14 @@ impl AstVisitorMut for TypeChecker {
         };
         Ok(ty)
     }
+}
+
+fn assert_type_eq(lhs: &AstTy, rhs: &AstTy) -> Result<(), SemanticError> {
+    if lhs != rhs {
+        return Err(TypeMismatch {
+            expected: String::from(stringify!(lhs)),
+            found: rhs.clone(),
+        });
+    }
+    Ok(())
 }
