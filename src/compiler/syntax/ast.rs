@@ -187,6 +187,7 @@ pub struct LiteralExpr {
 #[derive(Debug, Clone)]
 pub enum LiteralKind {
     Integer(i32),
+    // Array(Vec<Option<Box<LiteralExpr>>>)
 }
 
 #[derive(Debug, Clone)]

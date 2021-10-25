@@ -8,7 +8,7 @@ pub enum IrTy {
     Int(usize),
     Ptr(Box<IrTy>),
     Label,
-    Array(Box<IrTy>),
+    Array(usize, Box<IrTy>),
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +46,7 @@ impl Display for IrTy {
             IrTy::Int(x) => format!("i{}", x),
             IrTy::Ptr(t) => format!("{}*", t),
             IrTy::Label => format!("todo"),
-            IrTy::Array(_) => format!("todo"),
+            IrTy::Array(dim_size, elem_ty) => format!("{} x {}", dim_size, elem_ty),
         };
         write!(f, "{}", s)
     }

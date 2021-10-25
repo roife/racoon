@@ -38,6 +38,7 @@ impl IrBuilder {
 
 impl AstVisitor for IrBuilder {
     type ProgramResult = Result<(), SemanticError>;
+    type ConstInitValResult = Result<Constant, SemanticError>;
     type FuncResult = Result<(), SemanticError>;
     type StmtResult = Result<(), SemanticError>;
     type ExprResult = Result<Operand, SemanticError>;
@@ -53,22 +54,26 @@ impl AstVisitor for IrBuilder {
         })
     }
 
+    fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult {
+        todo!()
+        // match init_vals {
+        //
+        // }
+        // Ok(Constant::Array(init_vals.len(), 1))
+    }
+
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
-        let is_const = decl.is_const;
         let ty = self.visit_ty(&decl.ty)?;
 
         for sub_decl in &decl.sub_decls {
-            let global = self.ctx.build_global(GlobalVar::new(sub_decl.ty.into(), &sub_decl.name.name));
-            self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
-                .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
             if let Some(init_val) = &sub_decl.init_val {
-                match init_val {
-                    InitVal::Expr(expr) => {
-                        self.visit_expr()
-                    }
-                    InitVal::ArrayVal(_) => {}
-                }
-                todo!()
+                let init_val = self.visit_const_init_val(init_val)?;
+
+                let global = self.ctx.build_global(GlobalVar::new(
+                    sub_decl.ty.into(),
+                    &sub_decl.name.name));
+                self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
+                    .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
             }
         }
         Ok(())

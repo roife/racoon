@@ -9,5 +9,6 @@ pub enum SemanticError {
     ExpectedFunction(String),
     BreakOutsideLoop,
     ContinueOutsideLoop,
+    NotConstant,
     None
 }

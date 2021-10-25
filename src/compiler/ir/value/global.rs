@@ -6,6 +6,7 @@ use crate::compiler::ir::value::{ty::IrTy, value::Value};
 pub struct GlobalVar {
     pub ty: IrTy,
     pub name: String,
+    // pub init_val:
 }
 
 impl GlobalVar {

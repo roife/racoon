@@ -3,6 +3,7 @@ use super::super::span::Span;
 
 pub trait AstVisitor {
     type ProgramResult;
+    type ConstInitValResult;
     type FuncResult;
     type StmtResult;
     type ExprResult;
@@ -10,6 +11,8 @@ pub trait AstVisitor {
     type TyResult;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult;
+
+    fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult;
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult;
 
