@@ -39,6 +39,7 @@ new_key_type! {
     pub struct FuncId;
     pub struct BBId;
     pub struct InstId;
+    pub struct ParamId;
 }
 
 setup_index!(GlobalId);

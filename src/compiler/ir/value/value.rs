@@ -1,4 +1,4 @@
-use crate::compiler::ir::arena::{GlobalId, InstId};
+use crate::compiler::ir::arena::{GlobalId, InstId, ParamId};
 use crate::compiler::ir::value::{constant::Constant, ty::IrTy};
 
 pub trait Value {
@@ -10,6 +10,7 @@ pub enum Operand {
     Inst(InstId),
     Constant(Constant),
     Global(GlobalId),
+    Param(ParamId),
 }
 
 impl From<InstId> for Operand {

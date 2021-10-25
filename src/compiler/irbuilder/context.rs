@@ -7,8 +7,9 @@ use enum_as_inner::EnumAsInner;
 
 use crate::compiler::ir::{
     arena::{BBId, FuncId, GlobalId, InstId},
-    value::{module::Module, basic_block::BasicBlock, func::IrFunc, inst::InstKind, ty::IrTy},
+    value::{basic_block::BasicBlock, func::IrFunc, inst::InstKind, module::Module, ty::IrTy},
 };
+use crate::compiler::ir::arena::ParamId;
 use crate::compiler::ir::value::global::GlobalVar;
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -16,6 +17,7 @@ pub enum NameId {
     Inst(InstId),
     Func(FuncId),
     Global(GlobalId),
+    Param(ParamId),
 }
 
 pub struct Scope<T> {
@@ -149,6 +151,10 @@ impl IrCtx {
 
     pub fn build_global(&mut self, global: GlobalVar) -> GlobalId {
         self.cur_module.build_global(global)
+    }
+
+    pub fn build_func_param(&mut self, ty: IrTy) -> ParamId {
+        self.get_cur_func_mut().build_func_param(ty)
     }
 }
 

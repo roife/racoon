@@ -1,12 +1,13 @@
 use slotmap::SlotMap;
-use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 
-use crate::compiler::ir::arena::{BBId, InstId};
+use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
+use crate::compiler::ir::arena::{BBId, InstId, ParamId};
 use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct IrFuncParam {
     pub ty: IrTy,
+    pub pos: usize,
 }
 
 #[derive(Debug)]
@@ -14,9 +15,10 @@ pub struct IrFunc {
     pub name: String,
     pub ret_ty: IrTy,
     pub is_builtin: bool,
-    pub params: Vec<IrFuncParam>,
+    pub params: Vec<ParamId>,
     pub first_block: Option<BBId>,
 
+    param_arena: SlotMap<ParamId, IrFuncParam>,
     inst_arena: SlotMap<InstId, Inst>,
     bb_arena: SlotMap<BBId, BasicBlock>,
 }
@@ -24,7 +26,7 @@ pub struct IrFunc {
 impl Value for IrFunc {
     fn get_ty(&self) -> IrTy {
         let param_tys = self.params.iter()
-            .map(|param| param.ty.clone())
+            .map(|param_id| self.param_arena.get(*param_id).unwrap().ty.clone())
             .collect::<Vec<_>>();
         IrTy::func_of(self.ret_ty.clone(), param_tys)
     }
@@ -38,9 +40,18 @@ impl IrFunc {
             is_builtin,
             params: vec![],
             first_block: None,
+            param_arena: SlotMap::with_key(),
             inst_arena: SlotMap::with_key(),
             bb_arena: SlotMap::with_key(),
         }
+    }
+
+    pub fn build_func_param(&mut self, ty: IrTy) -> ParamId {
+        let pos = self.params.len();
+        let param = IrFuncParam { ty, pos };
+        let param_id = self.param_arena.insert(param);
+        self.params.push(param_id);
+        param_id
     }
 }
 

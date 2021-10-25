@@ -45,33 +45,32 @@ impl AstVisitor for IrBuilder {
     type TyResult = Result<IrTy, SemanticError>;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
-        // for program_item in program.program_items {
-        //     match program_item {
-        //         ProgramItem::Decl(_) => {}
-        //         ProgramItem::Func(_) => {}
-        //     }
-        // }
-        todo!()
+        program.program_items.iter().try_for_each(|item| {
+            match item {
+                ProgramItem::Decl(x) => self.visit_global_decl(x),
+                ProgramItem::Func(x) => self.visit_func(x),
+            }
+        })
     }
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
-        // let is_const = decl.is_const;
-        // let ty = self.visit_ty(&decl.ty)?;
-        //
-        // for sub_decl in &decl.sub_decls {
-        //     let global = self.ctx.build_global(GlobalVar::new(sub_decl.ty.into(), &sub_decl.name.name));
-        //     self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
-        //         .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
-        //     if let Some(init_val) = &sub_decl.init_val {
-        //         match init_val {
-        //             InitVal::Expr(expr) => {
-        //                 self.visit_expr()
-        //             }
-        //             InitVal::ArrayVal(_) => {}
-        //         }
-        //         todo!()
-        //     }
-        // }
+        let is_const = decl.is_const;
+        let ty = self.visit_ty(&decl.ty)?;
+
+        for sub_decl in &decl.sub_decls {
+            let global = self.ctx.build_global(GlobalVar::new(sub_decl.ty.into(), &sub_decl.name.name));
+            self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
+                .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
+            if let Some(init_val) = &sub_decl.init_val {
+                match init_val {
+                    InitVal::Expr(expr) => {
+                        self.visit_expr()
+                    }
+                    InitVal::ArrayVal(_) => {}
+                }
+                todo!()
+            }
+        }
         Ok(())
     }
 
@@ -94,14 +93,21 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
-        // let ty = self.visit_ty(&param.ty)?;
-        // let inst = self.ctx.build_inst_end_of_cur(
-        //     InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
-        //     IrTy::ptr_of(ty.clone())
-        // );
-        // self.ctx.scope_builder.insert(&param.param_name.name, NameId::Inst(inst))
-        //     .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
-        todo!()
+        let ty = self.visit_ty(&param.ty)?;
+        let param_id = self.ctx.build_func_param(ty.clone());
+
+        self.ctx.scope_builder.insert(&param.param_name.name, NameId::Param(param_id))
+            .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
+
+        let alloca_addr = self.ctx.build_inst_end_of_cur(
+            InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
+            IrTy::ptr_of(ty.clone()),
+        );
+        self.ctx.build_inst_end_of_cur(
+            InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: Operand::Param(param_id) }),
+            IrTy::Void,
+        );
+        Ok(())
     }
 
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Self::StmtResult {
@@ -263,7 +269,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_expr(&mut self, expr: &Expr) -> Self::ExprResult {
         match expr {
-            Expr::LVal(lvalue) => self.visit_lexpr(expr),
+            Expr::LVal(_) => self.visit_lexpr(expr),
             Expr::Assign(x) => self.visit_assign_expr(x),
             Expr::Literal(x) => self.visit_literal_expr(x),
             Expr::Unary(x) => self.visit_unary_expr(x),
