@@ -1,3 +1,5 @@
+use std::rc::Rc;
+use std::sync::Arc;
 use enum_as_inner::EnumAsInner;
 
 use crate::compiler::span::Span;
@@ -155,12 +157,12 @@ impl Expr {
 
     pub fn ty(&self) -> AstTy {
         match self {
-            Expr::LVal(x) => x.ty,
-            Expr::Assign(x) => x.ty,
-            Expr::Literal(x) => x.ty,
-            Expr::Unary(x) => x.ty,
-            Expr::Binary(x) => x.ty,
-            Expr::Call(x) => x.ty,
+            Expr::LVal(x) => x.ty.clone(),
+            Expr::Assign(x) => x.ty.clone(),
+            Expr::Literal(x) => x.ty.clone(),
+            Expr::Unary(x) => x.ty.clone(),
+            Expr::Binary(x) => x.ty.clone(),
+            Expr::Call(x) => x.ty.clone(),
         }
     }
 }
@@ -181,16 +183,22 @@ pub struct LiteralExpr {
     pub ty: AstTy,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumAsInner)]
 pub enum LiteralKind {
     Integer(i32),
     // Array(Vec<Option<Box<LiteralExpr>>>)
 }
 
+impl LiteralExpr {
+    pub fn get_int(&self) -> Option<i32> {
+        self.kind.as_integer().and_then(|x| Some(*x))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct UnaryExpr {
     pub op: UnaryOp,
-    pub expr: Box<Expr>,
+    pub sub_expr: Box<Expr>,
     pub span: Span,
     pub ty: AstTy,
 }
@@ -273,12 +281,13 @@ pub enum BinaryOp {
     Or,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, EnumAsInner)]
 pub enum AstTy {
     Unknown,
     Void,
     Int,
     Bool,
+    Func { ret_ty: Box<AstTy>, param_tys: Vec<Box<AstTy>> }
 }
 
 impl TokenType {

@@ -401,7 +401,7 @@ impl<T> Parser<T>
             let op = prec_op.token_type.to_unary_op().unwrap();
             expr_item = Expr::Unary(UnaryExpr {
                 op,
-                expr: Box::new(expr_item),
+                sub_expr: Box::new(expr_item),
                 span: Span { start: prec_op.span.start, end },
                 ty: AstTy::Unknown,
             });

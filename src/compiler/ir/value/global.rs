@@ -1,12 +1,13 @@
 use std::fmt::{Display, Formatter};
 
 use crate::compiler::ir::value::{ty::IrTy, value::Value};
+use crate::compiler::ir::value::constant::Constant;
 
 #[derive(Debug, Clone)]
 pub struct GlobalVar {
     pub ty: IrTy,
     pub name: String,
-    // pub init_val:
+    // pub init_val: Constant,
 }
 
 impl GlobalVar {

@@ -11,6 +11,8 @@ use crate::compiler::ir::{
 };
 use crate::compiler::ir::arena::ParamId;
 use crate::compiler::ir::value::global::GlobalVar;
+use crate::compiler::ir::value::ty::FuncTy;
+use crate::compiler::ir::value::value::Value;
 use crate::compiler::syntax::ast::AstTy;
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -113,8 +115,9 @@ impl Context {
         self.get_cur_func_mut().get_bb_mut(bb).unwrap()
     }
 
-    pub fn get_func_ret_ty(&self) -> IrTy {
-        self.cur_module.get_func(self.cur_func).unwrap().ret_ty.clone()
+    pub fn get_func_ty(&self, func: FuncId) -> FuncTy {
+        let func_ty = self.cur_module.get_func(self.cur_func).unwrap().get_ty();
+        *func_ty.into_func().unwrap()
     }
 
     pub fn set_cur_bb(&mut self, bb: BBId) {
@@ -162,7 +165,13 @@ impl From<AstTy> for IrTy {
             AstTy::Void => IrTy::Void,
             AstTy::Int => IrTy::Int(32),
             AstTy::Bool => IrTy::Int(1),
-            AstTy::Unknown => unreachable!()
+            AstTy::Unknown => unreachable!(),
+            AstTy::Func { ret_ty, param_tys: params } => {
+                IrTy::Func(Box::new(FuncTy {
+                    ret_ty: ret_ty.as_ref().clone().into(),
+                    params_ty: params.iter().map(|x| x.as_ref().clone().into()).collect(),
+                }))
+            }
         }
     }
 }

@@ -1,20 +1,46 @@
+use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
+
 use enum_as_inner::EnumAsInner;
 
-#[derive(Debug, Clone, EnumAsInner)]
+#[derive(Debug, Clone, Eq, EnumAsInner)]
 pub enum IrTy {
     Void,
-    Func(Box<FuncTy>),
     Int(usize),
+    Func(Box<FuncTy>),
     Ptr(Box<IrTy>),
     Label,
     Array(usize, Box<IrTy>),
 }
 
-#[derive(Debug, Clone)]
+impl PartialEq<Self> for IrTy {
+    fn eq(&self, other: &Self) -> bool {
+        use IrTy::*;
+        match (self, other) {
+            (Void, Void) => true,
+            (Int(x), Int(y)) => x == y,
+            (Ptr(x), Ptr(y)) => x.as_ref() == y.as_ref(),
+            (Func(x), Func(y)) => x.as_ref() == y.as_ref(),
+            (Label, Label) => true,
+            (Array(siz1, ty1), Array(siz2, ty2)) => siz1 == siz2 && ty1 == ty2,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Eq, Clone)]
 pub struct FuncTy {
     pub ret_ty: IrTy,
     pub params_ty: Vec<IrTy>,
+}
+
+impl PartialEq<Self> for FuncTy {
+    fn eq(&self, other: &Self) -> bool {
+        self.ret_ty == other.ret_ty &&
+            self.params_ty.iter()
+                .zip(&other.params_ty)
+                .all(|(x, y)| x == y)
+    }
 }
 
 impl IrTy {

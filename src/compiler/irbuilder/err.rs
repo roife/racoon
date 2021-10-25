@@ -1,8 +1,9 @@
 use crate::compiler::ir::value::ty::IrTy;
+use crate::compiler::syntax::ast::AstTy;
 
 #[derive(Debug)]
 pub enum SemanticError {
-    TypeMismatch { expected: String, found: IrTy },
+    TypeMismatch { expected: String, found: AstTy },
     UnknownName(String),
     DuplicateName(String),
     WrongParamLength { expected: usize, found: usize },
@@ -10,5 +11,4 @@ pub enum SemanticError {
     BreakOutsideLoop,
     ContinueOutsideLoop,
     NotConstant,
-    None
 }

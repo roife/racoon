@@ -100,7 +100,7 @@ impl AstVisitor for IrBuilder {
                 let init_val = self.visit_const_init_val(init_val)?;
 
                 let global = self.ctx.build_global(GlobalVar::new(
-                    sub_decl.ty.into(),
+                    sub_decl.ty.clone().into(),
                     &sub_decl.name.name));
                 self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
                     .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
@@ -337,7 +337,7 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_unary_expr(&mut self, expr: &UnaryExpr) -> Self::ExprResult {
-        let mut val = self.visit_expr(&expr.expr)?;
+        let mut val = self.visit_expr(&expr.sub_expr)?;
         match expr.op {
             UnaryOp::Neg => {
                 let inst = BinaryInst {
@@ -345,12 +345,12 @@ impl AstVisitor for IrBuilder {
                     left: Operand::from(0),
                     right: val,
                 };
-                let id = self.ctx.build_inst_end_of_cur(InstKind::Binary(inst), expr.ty.into());
+                let id = self.ctx.build_inst_end_of_cur(InstKind::Binary(inst), expr.ty.clone().into());
                 Ok(id.into())
             }
             UnaryOp::Pos => Ok(val),
             UnaryOp::Not => {
-                let sub_expr_ty = expr.expr.ty();
+                let sub_expr_ty = expr.sub_expr.ty();
                 if let AstTy::Bool = sub_expr_ty {
                     let zext_inst = ZExtInst {
                         ori_val: val,
@@ -376,21 +376,19 @@ impl AstVisitor for IrBuilder {
         let op = expr.op.to_binary_inst_kind();
 
         let inst = BinaryInst { op, left, right };
-        let id = self.ctx.build_inst_end_of_cur(InstKind::Binary(inst), expr.ty.into());
+        let id = self.ctx.build_inst_end_of_cur(InstKind::Binary(inst), expr.ty.clone().into());
         Ok(id.into())
     }
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult {
-        let func = self.ctx.scope_builder.find_name_rec(&expr.func.name)
-            .ok_or(SemanticError::UnknownName(expr.func.name.clone()))?
-            .as_func()
-            .ok_or(SemanticError::ExpectedFunction(expr.func.name.clone()))?
+        let func = self.ctx.scope_builder.find_name_rec(&expr.func.name).unwrap()
+            .as_func().unwrap()
             .clone();
         let args = expr.args.iter()
             .map(|x| self.visit_expr(&x))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let ret_ty = self.ctx.get_func_ret_ty();
+        let ret_ty = self.ctx.get_func_ty(func).ret_ty;
         let inst = CallInst { func, args };
         let id = self.ctx.build_inst_end_of_cur(InstKind::Call(inst), ret_ty);
         Ok(id.into())
