@@ -59,6 +59,7 @@ pub trait AstVisitor {
 
 pub trait AstVisitorMut {
     type ProgramResult;
+    type ConstInitValResult;
     type FuncResult;
     type StmtResult;
     type ExprResult;

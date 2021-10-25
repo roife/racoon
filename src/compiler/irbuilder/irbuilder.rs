@@ -8,6 +8,8 @@ use crate::compiler::ir::{
         value::Operand,
     },
 };
+use crate::compiler::ir::arena::BBId;
+use crate::compiler::irbuilder::context::BCTarget;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
     ast::*,
@@ -15,24 +17,45 @@ use crate::compiler::syntax::{
 };
 
 use super::{
-    context::{IrCtx, NameId},
+    context::{Context, NameId},
     err::SemanticError,
 };
 
 pub struct IrBuilder {
-    pub ctx: IrCtx,
+    pub ctx: Context,
+    loop_targets: Vec<BCTarget>,
 }
 
 impl IrBuilder {
     pub fn new() -> IrBuilder {
         IrBuilder {
-            ctx: IrCtx::new()
+            ctx: Context::new(),
+            loop_targets: vec![],
         }
     }
 
     pub fn visit(&mut self, program: &Program) -> Result<(), SemanticError> {
         self.visit_program(program)?;
         Ok(())
+    }
+
+    pub fn push_break_target(&mut self, break_target: BBId, continue_target: BBId) {
+        self.loop_targets.push(BCTarget {
+            break_target,
+            continue_target,
+        });
+    }
+
+    pub fn pop_loop_target(&mut self) {
+        self.loop_targets.pop();
+    }
+
+    pub fn get_break_target(&self) -> Option<BBId> {
+        Some(self.loop_targets.last()?.break_target)
+    }
+
+    pub fn get_continue_target(&self) -> Option<BBId> {
+        Some(self.loop_targets.last()?.continue_target)
     }
 }
 
@@ -105,21 +128,22 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
-        let ty = self.visit_ty(&param.ty)?;
-        let param_id = self.ctx.build_func_param(ty.clone());
-
-        self.ctx.scope_builder.insert(&param.param_name.name, NameId::Param(param_id))
-            .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
-
-        let alloca_addr = self.ctx.build_inst_end_of_cur(
-            InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
-            IrTy::ptr_of(ty.clone()),
-        );
-        self.ctx.build_inst_end_of_cur(
-            InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: Operand::Param(param_id) }),
-            IrTy::Void,
-        );
-        Ok(())
+        // let ty = self.visit_ty(&param.ty)?;
+        // let param_id = self.ctx.build_func_param(ty.clone());
+        //
+        // self.ctx.scope_builder.insert(&param.param_name.name, NameId::Param(param_id))
+        //     .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
+        //
+        // let alloca_addr = self.ctx.build_inst_end_of_cur(
+        //     InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
+        //     IrTy::ptr_of(ty.clone()),
+        // );
+        // self.ctx.build_inst_end_of_cur(
+        //     InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: Operand::Param(param_id) }),
+        //     IrTy::Void,
+        // );
+        // Ok(())
+        todo!()
     }
 
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Self::StmtResult {
@@ -212,9 +236,9 @@ impl AstVisitor for IrBuilder {
         let nxt_bb = self.ctx.build_bb_after_cur();
 
         self.ctx.set_cur_bb(loop_bb);
-        self.ctx.push_break_target(nxt_bb, cond_bb);
+        self.push_break_target(nxt_bb, cond_bb);
         self.visit_stmt(&stmt.body)?;
-        self.ctx.pop_loop_target();
+        self.pop_loop_target();
         let loop_end_bb = self.ctx.get_cur_bb_id();
 
         self.ctx.build_inst_end(
@@ -241,7 +265,7 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_break_stmt(&mut self, _span: Span) -> Self::StmtResult {
-        let break_target = self.ctx.get_break_target()
+        let break_target = self.get_break_target()
             .ok_or(SemanticError::BreakOutsideLoop)?;
         self.ctx.build_inst_end_of_cur(
             InstKind::Branch(BranchInst::Jump { nxt_bb: break_target }),
@@ -252,7 +276,7 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_continue_stmt(&mut self, _span: Span) -> Self::StmtResult {
-        let continue_target = self.ctx.get_continue_target()
+        let continue_target = self.get_continue_target()
             .ok_or(SemanticError::ContinueOutsideLoop)?;
         self.ctx.build_inst_end_of_cur(
             InstKind::Branch(BranchInst::Jump { nxt_bb: continue_target }),
@@ -380,16 +404,5 @@ impl AstVisitor for IrBuilder {
             TyIdent::Void => IrTy::Void
         };
         Ok(ty)
-    }
-}
-
-impl From<AstTy> for IrTy {
-    fn from(ast_ty: AstTy) -> Self {
-        match ast_ty {
-            AstTy::Void => IrTy::Void,
-            AstTy::Int => IrTy::Int(32),
-            AstTy::Bool => IrTy::Int(1),
-            AstTy::Unknown => unreachable!()
-        }
     }
 }

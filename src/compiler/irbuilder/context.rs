@@ -11,6 +11,7 @@ use crate::compiler::ir::{
 };
 use crate::compiler::ir::arena::ParamId;
 use crate::compiler::ir::value::global::GlobalVar;
+use crate::compiler::syntax::ast::AstTy;
 
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum NameId {
@@ -77,28 +78,25 @@ impl<T> ScopeBuilder<T> {
     }
 }
 
-struct BCTarget {
+pub struct BCTarget {
     pub break_target: BBId,
     pub continue_target: BBId,
 }
 
-pub struct IrCtx {
+pub struct Context {
     pub scope_builder: ScopeBuilder<NameId>,
     pub cur_module: Module,
     cur_func: FuncId,
     cur_bb: BBId,
-
-    loop_targets: Vec<BCTarget>,
 }
 
-impl IrCtx {
-    pub fn new() -> IrCtx {
-        IrCtx {
+impl Context {
+    pub fn new() -> Context {
+        Context {
             scope_builder: ScopeBuilder::new(),
             cur_module: Module::new(),
             cur_func: Default::default(),
             cur_bb: Default::default(),
-            loop_targets: vec![]
         }
     }
 
@@ -158,23 +156,13 @@ impl IrCtx {
     }
 }
 
-impl IrCtx {
-    pub fn push_break_target(&mut self, break_target: BBId, continue_target: BBId) {
-        self.loop_targets.push(BCTarget {
-            break_target,
-            continue_target
-        });
-    }
-
-    pub fn pop_loop_target(&mut self) {
-        self.loop_targets.pop();
-    }
-
-    pub fn get_break_target(&self) -> Option<BBId> {
-        Some(self.loop_targets.last()?.break_target)
-    }
-
-    pub fn get_continue_target(&self) -> Option<BBId> {
-        Some(self.loop_targets.last()?.continue_target)
+impl From<AstTy> for IrTy {
+    fn from(ast_ty: AstTy) -> Self {
+        match ast_ty {
+            AstTy::Void => IrTy::Void,
+            AstTy::Int => IrTy::Int(32),
+            AstTy::Bool => IrTy::Int(1),
+            AstTy::Unknown => unreachable!()
+        }
     }
 }
