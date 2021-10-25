@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use crate::compiler::irbuilder::context::ScopeBuilder;
 use crate::compiler::irbuilder::err::SemanticError;
 use crate::compiler::span::Span;
@@ -57,11 +58,28 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
-        todo!()
+        let ty = self.visit_ty(&mut decl.ty_ident)?;
+        decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
+            let init_val = sub_decl.init_val.as_mut()
+                .map_or(Ok(None), |x| self.visit_const_init_val(x))?;
+            self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
+            Ok(())
+        })?;
+        Ok(())
     }
 
-    fn visit_func(&mut self, func: &mut AstFunc) -> Self::FuncResult {
-        todo!()
+    fn visit_func(&mut self, ast_func: &mut AstFunc) -> Self::FuncResult {
+        let ret_ty = Box::new(self.visit_ty(&mut ast_func.ret_ty_ident)?);
+        ast_func.params.iter_mut().try_for_each(|mut param| self.visit_func_param(&mut param))?;
+        let param_tys = ast_func.params.iter().map(|x| Box::new(x.ty.clone())).collect();
+        let func_ty = AstTy::Func { ret_ty, param_tys };
+
+        self.scopes.insert(&ast_func.ident.name, (func_ty, None));
+
+        self.scopes.push_scope();
+        self.visit_block_stmt(&mut ast_func.body)?;
+        self.scopes.pop_scope();
+        Ok(())
     }
 
     fn visit_func_param(&mut self, _param: &mut FuncParam) -> Self::StmtResult {
@@ -271,7 +289,7 @@ impl AstVisitorMut for TypeChecker {
         Ok(None)
     }
 
-    fn visit_ty(&mut self, ty_def: &mut TypeDef) -> Self::TyResult {
+    fn visit_ty(&mut self, ty_def: &mut TypeIdent) -> Self::TyResult {
         let ty = match &ty_def.ty_ident {
             TyIdent::Primitive(prim_ty) => match prim_ty {
                 PrimitiveTy::Integer => AstTy::Int

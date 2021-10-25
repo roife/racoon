@@ -95,27 +95,28 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
-        for sub_decl in &decl.sub_decls {
-            if let Some(init_val) = &sub_decl.init_val {
-                let init_val = self.visit_const_init_val(init_val)?;
-
-                let global = self.ctx.build_global(GlobalVar::new(
-                    IrTy::ptr_of(sub_decl.ty.clone().into()),
-                    &sub_decl.name.name));
-                self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
-                    .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
-            }
-        }
-        Ok(())
+        // for sub_decl in &decl.sub_decls {
+        //     if let Some(init_val) = &sub_decl.init_val {
+        //         let init_val = self.visit_const_init_val(init_val)?;
+        //
+        //         let global = self.ctx.build_global(GlobalVar::new(
+        //             IrTy::ptr_of(sub_decl.ty.clone().into()),
+        //             &sub_decl.name.name));
+        //         self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
+        //             .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
+        //     }
+        // }
+        // Ok(());
+        todo!()
     }
 
     fn visit_func(&mut self, ast_func: &AstFunc) -> Self::FuncResult {
-        self.ctx.scope_builder.push_scope();
+        let ret_ty = self.visit_ty(&ast_func.ret_ty_ident)?;
+        let func = self.ctx.build_func(IrFunc::new(&ast_func.ident.name, ret_ty, false));
+        self.ctx.scope_builder.insert(&ast_func.ident.name, NameId::Func(func))
+            .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
 
-        let ret_ty = self.visit_ty(&ast_func.ret_ty)?;
-        let func = self.ctx.build_func(IrFunc::new(&ast_func.func_name.name, ret_ty, false));
-        self.ctx.scope_builder.insert(&ast_func.func_name.name, NameId::Func(func))
-            .ok_or(SemanticError::DuplicateName(ast_func.func_name.name.clone()))?;
+        self.ctx.scope_builder.push_scope();
         self.ctx.set_cur_func(func);
 
         let init_bb = self.ctx.build_bb();
@@ -394,7 +395,7 @@ impl AstVisitor for IrBuilder {
         Ok(id.into())
     }
 
-    fn visit_ty(&mut self, ty_def: &TypeDef) -> Self::TyResult {
+    fn visit_ty(&mut self, ty_def: &TypeIdent) -> Self::TyResult {
         let ty = match &ty_def.ty_ident {
             TyIdent::Primitive(prim_ty) => match prim_ty {
                 PrimitiveTy::Integer => IrTy::Int(32)

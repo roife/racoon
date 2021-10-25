@@ -74,7 +74,7 @@ impl<T> Parser<T>
             let lvalue = self.parse_lvalue()?;
 
             if is_next!(self.iter, TokenType::LParen) {
-                let func = self.parse_func(ty, lvalue.lval_name)?;
+                let func = self.parse_func(ty, lvalue.ident)?;
                 program_items.push(ProgramItem::Func(func));
             } else {
                 let decl = self.parse_decl(is_const, ty, lvalue)?;
@@ -85,7 +85,7 @@ impl<T> Parser<T>
         Ok(Program { program_items })
     }
 
-    fn parse_decl(&mut self, is_const: bool, ty: TypeDef, lvalue: LVal) -> Result<Decl, ParseError> {
+    fn parse_decl(&mut self, is_const: bool, ty: TypeIdent, lvalue: LVal) -> Result<Decl, ParseError> {
         let mut sub_decls = vec![self.parse_sub_decl(is_const, lvalue)?];
         if next_if_match!(self.iter, TokenType::Comma) {
             let mut more_sub_decl = parse_separate_match!(self.iter, TokenType::Comma, {
@@ -100,7 +100,7 @@ impl<T> Parser<T>
 
         Ok(Decl {
             is_const,
-            ty,
+            ty_ident: ty,
             sub_decls,
             span: Span { start, end },
         })
@@ -118,7 +118,7 @@ impl<T> Parser<T>
         };
 
         Ok(SubDecl {
-            name: lvalue.lval_name,
+            ident: lvalue.ident,
             subs: lvalue.subs,
             init_val,
             span,
@@ -151,7 +151,7 @@ impl<T> Parser<T>
         Ok(init_val)
     }
 
-    fn parse_func(&mut self, ret_ty: TypeDef, name: Ident) -> Result<AstFunc, ParseError> {
+    fn parse_func(&mut self, ret_ty: TypeIdent, name: Ident) -> Result<AstFunc, ParseError> {
         expect_token!(self.iter, TokenType::LParen)?;
         let params = if is_next!(self.iter, TokenType::RParen) {
             vec![]
@@ -164,9 +164,9 @@ impl<T> Parser<T>
 
         let (start, end) = (ret_ty.span.start, body.span.end);
         Ok(AstFunc {
-            func_name: name,
+            ident: name,
             params,
-            ret_ty,
+            ret_ty_ident: ret_ty,
             body,
             span: Span { start, end },
         })
@@ -186,9 +186,10 @@ impl<T> Parser<T>
             None
         };
         Ok(FuncParam {
-            param_name: name,
-            subs: subs,
-            ty,
+            ident: name,
+            subs,
+            ty_ident: ty,
+            ty: AstTy::Unknown,
             span: Span {
                 start: param_start,
                 end: param_end,
@@ -230,7 +231,7 @@ impl<T> Parser<T>
 
         Ok(Decl {
             is_const,
-            ty,
+            ty_ident: ty,
             sub_decls,
             span: Span { start, end },
         })
@@ -414,7 +415,7 @@ impl<T> Parser<T>
             let lvalue = self.parse_lvalue()?;
 
             if is_next!(self.iter, TokenType::LParen) {
-                let call = self.parse_func_call(lvalue.lval_name)?;
+                let call = self.parse_func_call(lvalue.ident)?;
                 Ok(Expr::Call(call))
             } else {
                 Ok(Expr::LVal(lvalue))
@@ -466,7 +467,7 @@ impl<T> Parser<T>
             None
         };
 
-        Ok(LVal { lval_name: name, subs: subs, span, ty: AstTy::Unknown })
+        Ok(LVal { ident: name, subs: subs, span, ty: AstTy::Unknown })
     }
 
     fn parse_dim(&mut self) -> Result<Subs, ParseError> {
@@ -479,9 +480,9 @@ impl<T> Parser<T>
         Ok(Subs { subs: subs, span })
     }
 
-    fn parse_ty(&mut self) -> Result<TypeDef, ParseError> {
+    fn parse_ty(&mut self) -> Result<TypeIdent, ParseError> {
         let ty_token = expect_token!(self.iter, TokenType::IntTy | TokenType::VoidTy)?;
-        Ok(TypeDef {
+        Ok(TypeIdent {
             ty_ident: ty_token.token_type.to_ty_ident().unwrap(),
             span: ty_token.span,
         })

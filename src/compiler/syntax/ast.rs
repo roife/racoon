@@ -20,14 +20,14 @@ pub enum ProgramItem {
 #[derive(Debug, Clone)]
 pub struct Decl {
     pub is_const: bool,
-    pub ty: TypeDef,
+    pub ty_ident: TypeIdent,
     pub sub_decls: Vec<SubDecl>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct SubDecl {
-    pub name: Ident,
+    pub ident: Ident,
     pub subs: Option<Subs>,
     pub init_val: Option<InitVal>,
     pub span: Span,
@@ -49,18 +49,19 @@ pub enum InitValKind {
 
 #[derive(Debug, Clone)]
 pub struct AstFunc {
-    pub func_name: Ident,
+    pub ident: Ident,
     pub params: Vec<FuncParam>,
-    pub ret_ty: TypeDef,
+    pub ret_ty_ident: TypeIdent,
     pub body: BlockStmt,
     pub span: Span,
 }
 
 #[derive(Debug, Clone)]
 pub struct FuncParam {
-    pub param_name: Ident,
+    pub ident: Ident,
     pub subs: Option<Subs>,
-    pub ty: TypeDef,
+    pub ty_ident: TypeIdent,
+    pub ty: AstTy,
     pub span: Span,
 }
 
@@ -222,7 +223,7 @@ pub struct CallExpr {
 
 #[derive(Debug, Clone)]
 pub struct LVal {
-    pub lval_name: Ident,
+    pub ident: Ident,
     pub subs: Option<Subs>,
     pub span: Span,
     pub ty: AstTy,
@@ -235,7 +236,7 @@ pub struct Subs {
 }
 
 #[derive(Debug, Clone)]
-pub struct TypeDef {
+pub struct TypeIdent {
     pub ty_ident: TyIdent,
     pub span: Span,
 }

@@ -54,7 +54,7 @@ pub trait AstVisitor {
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult;
 
-    fn visit_ty(&mut self, ty_def: &TypeDef) -> Self::TyResult;
+    fn visit_ty(&mut self, ty_def: &TypeIdent) -> Self::TyResult;
 }
 
 pub trait AstVisitorMut {
@@ -110,6 +110,6 @@ pub trait AstVisitorMut {
 
     fn visit_call_expr(&mut self, expr: &mut CallExpr) -> Self::ExprResult;
 
-    fn visit_ty(&mut self, ty_def: &mut TypeDef) -> Self::TyResult;
+    fn visit_ty(&mut self, ty_def: &mut TypeIdent) -> Self::TyResult;
 }
 
