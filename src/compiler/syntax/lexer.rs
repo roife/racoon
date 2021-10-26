@@ -89,9 +89,9 @@ impl<T> Iterator for Lexer<T>
             let token = self.next_token();
 
             // TODO: let-else
-            if let Some(Token { token_type: TokenType::Comment(..), .. }) = token {
-                continue;
-            } else {
+            if !matches!(token,
+                Some(Token { token_type: TokenType::Comment(..), .. }))
+            {
                 break token;
             }
         }
