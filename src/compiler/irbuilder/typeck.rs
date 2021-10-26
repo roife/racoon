@@ -69,20 +69,23 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_func(&mut self, ast_func: &mut AstFunc) -> Self::FuncResult {
+        self.scopes.push_scope();
+
         let ret_ty = Box::new(self.visit_ty(&mut ast_func.ret_ty_ident)?);
         ast_func.params.iter_mut().try_for_each(|mut param| self.visit_func_param(&mut param))?;
         let param_tys = ast_func.params.iter().map(|x| Box::new(x.ty.clone())).collect();
         let func_ty = AstTy::Func { ret_ty, param_tys };
 
-        self.scopes.insert(&ast_func.ident.name, (func_ty, None));
-
-        self.scopes.push_scope();
+        self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None));
         self.visit_block_stmt(&mut ast_func.body)?;
+
         self.scopes.pop_scope();
+        // re-insert func to scope
+        self.scopes.insert(&ast_func.ident.name, (func_ty, None));
         Ok(())
     }
 
-    fn visit_func_param(&mut self, _param: &mut FuncParam) -> Self::StmtResult {
+    fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
         todo!()
     }
 

@@ -5,7 +5,18 @@ use super::{ty::IrTy, value::Value};
 #[derive(Debug, Clone)]
 pub enum Constant {
     Int(i32),
+    // empty vec represents zero initializer
     Array(IrTy, Vec<Box<Constant>>),
+}
+
+impl Constant {
+    pub fn build_zero(ty: IrTy) -> Constant {
+        match ty {
+            IrTy::Int(_) => Self::Int(0),
+            IrTy::Array(siz, ty) => Self::Array(*ty, vec![]),
+            _ => unreachable!()
+        }
+    }
 }
 
 impl Value for Constant {
@@ -22,6 +33,7 @@ impl Display for Constant {
         match self {
             Constant::Int(x) => write!(f, "i32 {}", x),
             Constant::Array(ty, data) => {
+                todo!();
                 if data.is_empty() {
                     write!(f, "[{} zeroinitializer]", ty)
                 } else {

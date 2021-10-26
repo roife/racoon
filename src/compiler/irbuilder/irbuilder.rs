@@ -95,19 +95,27 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
-        // for sub_decl in &decl.sub_decls {
-        //     if let Some(init_val) = &sub_decl.init_val {
-        //         let init_val = self.visit_const_init_val(init_val)?;
-        //
-        //         let global = self.ctx.build_global(GlobalVar::new(
-        //             IrTy::ptr_of(sub_decl.ty.clone().into()),
-        //             &sub_decl.name.name));
-        //         self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
-        //             .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
-        //     }
-        // }
-        // Ok(());
-        todo!()
+        for sub_decl in &decl.sub_decls {
+            let init_val = if let Some(init_val) = &sub_decl.init_val {
+                self.visit_const_init_val(init_val)?
+            } else {
+                Constant::build_zero(sub_decl.ty.clone().into())
+            };
+
+            let ty = match sub_decl.ty.clone().into() {
+                int @ IrTy::Int(_) => IrTy::ptr_of(int),
+                arr @ IrTy::Array(_, _) => arr,
+                _ => unreachable!()
+            };
+
+            let global = self.ctx.build_global(GlobalVar::new(
+                ty,
+                &sub_decl.ident.name,
+                init_val));
+            self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Global(global))
+                .ok_or(SemanticError::DuplicateName(sub_decl.ident.name.clone()))?;
+        }
+        Ok(())
     }
 
     fn visit_func(&mut self, ast_func: &AstFunc) -> Self::FuncResult {
@@ -317,8 +325,8 @@ impl AstVisitor for IrBuilder {
 
     fn visit_lexpr(&mut self, expr: &Expr) -> Self::LExprResult {
         let val= expr.as_l_val().unwrap(); // todo
-        let base_addr = self.ctx.scope_builder.find_name_rec(&val.lval_name.name)
-            .ok_or(SemanticError::UnknownName(val.lval_name.name.clone()))?;
+        let base_addr = self.ctx.scope_builder.find_name_rec(&val.ident.name)
+            .ok_or(SemanticError::UnknownName(val.ident.name.clone()))?;
         todo!()
     }
 

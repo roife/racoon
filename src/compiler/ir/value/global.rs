@@ -7,14 +7,15 @@ use crate::compiler::ir::value::constant::Constant;
 pub struct GlobalVar {
     pub ty: IrTy,
     pub name: String,
-    // pub init_val: Constant,
+    pub init_val: Constant,
 }
 
 impl GlobalVar {
-    pub fn new(ty: IrTy, name: &str) -> GlobalVar {
+    pub fn new(ty: IrTy, name: &str, init_val: Constant) -> GlobalVar {
         GlobalVar {
             ty,
             name: String::from(name),
+            init_val,
         }
     }
 }
