@@ -87,10 +87,7 @@ impl<T> Iterator for Lexer<T>
     fn next(&mut self) -> Option<Token> {
         loop {
             let token = self.next_token();
-
-            if !matches!(token,
-                Some(Token { token_type: TokenType::Comment(..), .. }))
-            {
+            if !matches!(token, Some(Token { token_type: TokenType::Comment(..), .. })) {
                 break token;
             }
         }
@@ -187,9 +184,7 @@ impl<T> Lexer<T>
         let start = self.iter.peek().unwrap().0;
 
         let mut ident = String::new();
-        while let Some((_, c)) = self.iter.next_if(|(_, c)| {
-            c.is_alphanumeric() || *c == '_'
-        }) {
+        while let Some((_, c)) = self.iter.next_if(|(_, c)| c.is_alphanumeric() || *c == '_') {
             ident.push(c);
         }
 
@@ -321,9 +316,7 @@ impl<T> Lexer<T>
 
     fn skip_spaces(&mut self) {
         loop {
-            if self.iter.next_if(|(_, c)| {
-                *c != '\0' && c.is_whitespace()
-            }).is_none() {
+            if self.iter.next_if(|(_, c)| *c != '\0' && c.is_whitespace()).is_none() {
                 break;
             }
         }

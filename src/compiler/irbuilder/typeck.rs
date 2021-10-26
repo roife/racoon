@@ -82,8 +82,8 @@ impl AstVisitorMut for TypeChecker {
         ast_func.params.iter().try_for_each(|param|
             self.scopes.insert(&param.ident.name, (param.ty.clone(), None))
                 .map_or(Err(SemanticError::DuplicateName(param.ident.name.clone())),
-                        |x| Ok(()),
-                ))?;
+                        |x| Ok(()))
+        )?;
 
         self.scopes.push_scope();
         self.visit_block_stmt(&mut ast_func.body)?;

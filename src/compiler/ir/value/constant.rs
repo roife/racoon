@@ -13,7 +13,7 @@ impl Constant {
     pub fn build_zero(ty: IrTy) -> Constant {
         match ty {
             IrTy::Int(_) => Self::Int(0),
-            IrTy::Array(siz, ty) => Self::Array(*ty, vec![]),
+            ty @ IrTy::Array(_, _) => Self::Array(ty, vec![]),
             _ => unreachable!()
         }
     }
@@ -32,18 +32,29 @@ impl Display for Constant {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Constant::Int(x) => write!(f, "i32 {}", x),
-            Constant::Array(ty, data) => {
-                todo!();
-                if data.is_empty() {
-                    write!(f, "[{} zeroinitializer]", ty)
-                } else {
-                    let data_str = data.iter()
+            Constant::Array(ty @ IrTy::Array(siz, elem_ty), vals) => {
+                if vals.is_empty() {
+                    write!(f, "{} zeroinitializer", ty)
+                } else if vals.len() == *siz {
+                    let data_str = vals.iter()
                         .map(|x| format!("{}", x))
                         .collect::<Vec<_>>()
                         .join(", ");
-                    write!(f, "[{} {}]", ty, data_str)
+                    write!(f, "{} [{}]", ty, data_str)
+                } else {
+                    debug_assert!(vals.len() < *siz);
+
+                    let zeros_ty = IrTy::Array(*siz - vals.len(), elem_ty.clone());
+                    let zeros = Self::build_zero(zeros_ty.clone());
+                    let data_tys = format!("{}, ", elem_ty).repeat(vals.len());
+                    let data_str = vals.iter()
+                        .map(|x| format!("{}", x))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    write!(f, "<{{ {}{} }} <{{ {}, {} }}>", data_tys, zeros_ty, data_str, zeros)
                 }
             }
+            _ => unreachable!()
         }
     }
 }
