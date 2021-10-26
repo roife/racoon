@@ -27,6 +27,15 @@ pub struct TypeChecker {
     pub cur_func_ret_ty: AstTy,
 }
 
+impl TypeChecker {
+    pub fn new() -> TypeChecker {
+        TypeChecker {
+            scopes: ScopeBuilder::new(),
+            cur_func_ret_ty: AstTy::Unknown,
+        }
+    }
+}
+
 impl AstVisitorMut for TypeChecker {
     type ProgramResult = Result<(), SemanticError>;
     type ConstInitValResult = Result<Option<LiteralExpr>, SemanticError>;
@@ -37,36 +46,46 @@ impl AstVisitorMut for TypeChecker {
     type TyResult = Result<AstTy, SemanticError>;
 
     fn visit_program(&mut self, program: &mut Program) -> Self::ProgramResult {
+        self.scopes.push_scope();
         program.program_items.iter_mut().try_for_each(|item| {
             match item {
                 ProgramItem::Decl(x) => self.visit_global_decl(x),
                 ProgramItem::Func(x) => self.visit_func(x),
             }
-        })
+        })?;
+        self.scopes.pop_scope();
+        Ok(())
     }
 
     fn visit_const_init_val(&mut self, init_val: &mut InitVal) -> Self::ConstInitValResult {
-        // for sub_decl in &decl.sub_decls {
-        //     if let Some(init_val) = &sub_decl.init_val {
-        //         let init_val = self.visit_const_init_val(&mut init_val)?;
+        // match &mut init_val.kind {
+        //     InitValKind::Expr(x) => {
+        //         self.visit_expr(x)?;
+        //         init_val.ty = x.ty();
+        //     }
+        //     InitValKind::ArrayVal(x) => {
         //
-        //         self.ctx.scope_builder.insert(&sub_decl.name.name, NameId::Global(global))
-        //             .ok_or(SemanticError::DuplicateName(sub_decl.name.name.clone()))?;
         //     }
         // }
-        // Ok(())
+        // Ok(None)
         todo!()
     }
 
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
-        let ty = self.visit_ty(&mut decl.ty_ident)?;
-        decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
-            let init_val = sub_decl.init_val.as_mut()
-                .map_or(Ok(None), |x| self.visit_const_init_val(x))?;
-            self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
-            Ok(())
-        })?;
-        Ok(())
+        // let ty = self.visit_ty(&mut decl.ty_ident)?;
+        // decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
+        //     let init_val = sub_decl.init_val.as_mut()
+        //         .map_or(Ok(None), |x| self.visit_const_init_val(x))?;
+        //
+        //     if let Some(e) = init_val {
+        //         assert_type_eq(&ty, &e.ty)?;
+        //     }
+        //
+        //     self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
+        //     Ok(())
+        // })?;
+        // Ok(())
+        todo!()
     }
 
     fn visit_func(&mut self, ast_func: &mut AstFunc) -> Self::FuncResult {
@@ -157,7 +176,13 @@ impl AstVisitorMut for TypeChecker {
             None => AstTy::Void,
             Some(val) => val.ty()
         };
+
+        if let Some(expr) = &mut stmt.val {
+            self.visit_expr(expr);
+        }
+
         let expected = &self.cur_func_ret_ty;
+
         assert_type_eq(&ret_ty, expected)
     }
 
@@ -247,6 +272,13 @@ impl AstVisitorMut for TypeChecker {
             })
         }
 
+        let new_ty = match op {
+            Add | Sub | Mul | Div | Mod => AstTy::Int,
+            Lt | Le | Gt | Ge | Eq | Ne | And | Or => AstTy::Bool,
+        };
+
+        expr.ty = new_ty.clone();
+
         let val = if let (
             Some(LiteralExpr { kind: LiteralKind::Integer(lval), span: lspan, .. }),
             Some(LiteralExpr { kind: LiteralKind::Integer(rval), span: rspan, .. })
@@ -255,20 +287,20 @@ impl AstVisitorMut for TypeChecker {
                 start: lspan.start,
                 end: rspan.end,
             };
-            let (new_val, new_ty) = match op {
-                Add => (lval + rval, AstTy::Int),
-                Sub => (lval - rval, AstTy::Int),
-                Mul => (lval * rval, AstTy::Int),
-                Div => (lval / rval, AstTy::Int),
-                Mod => (lval % rval, AstTy::Int),
-                Lt => ((lval < rval) as i32, AstTy::Bool),
-                Le => ((lval <= rval) as i32, AstTy::Bool),
-                Gt => ((lval > rval) as i32, AstTy::Bool),
-                Ge => ((lval >= rval) as i32, AstTy::Bool),
-                Eq => ((lval == rval) as i32, AstTy::Bool),
-                Ne => ((lval != rval) as i32, AstTy::Bool),
-                And => ((lval != 0 && rval != 0) as i32, AstTy::Bool),
-                Or => ((lval != 0 || rval != 0) as i32, AstTy::Bool),
+            let new_val = match op {
+                Add => lval + rval,
+                Sub => lval - rval,
+                Mul => lval * rval,
+                Div => lval / rval,
+                Mod => lval % rval,
+                Lt => (lval < rval) as i32,
+                Le => (lval <= rval) as i32,
+                Gt => (lval > rval) as i32,
+                Ge => (lval >= rval) as i32,
+                Eq => (lval == rval) as i32,
+                Ne => (lval != rval) as i32,
+                And => (lval != 0 && rval != 0) as i32,
+                Or => (lval != 0 || rval != 0) as i32,
             };
             Some(LiteralExpr {
                 kind: LiteralKind::Integer(new_val),

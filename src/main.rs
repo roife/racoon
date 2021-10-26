@@ -7,6 +7,8 @@ use racoon::compiler::{
     irbuilder::*,
     syntax::*,
 };
+use racoon::compiler::irbuilder::typeck::TypeChecker;
+use racoon::compiler::syntax::visitor::AstVisitorMut;
 
 mod options;
 
@@ -22,12 +24,18 @@ fn main() {
 
     let mut parser = parser::Parser::new(lexer);
     // println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
-    let ast = match parser.parse() {
+    let mut ast = match parser.parse() {
         Ok(p) => p,
         Err(e) => {
             println!("{:?}", e);
             return;
         }
+    };
+
+    let mut ty_checker = typeck::TypeChecker::new();
+    if let Err(e) = ty_checker.visit_program(&mut ast) {
+        println!("{:?}", e);
+        return;
     };
 
     let mut ir_builder = irbuilder::IrBuilder::new();
@@ -43,6 +51,7 @@ fn main() {
     let mut output = Box::new(
         fs::OpenOptions::new()
             .write(true)
+            .create(true)
             .open(output_file)
             .expect("Failed to open output file")
     );

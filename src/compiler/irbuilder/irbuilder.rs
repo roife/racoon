@@ -69,12 +69,15 @@ impl AstVisitor for IrBuilder {
     type TyResult = Result<IrTy, SemanticError>;
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
+        self.ctx.scope_builder.push_scope();
         program.program_items.iter().try_for_each(|item| {
             match item {
                 ProgramItem::Decl(x) => self.visit_global_decl(x),
                 ProgramItem::Func(x) => self.visit_func(x),
             }
-        })
+        })?;
+        self.ctx.scope_builder.pop_scope();
+        Ok(())
     }
 
     fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult {
