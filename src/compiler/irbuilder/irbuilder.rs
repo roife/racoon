@@ -78,17 +78,15 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult {
-        // match init_val {
-        //     InitVal::Expr(Expr::Literal(x)) => {
+        // match &init_val.kind {
+        //     InitValKind::Expr(Expr::Literal(x)) => {
         //         match x.kind {
         //             LiteralKind::Integer(x) => Constant::Int(x),
         //         }
         //     }
-        //     InitVal::Expr(_) => SemanticError::NotConstant,
-        //     InitVal::ArrayVal(vals) => {
-        //         for val in vals {
+        //     &InitValKind::Expr(_) => SemanticError::NotConstant,
+        //     &InitValKind::ArrayVal(vals) => {
         //
-        //         }
         //     }
         // }
         todo!()
@@ -112,8 +110,7 @@ impl AstVisitor for IrBuilder {
                 ty,
                 &sub_decl.ident.name,
                 init_val));
-            self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Global(global))
-                .ok_or(SemanticError::DuplicateName(sub_decl.ident.name.clone()))?;
+            self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Global(global));
         }
         Ok(())
     }
@@ -121,8 +118,7 @@ impl AstVisitor for IrBuilder {
     fn visit_func(&mut self, ast_func: &AstFunc) -> Self::FuncResult {
         let ret_ty = self.visit_ty(&ast_func.ret_ty_ident)?;
         let func = self.ctx.build_func(IrFunc::new(&ast_func.ident.name, ret_ty, false));
-        self.ctx.scope_builder.insert(&ast_func.ident.name, NameId::Func(func))
-            .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
+        self.ctx.scope_builder.insert(&ast_func.ident.name, NameId::Func(func));
 
         self.ctx.scope_builder.push_scope();
         self.ctx.set_cur_func(func);

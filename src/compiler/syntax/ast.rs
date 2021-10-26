@@ -288,7 +288,8 @@ pub enum AstTy {
     Void,
     Int,
     Bool,
-    Func { ret_ty: Box<AstTy>, param_tys: Vec<Box<AstTy>> }
+    Func { ret_ty: Box<AstTy>, param_tys: Vec<Box<AstTy>> },
+    Array(usize, Box<AstTy>)
 }
 
 impl TokenType {

@@ -1,4 +1,5 @@
 use std::borrow::BorrowMut;
+
 use crate::compiler::irbuilder::context::ScopeBuilder;
 use crate::compiler::irbuilder::err::SemanticError;
 use crate::compiler::span::Span;
@@ -69,19 +70,24 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_func(&mut self, ast_func: &mut AstFunc) -> Self::FuncResult {
-        self.scopes.push_scope();
-
         let ret_ty = Box::new(self.visit_ty(&mut ast_func.ret_ty_ident)?);
+
         ast_func.params.iter_mut().try_for_each(|mut param| self.visit_func_param(&mut param))?;
         let param_tys = ast_func.params.iter().map(|x| Box::new(x.ty.clone())).collect();
+
         let func_ty = AstTy::Func { ret_ty, param_tys };
+        self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None))
+            .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
 
-        self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None));
+        ast_func.params.iter().try_for_each(|param|
+            self.scopes.insert(&param.ident.name, (param.ty.clone(), None))
+                .map_or(Err(SemanticError::DuplicateName(param.ident.name.clone())),
+                        |x| Ok(()),
+                ))?;
+
+        self.scopes.push_scope();
         self.visit_block_stmt(&mut ast_func.body)?;
-
         self.scopes.pop_scope();
-        // re-insert func to scope
-        self.scopes.insert(&ast_func.ident.name, (func_ty, None));
         Ok(())
     }
 
@@ -161,7 +167,7 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_expr(&mut self, expr: &mut Expr) -> Self::ExprResult {
         match expr {
-            Expr::LVal(x) => self.visit_lexpr(expr),
+            Expr::LVal(_) => self.visit_lexpr(expr),
             Expr::Assign(x) => self.visit_assign_expr(x),
             Expr::Literal(x) => self.visit_literal_expr(x),
             Expr::Unary(x) => self.visit_unary_expr(x),

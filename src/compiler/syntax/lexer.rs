@@ -88,7 +88,6 @@ impl<T> Iterator for Lexer<T>
         loop {
             let token = self.next_token();
 
-            // TODO: let-else
             if !matches!(token,
                 Some(Token { token_type: TokenType::Comment(..), .. }))
             {
