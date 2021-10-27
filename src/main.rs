@@ -7,6 +7,9 @@ use racoon::compiler::{
     irbuilder::*,
     syntax::*,
 };
+use racoon::compiler::ir::value::constant::Constant;
+use racoon::compiler::ir::value::ty::IrTy;
+use racoon::compiler::ir::value::value::Operand::Global;
 use racoon::compiler::irbuilder::typeck::TypeChecker;
 use racoon::compiler::syntax::visitor::AstVisitorMut;
 
@@ -53,7 +56,7 @@ fn main() {
             .write(true)
             .create(true)
             .open(output_file)
-            .expect("Failed to open output file")
+            .expect("Failed to open or create output file")
     );
     writeln!(output, "{}", ir).expect("Failed to write output file");
 }

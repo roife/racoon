@@ -1,12 +1,13 @@
 use std::fmt::{Debug, Display, Formatter};
 
 use super::{ty::IrTy, value::Value};
+use enum_as_inner::EnumAsInner;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumAsInner)]
 pub enum Constant {
     Int(i32),
     // empty vec represents zero initializer
-    Array(IrTy, Vec<Box<Constant>>),
+    Array(IrTy, Vec<Constant>),
 }
 
 impl Constant {
@@ -35,26 +36,27 @@ impl Display for Constant {
             Constant::Array(ty @ IrTy::Array(siz, elem_ty), vals) => {
                 if vals.is_empty() {
                     write!(f, "{} zeroinitializer", ty)
-                } else if vals.len() == *siz {
-                    let data_str = vals.iter()
-                        .map(|x| format!("{}", x))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    write!(f, "{} [{}]", ty, data_str)
                 } else {
-                    debug_assert!(vals.len() < *siz);
-
-                    let zeros_ty = IrTy::Array(*siz - vals.len(), elem_ty.clone());
-                    let zeros = Self::build_zero(zeros_ty.clone());
-                    let data_tys = format!("{}, ", elem_ty).repeat(vals.len());
-                    let data_str = vals.iter()
+                    let mut data_str: String = vals.iter()
                         .map(|x| format!("{}", x))
                         .collect::<Vec<_>>()
                         .join(", ");
-                    write!(f, "<{{ {}{} }} <{{ {}, {} }}>", data_tys, zeros_ty, data_str, zeros)
+                    if vals.len() < *siz {
+                        let zeros = Self::build_zero(elem_ty.as_ref().clone());
+                        let zeros_str = format!(", {}", zeros).repeat(*siz - vals.len());
+                        data_str.push_str(&zeros_str);
+                    }
+
+                    write!(f, "{} [{}]", ty, data_str)
                 }
             }
             _ => unreachable!()
         }
+    }
+}
+
+impl From<i32> for Constant {
+    fn from(x: i32) -> Self {
+        Self::Int(x)
     }
 }
