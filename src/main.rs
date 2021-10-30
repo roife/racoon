@@ -16,6 +16,12 @@ use racoon::compiler::syntax::visitor::AstVisitorMut;
 mod options;
 
 fn main() {
+    // let ty = IrTy::Array(100, Box::new(IrTy::Array(100, Box::new(IrTy::Int(32)))));
+    // let i = Constant::Array(ty, vec![
+    //     Constant::Array(IrTy::Array(3, Box::new(IrTy::Int(32))), vec![12i32.into(), 3i32.into()]),
+    //     Constant::Array(IrTy::Array(2, Box::new(IrTy::Int(32))), vec![12i32.into(), 3i32.into()]),
+    // ]);
+    // println!("{}", i);
     let options = options::Options::from_args();
 
     let input_file = options.input_file;

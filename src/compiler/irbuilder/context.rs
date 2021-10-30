@@ -10,7 +10,7 @@ use crate::compiler::ir::{
     value::{basic_block::BasicBlock, func::IrFunc, inst::InstKind, module::Module, ty::IrTy},
 };
 use crate::compiler::ir::arena::ParamId;
-use crate::compiler::ir::value::global::GlobalVar;
+use crate::compiler::ir::value::global::Global;
 use crate::compiler::ir::value::ty::FuncTy;
 use crate::compiler::ir::value::value::Value;
 use crate::compiler::syntax::ast::AstTy;
@@ -150,7 +150,7 @@ impl Context {
         self.cur_module.build_func(func)
     }
 
-    pub fn build_global(&mut self, global: GlobalVar) -> GlobalId {
+    pub fn build_global(&mut self, global: Global) -> GlobalId {
         self.cur_module.build_global(global)
     }
 

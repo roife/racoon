@@ -58,17 +58,16 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_const_init_val(&mut self, init_val: &mut InitVal) -> Self::ConstInitValResult {
-        // match &mut init_val.kind {
-        //     InitValKind::Expr(x) => {
-        //         self.visit_expr(x)?;
-        //         init_val.ty = x.ty();
-        //     }
-        //     InitValKind::ArrayVal(x) => {
-        //
-        //     }
-        // }
-        // Ok(None)
-        todo!()
+        match &mut init_val.kind {
+            InitValKind::Expr(x) => {
+                self.visit_expr(x)?;
+                init_val.ty = x.ty();
+            }
+            InitValKind::ArrayVal(x) => {
+
+            }
+        }
+        Ok(None)
     }
 
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {

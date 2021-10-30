@@ -41,6 +41,7 @@ impl Display for Constant {
                         .map(|x| format!("{}", x))
                         .collect::<Vec<_>>()
                         .join(", ");
+
                     if vals.len() < *siz {
                         let zeros = Self::build_zero(elem_ty.as_ref().clone());
                         let zeros_str = format!(", {}", zeros).repeat(*siz - vals.len());

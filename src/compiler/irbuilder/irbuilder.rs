@@ -2,7 +2,7 @@ use crate::compiler::ir::{
     value::{
         constant::Constant,
         func::IrFunc,
-        global::GlobalVar,
+        global::Global,
         inst::*,
         ty::IrTy,
         value::Operand,
@@ -109,7 +109,7 @@ impl AstVisitor for IrBuilder {
                 _ => unreachable!()
             };
 
-            let global = self.ctx.build_global(GlobalVar::new(
+            let global = self.ctx.build_global(Global::new(
                 ty,
                 &sub_decl.ident.name,
                 init_val));

@@ -1,7 +1,8 @@
+use std::fmt::{Display, Formatter};
 use slotmap::SlotMap;
 
-use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
-use crate::compiler::ir::arena::{BBId, InstId, ParamId};
+use crate::compiler::intrusive_linkedlist::{IntrusiveLinkedList, IntrusiveLinkedListItem};
+use crate::compiler::ir::arena::{BBId, FuncId, InstId, ParamId};
 use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
 
 #[derive(Debug)]
@@ -21,6 +22,9 @@ pub struct IrFunc {
     param_arena: SlotMap<ParamId, IrFuncParam>,
     inst_arena: SlotMap<InstId, Inst>,
     bb_arena: SlotMap<BBId, BasicBlock>,
+
+    pub prev: Option<FuncId>,
+    pub next: Option<FuncId>,
 }
 
 impl Value for IrFunc {
@@ -32,6 +36,32 @@ impl Value for IrFunc {
     }
 }
 
+impl IntrusiveLinkedListItem for IrFunc {
+    type Key = FuncId;
+
+    fn next(&self) -> Option<Self::Key> {
+        self.next
+    }
+
+    fn set_next(&mut self, key: Option<Self::Key>) {
+        self.next = key
+    }
+
+    fn prev(&self) -> Option<Self::Key> {
+        self.prev
+    }
+
+    fn set_prev(&mut self, key: Option<Self::Key>) {
+        self.prev = key
+    }
+}
+
+impl Display for IrFunc {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
 impl IrFunc {
     pub fn new(name: &str, ret_ty: IrTy, is_builtin: bool) -> IrFunc {
         IrFunc {
@@ -40,9 +70,13 @@ impl IrFunc {
             is_builtin,
             params: vec![],
             first_block: None,
+
             param_arena: SlotMap::with_key(),
             inst_arena: SlotMap::with_key(),
             bb_arena: SlotMap::with_key(),
+
+            prev: None,
+            next: None
         }
     }
 
