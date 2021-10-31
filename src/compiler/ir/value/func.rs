@@ -11,6 +11,12 @@ pub struct IrFuncParam {
     pub pos: usize,
 }
 
+impl Display for IrFuncParam {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
 #[derive(Debug)]
 pub struct IrFunc {
     pub name: String,
@@ -92,6 +98,10 @@ impl IrFunc {
 impl IrFunc {
     pub fn get_inst(&self, inst_id: InstId) -> Option<&Inst> {
         self.inst_arena.get(inst_id)
+    }
+
+    pub fn get_param(&self, param_id: ParamId) -> Option<&IrFuncParam> {
+        self.param_arena.get(param_id)
     }
 
     pub fn get_inst_mut(&mut self, inst_id: InstId) -> Option<&mut Inst> {

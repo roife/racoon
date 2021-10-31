@@ -64,7 +64,13 @@ impl Display for Module {
 
         self.func_arena
             .items_iter(self.first_func, None)
-            .for_each(|(_, func)| todo!());
+            .for_each(|(_, func)| {
+                let param_str = func.params.iter()
+                    .map(|x| format!("{}", func.get_param(*x).unwrap()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "define {}({}){}", func, param_str, func.first_block.unwrap());
+            });
         Ok(())
     }
 }
