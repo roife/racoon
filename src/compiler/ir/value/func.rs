@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use itertools::Itertools;
 use slotmap::SlotMap;
 
 use crate::compiler::intrusive_linkedlist::{IntrusiveLinkedList, IntrusiveLinkedListItem};
@@ -37,7 +38,7 @@ impl Value for IrFunc {
     fn get_ty(&self) -> IrTy {
         let param_tys = self.params.iter()
             .map(|param_id| self.param_arena.get(*param_id).unwrap().ty.clone())
-            .collect::<Vec<_>>();
+            .collect_vec();
         IrTy::func_of(self.ret_ty.clone(), param_tys)
     }
 }

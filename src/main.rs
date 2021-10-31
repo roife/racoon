@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::Write;
+use itertools::Itertools;
 
 use structopt::StructOpt;
 
@@ -16,12 +17,6 @@ use racoon::compiler::syntax::visitor::AstVisitorMut;
 mod options;
 
 fn main() {
-    // let ty = IrTy::Array(100, Box::new(IrTy::Array(100, Box::new(IrTy::Int(32)))));
-    // let i = Constant::Array(ty, vec![
-    //     Constant::Array(IrTy::Array(3, Box::new(IrTy::Int(32))), vec![12i32.into(), 3i32.into()]),
-    //     Constant::Array(IrTy::Array(2, Box::new(IrTy::Int(32))), vec![12i32.into(), 3i32.into()]),
-    // ]);
-    // println!("{}", i);
     let options = options::Options::from_args();
 
     let input_file = options.input_file;
@@ -29,7 +24,7 @@ fn main() {
         .expect("Failed to read from input file");
 
     let lexer = lexer::Lexer::new(input.chars());
-    // println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect::<Vec<_>>());
+    // println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect_vec());
 
     let mut parser = parser::Parser::new(lexer);
     // println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());

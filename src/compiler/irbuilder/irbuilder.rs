@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use crate::compiler::ir::{
     value::{
         constant::Constant,
@@ -394,7 +395,7 @@ impl AstVisitor for IrBuilder {
             .clone();
         let args = expr.args.iter()
             .map(|x| self.visit_expr(&x))
-            .collect::<Result<Vec<_>, _>>()?;
+            .try_collect()?;
 
         let ret_ty = self.ctx.get_func_ty(func).ret_ty;
         let inst = CallInst { func, args };

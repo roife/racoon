@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use itertools::Itertools;
 use slotmap::SlotMap;
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 
@@ -62,15 +63,6 @@ impl Display for Module {
                 writeln!(f, "@{} = global {}", global.name, global.init_val)
             )?;
 
-        self.func_arena
-            .items_iter(self.first_func, None)
-            .for_each(|(_, func)| {
-                let param_str = func.params.iter()
-                    .map(|x| format!("{}", func.get_param(*x).unwrap()))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                write!(f, "define {}({}){}", func, param_str, func.first_block.unwrap());
-            });
-        Ok(())
+        todo!()
     }
 }

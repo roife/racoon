@@ -2,6 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use super::{ty::IrTy, value::Value};
 use enum_as_inner::EnumAsInner;
+use itertools::Itertools;
 
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum Constant {
@@ -37,10 +38,7 @@ impl Display for Constant {
                 if vals.is_empty() {
                     write!(f, "{} zeroinitializer", ty)
                 } else {
-                    let mut data_str: String = vals.iter()
-                        .map(|x| format!("{}", x))
-                        .collect::<Vec<_>>()
-                        .join(", ");
+                    let mut data_str: String = vals.iter().join(", ");
 
                     if vals.len() < *siz {
                         let zeros = Self::build_zero(elem_ty.as_ref().clone());
