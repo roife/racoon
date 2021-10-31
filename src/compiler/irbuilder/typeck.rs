@@ -37,6 +37,45 @@ impl TypeChecker {
     }
 }
 
+impl TypeChecker {
+    fn fix_array_literal(literal: &mut LiteralExpr, ty: &AstTy) -> Result<(), SemanticError> {
+        match ty {
+            AstTy::Int => {
+                match &literal.kind {
+                    LiteralKind::Integer(_) => Ok(()),
+                    LiteralKind::Array(_, _) => assert_type_eq(&AstTy::Int, &AstTy::Unknown),
+                    _ => unreachable!()
+                }
+            },
+            AstTy::Array { siz: ty_siz, elem_ty } => {
+                match &mut literal.kind {
+                    LiteralKind::Integer(_) => assert_type_eq(&ty, &AstTy::Int),
+                    LiteralKind::Array(literal_siz, vals) => {
+                        if *literal_siz > *ty_siz {
+                            return Err(SemanticError::TooMuchElement)
+                        }
+
+                        if !matches!(elem_ty.as_ref(), AstTy::Array { .. }) &&
+                            vals.iter().any(|x| x.is_none())
+                        {
+                            assert_type_eq(elem_ty.as_ref(), &AstTy::Unknown)?;
+                        }
+
+                        vals.iter_mut()
+                            .filter(|x| x.is_some())
+                            .map(|x| x.as_mut().unwrap())
+                            .try_for_each(|x| Self::fix_array_literal(x, elem_ty))?;
+
+                        *literal_siz = *ty_siz;
+                        Ok(())
+                    }
+                }
+            }
+            _ => unreachable!()
+        }
+    }
+}
+
 impl AstVisitorMut for TypeChecker {
     type ProgramResult = Result<(), SemanticError>;
     type ConstInitValResult = Result<Option<LiteralExpr>, SemanticError>;
@@ -85,14 +124,38 @@ impl AstVisitorMut for TypeChecker {
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
         let ty = self.visit_ty(&mut decl.ty_ident)?;
         decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
-            let init_val = sub_decl.init_val.as_mut()
+            let mut init_val = sub_decl.init_val.as_mut()
                 .map_or(Ok(None), |x| self.visit_const_init_val(x))?;
 
-            if let Some(e) = init_val {
-                assert_type_eq(&ty, &e.ty)?;
+            if sub_decl.subs.is_some() {
+                for sub in sub_decl.subs.as_mut().unwrap().subs.iter_mut() {
+                    let literal = self.visit_expr(sub)?.ok_or(SemanticError::NotConstant)?;
+                    if literal.get_int().unwrap() <= 0 {
+                        return Err(SemanticError::IllegalArrayDim);
+                    }
+                    *sub = Expr::Literal(literal);
+                }
             }
 
-            self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
+            let mut ty = Box::new(ty.clone());
+            for sub in sub_decl.subs.as_ref().unwrap().subs.iter() {
+                ty = Box::new(AstTy::Array {
+                    siz: sub.as_literal().unwrap().get_int().unwrap() as usize,
+                    elem_ty: Box::new(AstTy::Unknown)
+                });
+            }
+
+            if let Some(ref mut literal) = init_val {
+                match ty.as_ref() {
+                    AstTy::Int => assert_type_eq(&ty, &literal.ty)?,
+                    AstTy::Array { siz, elem_ty } => {
+                        Self::fix_array_literal(literal, &ty)?;
+                    }
+                    _ => unreachable!()
+                }
+            }
+
+            self.scopes.insert(&sub_decl.ident.name, (ty.as_ref().clone(), init_val));
             Ok(())
         })?;
         Ok(())
@@ -352,11 +415,11 @@ impl AstVisitorMut for TypeChecker {
     }
 }
 
-fn assert_type_eq(lhs: &AstTy, rhs: &AstTy) -> Result<(), SemanticError> {
-    if lhs != rhs {
+fn assert_type_eq(expected: &AstTy, found: &AstTy) -> Result<(), SemanticError> {
+    if expected != found {
         return Err(TypeMismatch {
             expected: String::from(stringify!(lhs)),
-            found: rhs.clone(),
+            found: found.clone(),
         });
     }
     Ok(())

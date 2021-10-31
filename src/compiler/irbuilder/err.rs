@@ -10,5 +10,7 @@ pub enum SemanticError {
     ExpectedFunction(String),
     BreakOutsideLoop,
     ContinueOutsideLoop,
+    TooMuchElement,
+    IllegalArrayDim,
     NotConstant,
 }

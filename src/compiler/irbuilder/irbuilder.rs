@@ -82,18 +82,19 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult {
-        // match &init_val.kind {
-        //     InitValKind::Expr(Expr::Literal(x)) => {
-        //         match x.kind {
-        //             LiteralKind::Integer(x) => Constant::Int(x),
-        //         }
-        //     }
-        //     &InitValKind::Expr(_) => SemanticError::NotConstant,
-        //     &InitValKind::ArrayVal(vals) => {
-        //
-        //     }
-        // }
         todo!()
+        //match &init_val.kind {
+        //    InitValKind::Expr(Expr::Literal(x)) => {
+        //        match x.kind {
+        //            LiteralKind::Integer(x) => Ok(Constant::Int(x)),
+        //            _ => unreachable!()
+        //        }
+        //    }
+        //    &InitValKind::Expr(_) => SemanticError::NotConstant,
+        //    &InitValKind::ArrayVal(vals) => {
+
+        //    }
+        //}
     }
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
