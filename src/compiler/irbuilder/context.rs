@@ -171,7 +171,7 @@ impl From<AstTy> for IrTy {
                     params_ty: params.iter().map(|x| x.as_ref().clone().into()).collect(),
                 }))
             }
-            AstTy::Array(siz, elem) => IrTy::Array(siz, Box::new(IrTy::from(*elem))),
+            AstTy::Array { siz: siz, elem_ty: elem } => IrTy::Array(siz, Box::new(IrTy::from(*elem))),
             AstTy::Unknown => unreachable!(),
         }
     }

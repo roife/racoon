@@ -324,9 +324,9 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_lexpr(&mut self, expr: &Expr) -> Self::LExprResult {
-        let val= expr.as_l_val().unwrap(); // todo
-        let base_addr = self.ctx.scope_builder.find_name_rec(&val.ident.name)
-            .ok_or(SemanticError::UnknownName(val.ident.name.clone()))?;
+        // let val= expr.as_l_val().unwrap();
+        // let base_addr = self.ctx.scope_builder.find_name_rec(&val.ident.name)
+        //    .ok_or(SemanticError::UnknownName(val.ident.name.clone()))?;
         todo!()
     }
 
@@ -340,7 +340,8 @@ impl AstVisitor for IrBuilder {
 
     fn visit_literal_expr(&mut self, expr: &LiteralExpr) -> Self::ExprResult {
         let constant = match expr.kind {
-            LiteralKind::Integer(i) => Operand::Constant(Constant::Int(i))
+            LiteralKind::Integer(i) => Operand::Constant(Constant::Int(i)),
+            _ => unreachable!()
         };
         Ok(constant)
     }

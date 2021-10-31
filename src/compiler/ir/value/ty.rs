@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
 
 use enum_as_inner::EnumAsInner;

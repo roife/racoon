@@ -1,5 +1,3 @@
-use std::rc::Rc;
-use std::sync::Arc;
 use enum_as_inner::EnumAsInner;
 
 use crate::compiler::span::Span;
@@ -187,7 +185,7 @@ pub struct LiteralExpr {
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum LiteralKind {
     Integer(i32),
-    // Array(Vec<Option<Box<LiteralExpr>>>)
+    Array(usize, Vec<Option<LiteralExpr>>)
 }
 
 impl LiteralExpr {
@@ -289,7 +287,7 @@ pub enum AstTy {
     Int,
     Bool,
     Func { ret_ty: Box<AstTy>, param_tys: Vec<Box<AstTy>> },
-    Array(usize, Box<AstTy>)
+    Array { siz: usize, elem_ty: Box<AstTy> }
 }
 
 impl TokenType {

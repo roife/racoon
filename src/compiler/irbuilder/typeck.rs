@@ -1,4 +1,5 @@
 use std::borrow::BorrowMut;
+use itertools::Itertools;
 
 use crate::compiler::irbuilder::context::ScopeBuilder;
 use crate::compiler::irbuilder::err::SemanticError;
@@ -60,31 +61,41 @@ impl AstVisitorMut for TypeChecker {
     fn visit_const_init_val(&mut self, init_val: &mut InitVal) -> Self::ConstInitValResult {
         match &mut init_val.kind {
             InitValKind::Expr(x) => {
-                self.visit_expr(x)?;
+                let val = self.visit_expr(x)?;
                 init_val.ty = x.ty();
-            }
-            InitValKind::ArrayVal(x) => {
 
+                match val {
+                    None => Err(SemanticError::NotConstant),
+                    Some(x) => Ok(Some(x))
+                }
+            }
+            InitValKind::ArrayVal(vals) => {
+                let literals : Vec<_> = vals.iter_mut()
+                    .map(|x| self.visit_const_init_val(x))
+                    .try_collect()?;
+                Ok(Some(LiteralExpr {
+                    kind: LiteralKind::Array(literals.len(), literals),
+                    span: init_val.span,
+                    ty: AstTy::Unknown
+                }))
             }
         }
-        Ok(None)
     }
 
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
-        // let ty = self.visit_ty(&mut decl.ty_ident)?;
-        // decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
-        //     let init_val = sub_decl.init_val.as_mut()
-        //         .map_or(Ok(None), |x| self.visit_const_init_val(x))?;
-        //
-        //     if let Some(e) = init_val {
-        //         assert_type_eq(&ty, &e.ty)?;
-        //     }
-        //
-        //     self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
-        //     Ok(())
-        // })?;
-        // Ok(())
-        todo!()
+        let ty = self.visit_ty(&mut decl.ty_ident)?;
+        decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
+            let init_val = sub_decl.init_val.as_mut()
+                .map_or(Ok(None), |x| self.visit_const_init_val(x))?;
+
+            if let Some(e) = init_val {
+                assert_type_eq(&ty, &e.ty)?;
+            }
+
+            self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
+            Ok(())
+        })?;
+        Ok(())
     }
 
     fn visit_func(&mut self, ast_func: &mut AstFunc) -> Self::FuncResult {
@@ -209,8 +220,9 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_literal_expr(&mut self, expr: &mut LiteralExpr) -> Self::ExprResult {
-        expr.ty = match expr.kind {
-            LiteralKind::Integer(_) => AstTy::Int
+        expr.ty = match &mut expr.kind {
+            LiteralKind::Integer(_) => AstTy::Int,
+            _ => unreachable!()
         };
         Ok(Some(expr.clone()))
     }
