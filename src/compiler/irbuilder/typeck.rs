@@ -1,16 +1,13 @@
-use std::borrow::{Borrow, BorrowMut};
-
 use itertools::Itertools;
-use crate::compiler::ir::value::constant::Constant;
 
-use crate::compiler::irbuilder::context::ScopeBuilder;
-use crate::compiler::irbuilder::err::SemanticError;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::ast::*;
-use crate::compiler::syntax::ast::AstTy;
 use crate::compiler::syntax::visitor::AstVisitorMut;
 
-use super::err::SemanticError::*;
+use super::{
+    context::ScopeBuilder,
+    err::SemanticError::{self, *},
+};
 
 macro_rules! expect_type {
     ($self:expr, $pat:pat) => {{
@@ -107,7 +104,7 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
         let ty = self.visit_ty(&mut decl.ty_ident)?;
-        decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
+        for sub_decl in decl.sub_decls.iter_mut() {
             if sub_decl.subs.is_some() {
                 for sub in sub_decl.subs.as_mut().unwrap().subs.iter_mut() {
                     let literal = self.visit_expr(sub)?.ok_or(SemanticError::NotConstant)?;
@@ -128,22 +125,27 @@ impl AstVisitorMut for TypeChecker {
                 }
             }
 
-            let mut init_val = sub_decl.init_val.as_mut()
-                .map_or(Ok(None),
-                        |x| self.visit_const_init_val(x).and_then(|x| Ok(Some(x))))?;
-
-            if let Some(literal) = init_val.as_mut() {
+            let init_val = if let Some(init_val) = &mut sub_decl.init_val {
+                let mut literal = self.visit_const_init_val(init_val)?;
                 match ty.as_ref() {
-                    AstTy::Int => assert_type_eq(&ty, &literal.ty)?,
-                    AstTy::Array { .. } => Self::fix_array_literal(literal, &ty)?,
+                    AstTy::Int => {
+                        assert_type_eq(&ty, &literal.ty)?;
+                        init_val.kind = InitValKind::Expr(Expr::Literal(literal.clone()));
+                    }
+                    AstTy::Array { .. } => {
+                        Self::fix_array_literal(&mut literal, &ty)?;
+                        init_val.kind = InitValKind::Expr(Expr::Literal(literal.clone()));
+                    }
                     _ => unreachable!()
-                }
-            }
+                };
+                Some(literal)
+            } else {
+                None
+            };
 
             sub_decl.ty = ty.as_ref().clone();
             self.scopes.insert(&sub_decl.ident.name, (ty.as_ref().clone(), init_val));
-            Ok(())
-        })?;
+        }
         Ok(())
     }
 
@@ -316,12 +318,8 @@ impl AstVisitorMut for TypeChecker {
         let op = expr.op;
 
         let legal = match (expr.lhs.ty(), expr.rhs.ty()) {
-            (AstTy::Int, AstTy::Int) => {
-                matches!(op, Add | Sub | Mul | Div | Mod | Lt | Le | Gt | Ge | Eq | Ne)
-            }
-            (AstTy::Bool, AstTy::Bool) => {
-                matches!(op, And | Or)
-            }
+            (AstTy::Int, AstTy::Int) => matches!(op, Add | Sub | Mul | Div | Mod | Lt | Le | Gt | Ge | Eq | Ne),
+            (AstTy::Bool, AstTy::Bool) => matches!(op, And | Or),
             _ => false,
         };
 

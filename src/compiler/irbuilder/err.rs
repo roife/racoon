@@ -1,4 +1,3 @@
-use crate::compiler::ir::value::ty::IrTy;
 use crate::compiler::syntax::ast::AstTy;
 
 #[derive(Debug)]

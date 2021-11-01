@@ -118,7 +118,7 @@ impl Context {
     }
 
     pub fn get_func_ty(&self, func: FuncId) -> FuncTy {
-        let func_ty = self.cur_module.get_func(self.cur_func).unwrap().get_ty();
+        let func_ty = self.cur_module.get_func(func).unwrap().get_ty();
         *func_ty.into_func().unwrap()
     }
 
@@ -185,7 +185,7 @@ impl From<LiteralExpr> for Constant {
     fn from(literal: LiteralExpr) -> Self {
         match literal.kind {
             LiteralKind::Integer(x) => Constant::from(x),
-            LiteralKind::Array(siz, vals) => {
+            LiteralKind::Array(_, vals) => {
                 let vals = vals.into_iter()
                     .map(|x| Constant::from(x))
                     .collect_vec();
