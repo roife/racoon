@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use itertools::Itertools;
 
 use crate::compiler::span::Span;
@@ -23,7 +24,7 @@ macro_rules! expect_type {
 }
 
 pub struct TypeChecker {
-    pub scopes: ScopeBuilder<(AstTy, Option<LiteralExpr>)>,
+    pub scopes: ScopeBuilder<(AstTy, Option<LiteralExpr>, bool)>,
     pub cur_func_ret_ty: AstTy,
 }
 
@@ -63,7 +64,7 @@ impl TypeChecker {
         if subs.is_some() {
             for sub in subs.as_mut().unwrap().subs.iter_mut() {
                 let literal = self.visit_expr(sub)?
-                    .ok_or(SemanticError::NotConstant)?;
+                    .ok_or(SemanticError::RequireConstant)?;
 
                 if literal.get_int().unwrap() <= 0 {
                     return Err(SemanticError::IllegalArrayDim);
@@ -111,7 +112,7 @@ impl AstVisitorMut for TypeChecker {
                 init_val.ty = x.ty();
                 match self.visit_expr(x)? {
                     Some(x) => Ok(x),
-                    None => Err(SemanticError::NotConstant),
+                    None => Err(SemanticError::RequireConstant),
                 }
             }
             InitValKind::ArrayVal(vals) => {
@@ -148,7 +149,7 @@ impl AstVisitorMut for TypeChecker {
             };
 
             sub_decl.ty = ty.clone();
-            self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
+            self.scopes.insert(&sub_decl.ident.name, (ty, init_val, decl.is_const));
         }
         Ok(())
     }
@@ -162,12 +163,12 @@ impl AstVisitorMut for TypeChecker {
             .collect();
 
         let func_ty = AstTy::Func { ret_ty, param_tys };
-        self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None))
+        self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None, false))
             .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
 
         self.scopes.push_scope();
         for param in ast_func.params.iter() {
-            self.scopes.insert(&param.ident.name, (param.ty.clone(), None))
+            self.scopes.insert(&param.ident.name, (param.ty.clone(), None, false))
                 .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
         }
 
@@ -210,7 +211,30 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_decl_stmt(&mut self, decl: &mut Decl) -> Self::StmtResult {
-        todo!()
+        let ty = self.visit_ty(&mut decl.ty_ident)?;
+
+        for sub_decl in decl.sub_decls.iter_mut() {
+            let ty = self.build_ast_ty(&ty, &mut sub_decl.subs)?;
+
+            if let Some(init_val) = &mut sub_decl.init_val {
+                let expr = init_val.kind.as_expr_mut().ok_or(
+                    SemanticError::TypeMismatch {
+                        expected: String::from("Expression"),
+                        found: AstTy::Unknown,
+                    })?;
+
+                self.visit_expr(expr)?;
+
+                match ty {
+                    AstTy::Int | AstTy::Bool => assert_type_eq(&ty, &expr.ty())?,
+                    _ => unreachable!()
+                };
+            }
+
+            sub_decl.ty = ty.clone();
+            self.scopes.insert(&sub_decl.ident.name, (ty, None, decl.is_const));
+        }
+        Ok(())
     }
 
     fn visit_expr_stmt(&mut self, stmt: &mut Expr) -> Self::StmtResult {

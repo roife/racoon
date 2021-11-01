@@ -84,7 +84,7 @@ impl AstVisitor for IrBuilder {
     fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult {
         match init_val.kind.as_const() {
             Some(literal) => Ok(literal.clone().into()),
-            None => Err(SemanticError::NotConstant)
+            None => Err(SemanticError::RequireConstant)
         }
     }
 
@@ -175,6 +175,21 @@ impl AstVisitor for IrBuilder {
 
     fn visit_decl_stmt(&mut self, decl: &Decl) -> Self::StmtResult {
         todo!()
+        // for sub_decl in &decl.sub_decls {
+        //     let ty = match sub_decl.ty.clone().into() {
+        //         int @ IrTy::Int(_) => IrTy::ptr_of(int),
+        //         _ => unreachable!()
+        //     };
+        //
+        //     if decl.
+        //
+        //     // let inst = self.ctx.build_global(::new(
+        //     //     ty,
+        //     //     &sub_decl.ident.name,
+        //     //     const_init_val));
+        //     self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Inst(inst));
+        // }
+        // Ok(())
     }
 
     fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult {

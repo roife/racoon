@@ -11,5 +11,5 @@ pub enum SemanticError {
     ContinueOutsideLoop,
     TooMuchElement,
     IllegalArrayDim,
-    NotConstant,
+    RequireConstant,
 }
