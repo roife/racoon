@@ -129,9 +129,15 @@ impl<T> Parser<T>
     fn parse_init_val(&mut self) -> Result<InitVal, ParseError> {
         let init_val = if is_next!(self.iter, TokenType::LBrace) {
             let start = expect_token!(self.iter, TokenType::LBrace)?.span.start;
-            let array_vals = parse_separate_match!(self.iter, TokenType::Comma, {
-                Ok(self.parse_init_val()?)
-            });
+
+            let array_vals = if is_next!(self.iter, TokenType::RBrace) {
+                vec![]
+            } else {
+                parse_separate_match!(self.iter, TokenType::Comma, {
+                    Ok(self.parse_init_val()?)
+                })
+            };
+
             let end = expect_token!(self.iter, TokenType::RBrace)?.span.end;
             InitVal {
                 ty: AstTy::Unknown,

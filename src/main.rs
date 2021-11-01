@@ -18,10 +18,8 @@ fn main() {
         .expect("Failed to read from input file");
 
     let lexer = lexer::Lexer::new(input.chars());
-    // println!("{:?}", lexer::Lexer::new(input.chars()).into_iter().collect_vec());
-
     let mut parser = parser::Parser::new(lexer);
-    // println!("{:?}", parser::Parser::new(lexer::Lexer::new(input.chars())).parse());
+
     let mut ast = match parser.parse() {
         Ok(p) => p,
         Err(e) => {
