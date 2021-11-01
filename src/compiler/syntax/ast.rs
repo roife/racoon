@@ -185,7 +185,7 @@ pub struct LiteralExpr {
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum LiteralKind {
     Integer(i32),
-    Array(usize, Vec<Option<LiteralExpr>>)
+    Array(usize, Vec<LiteralExpr>)
 }
 
 impl LiteralExpr {

@@ -4,16 +4,18 @@ use std::collections::{
 };
 
 use enum_as_inner::EnumAsInner;
+use itertools::Itertools;
 
 use crate::compiler::ir::{
     arena::{BBId, FuncId, GlobalId, InstId},
     value::{basic_block::BasicBlock, func::IrFunc, inst::InstKind, module::Module, ty::IrTy},
 };
 use crate::compiler::ir::arena::ParamId;
+use crate::compiler::ir::value::constant::Constant;
 use crate::compiler::ir::value::global::Global;
 use crate::compiler::ir::value::ty::FuncTy;
 use crate::compiler::ir::value::value::Value;
-use crate::compiler::syntax::ast::AstTy;
+use crate::compiler::syntax::ast::{AstTy, LiteralExpr, LiteralKind};
 
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum NameId {
@@ -171,8 +173,24 @@ impl From<AstTy> for IrTy {
                     params_ty: params.iter().map(|x| x.as_ref().clone().into()).collect(),
                 }))
             }
-            AstTy::Array { siz: siz, elem_ty: elem } => IrTy::Array(siz, Box::new(IrTy::from(*elem))),
+            AstTy::Array { siz, elem_ty } => IrTy::Array(
+                siz,
+                Box::new(IrTy::from(*elem_ty))),
             AstTy::Unknown => unreachable!(),
+        }
+    }
+}
+
+impl From<LiteralExpr> for Constant {
+    fn from(literal: LiteralExpr) -> Self {
+        match literal.kind {
+            LiteralKind::Integer(x) => Constant::from(x),
+            LiteralKind::Array(siz, vals) => {
+                let vals = vals.into_iter()
+                    .map(|x| Constant::from(x))
+                    .collect_vec();
+                Constant::Array(literal.ty.into(), vals)
+            }
         }
     }
 }

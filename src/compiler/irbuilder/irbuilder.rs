@@ -1,4 +1,5 @@
 use itertools::Itertools;
+
 use crate::compiler::ir::{
     value::{
         constant::Constant,
@@ -82,33 +83,29 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult {
-        todo!()
-        //match &init_val.kind {
-        //    InitValKind::Expr(Expr::Literal(x)) => {
-        //        match x.kind {
-        //            LiteralKind::Integer(x) => Ok(Constant::Int(x)),
-        //            _ => unreachable!()
-        //        }
-        //    }
-        //    &InitValKind::Expr(_) => SemanticError::NotConstant,
-        //    &InitValKind::ArrayVal(vals) => {
-
-        //    }
-        //}
+        match &init_val.kind {
+            InitValKind::Expr(Expr::Literal(x)) => {
+                Ok(match &x.kind {
+                    LiteralKind::Integer(x) => Constant::Int(*x),
+                    LiteralKind::Array(_, _) => x.clone().into()
+                })
+            }
+            _ => Err(SemanticError::NotConstant),
+        }
     }
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
         for sub_decl in &decl.sub_decls {
-            let init_val = if let Some(init_val) = &sub_decl.init_val {
-                self.visit_const_init_val(init_val)?
-            } else {
-                Constant::build_zero(sub_decl.ty.clone().into())
-            };
-
             let ty = match sub_decl.ty.clone().into() {
                 int @ IrTy::Int(_) => IrTy::ptr_of(int),
                 arr @ IrTy::Array(_, _) => arr,
                 _ => unreachable!()
+            };
+
+            let init_val = if let Some(init_val) = &sub_decl.init_val {
+                self.visit_const_init_val(init_val)?
+            } else {
+                Constant::build_zero(sub_decl.ty.clone().into())
             };
 
             let global = self.ctx.build_global(Global::new(

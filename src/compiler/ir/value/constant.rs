@@ -34,7 +34,8 @@ impl Display for Constant {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Constant::Int(x) => write!(f, "i32 {}", x),
-            Constant::Array(ty @ IrTy::Array(siz, elem_ty), vals) => {
+            Constant::Array(ty @ IrTy::Array(siz, elem_ty),
+                            vals) => {
                 if vals.is_empty() {
                     write!(f, "{} zeroinitializer", ty)
                 } else {

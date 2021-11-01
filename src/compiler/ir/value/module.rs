@@ -10,7 +10,7 @@ use super::{func::IrFunc, global::Global};
 #[derive(Debug)]
 pub struct Module {
     first_func: Option<FuncId>,
-    first_global: Option<GlobalId>,
+    pub first_global: Option<GlobalId>,
 
     global_arena: SlotMap<GlobalId, Global>,
     func_arena: SlotMap<FuncId, IrFunc>,
@@ -62,7 +62,7 @@ impl Display for Module {
             .try_for_each(|(_, global)|
                 writeln!(f, "@{} = global {}", global.name, global.init_val)
             )?;
-
-        todo!()
+        Ok(())
+        // todo
     }
 }

@@ -41,6 +41,7 @@ fn main() {
         println!("{:?}", e);
         return;
     };
+    println!("{:#?}", ast);
 
     let mut ir_builder = irbuilder::IrBuilder::new();
     let ir = match ir_builder.visit(&ast) {

@@ -1,5 +1,7 @@
-use std::borrow::BorrowMut;
+use std::borrow::{Borrow, BorrowMut};
+
 use itertools::Itertools;
+use crate::compiler::ir::value::constant::Constant;
 
 use crate::compiler::irbuilder::context::ScopeBuilder;
 use crate::compiler::irbuilder::err::SemanticError;
@@ -38,47 +40,29 @@ impl TypeChecker {
 }
 
 impl TypeChecker {
-    fn fix_array_literal(literal: &mut LiteralExpr, ty: &AstTy) -> Result<(), SemanticError> {
-        match ty {
-            AstTy::Int => {
-                match &literal.kind {
-                    LiteralKind::Integer(_) => Ok(()),
-                    LiteralKind::Array(_, _) => assert_type_eq(&AstTy::Int, &AstTy::Unknown),
-                    _ => unreachable!()
+    fn fix_array_literal(literal: &mut LiteralExpr, expected_ty: &AstTy) -> Result<(), SemanticError> {
+        match (&mut literal.kind, expected_ty) {
+            (LiteralKind::Integer(_), AstTy::Int) => Ok(()),
+            (LiteralKind::Array(literal_siz, vals),
+                AstTy::Array { siz: ty_siz, elem_ty }) => {
+                if *literal_siz > *ty_siz {
+                    return Err(SemanticError::TooMuchElement)
                 }
-            },
-            AstTy::Array { siz: ty_siz, elem_ty } => {
-                match &mut literal.kind {
-                    LiteralKind::Integer(_) => assert_type_eq(&ty, &AstTy::Int),
-                    LiteralKind::Array(literal_siz, vals) => {
-                        if *literal_siz > *ty_siz {
-                            return Err(SemanticError::TooMuchElement)
-                        }
 
-                        if !matches!(elem_ty.as_ref(), AstTy::Array { .. }) &&
-                            vals.iter().any(|x| x.is_none())
-                        {
-                            assert_type_eq(elem_ty.as_ref(), &AstTy::Unknown)?;
-                        }
+                vals.iter_mut()
+                    .try_for_each(|x| Self::fix_array_literal(x, elem_ty))?;
 
-                        vals.iter_mut()
-                            .filter(|x| x.is_some())
-                            .map(|x| x.as_mut().unwrap())
-                            .try_for_each(|x| Self::fix_array_literal(x, elem_ty))?;
-
-                        *literal_siz = *ty_siz;
-                        Ok(())
-                    }
-                }
+                *literal_siz = *ty_siz;
+                Ok(())
             }
-            _ => unreachable!()
+            _ => assert_type_eq(&expected_ty, &AstTy::Unknown)
         }
     }
 }
 
 impl AstVisitorMut for TypeChecker {
     type ProgramResult = Result<(), SemanticError>;
-    type ConstInitValResult = Result<Option<LiteralExpr>, SemanticError>;
+    type ConstInitValResult = Result<LiteralExpr, SemanticError>;
     type FuncResult = Result<(), SemanticError>;
     type StmtResult = Result<(), SemanticError>;
     type ExprResult = Result<Option<LiteralExpr>, SemanticError>;
@@ -105,18 +89,18 @@ impl AstVisitorMut for TypeChecker {
 
                 match val {
                     None => Err(SemanticError::NotConstant),
-                    Some(x) => Ok(Some(x))
+                    Some(x) => Ok(x)
                 }
             }
             InitValKind::ArrayVal(vals) => {
                 let literals : Vec<_> = vals.iter_mut()
                     .map(|x| self.visit_const_init_val(x))
                     .try_collect()?;
-                Ok(Some(LiteralExpr {
+                Ok(LiteralExpr {
                     kind: LiteralKind::Array(literals.len(), literals),
                     span: init_val.span,
                     ty: AstTy::Unknown
-                }))
+                })
             }
         }
     }
@@ -124,9 +108,6 @@ impl AstVisitorMut for TypeChecker {
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
         let ty = self.visit_ty(&mut decl.ty_ident)?;
         decl.sub_decls.iter_mut().try_for_each(|sub_decl| {
-            let mut init_val = sub_decl.init_val.as_mut()
-                .map_or(Ok(None), |x| self.visit_const_init_val(x))?;
-
             if sub_decl.subs.is_some() {
                 for sub in sub_decl.subs.as_mut().unwrap().subs.iter_mut() {
                     let literal = self.visit_expr(sub)?.ok_or(SemanticError::NotConstant)?;
@@ -138,23 +119,28 @@ impl AstVisitorMut for TypeChecker {
             }
 
             let mut ty = Box::new(ty.clone());
-            for sub in sub_decl.subs.as_ref().unwrap().subs.iter() {
-                ty = Box::new(AstTy::Array {
-                    siz: sub.as_literal().unwrap().get_int().unwrap() as usize,
-                    elem_ty: Box::new(AstTy::Unknown)
-                });
+            if let Some(subs) = &sub_decl.subs {
+                for sub in subs.subs.iter().rev() {
+                    ty = Box::new(AstTy::Array {
+                        siz: sub.as_literal().unwrap().get_int().unwrap() as usize,
+                        elem_ty: Box::new(ty.as_ref().clone()),
+                    });
+                }
             }
 
-            if let Some(ref mut literal) = init_val {
+            let mut init_val = sub_decl.init_val.as_mut()
+                .map_or(Ok(None),
+                        |x| self.visit_const_init_val(x).and_then(|x| Ok(Some(x))))?;
+
+            if let Some(literal) = init_val.as_mut() {
                 match ty.as_ref() {
                     AstTy::Int => assert_type_eq(&ty, &literal.ty)?,
-                    AstTy::Array { siz, elem_ty } => {
-                        Self::fix_array_literal(literal, &ty)?;
-                    }
+                    AstTy::Array { .. } => Self::fix_array_literal(literal, &ty)?,
                     _ => unreachable!()
                 }
             }
 
+            sub_decl.ty = ty.as_ref().clone();
             self.scopes.insert(&sub_decl.ident.name, (ty.as_ref().clone(), init_val));
             Ok(())
         })?;
