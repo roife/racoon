@@ -58,6 +58,30 @@ impl TypeChecker {
             _ => assert_type_eq(&expected_ty, &AstTy::Unknown)
         }
     }
+
+    fn build_ast_ty(&mut self, base_ty: &AstTy, subs: &mut Option<Subs>) -> Result<AstTy, SemanticError> {
+        if subs.is_some() {
+            for sub in subs.as_mut().unwrap().subs.iter_mut() {
+                let literal = self.visit_expr(sub)?
+                    .ok_or(SemanticError::NotConstant)?;
+
+                if literal.get_int().unwrap() <= 0 {
+                    return Err(SemanticError::IllegalArrayDim);
+                }
+                *sub = Expr::Literal(literal);
+            }
+        }
+        let mut ty = base_ty.clone();
+        if let Some(subs) = &subs {
+            for sub in subs.subs.iter().rev() {
+                ty = AstTy::Array {
+                    siz: sub.as_literal().unwrap().get_int().unwrap() as usize,
+                    elem_ty: Box::new(ty.clone()),
+                };
+            }
+        }
+        Ok(ty)
+    }
 }
 
 impl AstVisitorMut for TypeChecker {
@@ -108,31 +132,11 @@ impl AstVisitorMut for TypeChecker {
         let ty = self.visit_ty(&mut decl.ty_ident)?;
 
         for sub_decl in decl.sub_decls.iter_mut() {
-            if sub_decl.subs.is_some() {
-                for sub in sub_decl.subs.as_mut().unwrap().subs.iter_mut() {
-                    let literal = self.visit_expr(sub)?
-                        .ok_or(SemanticError::NotConstant)?;
-
-                    if literal.get_int().unwrap() <= 0 {
-                        return Err(SemanticError::IllegalArrayDim);
-                    }
-                    *sub = Expr::Literal(literal);
-                }
-            }
-
-            let mut ty = Box::new(ty.clone());
-            if let Some(subs) = &sub_decl.subs {
-                for sub in subs.subs.iter().rev() {
-                    ty = Box::new(AstTy::Array {
-                        siz: sub.as_literal().unwrap().get_int().unwrap() as usize,
-                        elem_ty: Box::new(ty.as_ref().clone()),
-                    });
-                }
-            }
+            let ty = self.build_ast_ty(&ty, &mut sub_decl.subs)?;
 
             let init_val = if let Some(init_val) = &mut sub_decl.init_val {
                 let mut literal = self.visit_const_init_val(init_val)?;
-                match ty.as_ref() {
+                match ty {
                     AstTy::Int => assert_type_eq(&ty, &literal.ty)?,
                     AstTy::Array { .. } => Self::fix_array_literal(&mut literal, &ty)?,
                     _ => unreachable!()
@@ -143,8 +147,8 @@ impl AstVisitorMut for TypeChecker {
                 None
             };
 
-            sub_decl.ty = ty.as_ref().clone();
-            self.scopes.insert(&sub_decl.ident.name, (ty.as_ref().clone(), init_val));
+            sub_decl.ty = ty.clone();
+            self.scopes.insert(&sub_decl.ident.name, (ty.clone(), init_val));
         }
         Ok(())
     }
@@ -153,7 +157,9 @@ impl AstVisitorMut for TypeChecker {
         let ret_ty = Box::new(self.visit_ty(&mut ast_func.ret_ty_ident)?);
 
         ast_func.params.iter_mut().try_for_each(|param| self.visit_func_param(param))?;
-        let param_tys = ast_func.params.iter().map(|x| Box::new(x.ty.clone())).collect();
+        let param_tys = ast_func.params.iter()
+            .map(|x| Box::new(x.ty.clone()))
+            .collect();
 
         let func_ty = AstTy::Func { ret_ty, param_tys };
         self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None))
@@ -161,9 +167,8 @@ impl AstVisitorMut for TypeChecker {
 
         self.scopes.push_scope();
         for param in ast_func.params.iter() {
-            if self.scopes.insert(&param.ident.name, (param.ty.clone(), None)).is_none() {
-                return Err(SemanticError::DuplicateName(param.ident.name.clone()));
-            }
+            self.scopes.insert(&param.ident.name, (param.ty.clone(), None))
+                .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
         }
 
         self.visit_block_stmt(&mut ast_func.body)?;
@@ -172,7 +177,13 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
-        todo!()
+        let base_ty = self.visit_ty(&mut param.ty_ident)?;
+        let mut ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
+        if let AstTy::Array { .. } = &ty {
+            ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
+        }
+        param.ty = ty;
+        Ok(())
     }
 
     fn visit_block_stmt(&mut self, stmt: &mut BlockStmt) -> Self::StmtResult {

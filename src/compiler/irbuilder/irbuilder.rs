@@ -130,22 +130,24 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
-        // let ty = self.visit_ty(&param.ty)?;
-        // let param_id = self.ctx.build_func_param(ty.clone());
-        //
-        // self.ctx.scope_builder.insert(&param.param_name.name, NameId::Param(param_id))
-        //     .ok_or(SemanticError::DuplicateName(param.param_name.name.clone()))?;
-        //
-        // let alloca_addr = self.ctx.build_inst_end_of_cur(
-        //     InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
-        //     IrTy::ptr_of(ty.clone()),
-        // );
-        // self.ctx.build_inst_end_of_cur(
-        //     InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: Operand::Param(param_id) }),
-        //     IrTy::Void,
-        // );
-        // Ok(())
-        todo!()
+        let ty = IrTy::from(param.ty.clone());
+        let param_id = self.ctx.build_func_param(ty.clone());
+
+        self.ctx.scope_builder.insert(&param.ident.name, NameId::Param(param_id))
+            .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
+
+        let alloca_addr = self.ctx.build_inst_end_of_cur(
+            InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
+            IrTy::ptr_of(ty.clone()),
+        );
+        self.ctx.build_inst_end_of_cur(
+            InstKind::Store(StoreInst {
+                addr: Operand::Inst(alloca_addr),
+                data: Operand::Param(param_id),
+            }),
+            IrTy::Void,
+        );
+        Ok(())
     }
 
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Self::StmtResult {

@@ -185,7 +185,7 @@ impl<T> Parser<T>
         let mut param_end = name.span.end;
         let subs = if next_if_match!(self.iter, TokenType::LBracket) {
             expect_token!(self.iter, TokenType::RBracket)?;
-            let subs = self.parse_dim()?;
+            let subs = self.parse_subs()?;
             param_end = subs.span.end;
             Some(subs)
         } else {
@@ -466,7 +466,7 @@ impl<T> Parser<T>
         let name = self.parse_ident()?;
         let mut span = name.span;
         let subs = if is_next!(self.iter, TokenType::LBracket) {
-            let subs = self.parse_dim()?;
+            let subs = self.parse_subs()?;
             span.end = subs.span.end;
             Some(subs)
         } else {
@@ -476,7 +476,7 @@ impl<T> Parser<T>
         Ok(LVal { ident: name, subs: subs, span, ty: AstTy::Unknown })
     }
 
-    fn parse_dim(&mut self) -> Result<Subs, ParseError> {
+    fn parse_subs(&mut self) -> Result<Subs, ParseError> {
         let mut span = expect_token!(self.iter, TokenType::LBracket).unwrap().span;
         let subs = parse_separate_match!(self.iter, TokenType::LBracket, {
             let dim = self.parse_expr()?;
