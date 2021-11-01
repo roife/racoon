@@ -32,7 +32,7 @@ impl Value for Constant {
 
 impl Display for Constant {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
+        match &self {
             Constant::Int(x) => write!(f, "i32 {}", x),
             Constant::Array(ty @ IrTy::Array(siz, elem_ty),
                             vals) => {

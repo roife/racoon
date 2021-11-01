@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use crate::compiler::ir::{
+    arena::BBId,
     value::{
         constant::Constant,
         func::IrFunc,
@@ -10,8 +11,6 @@ use crate::compiler::ir::{
         value::Operand,
     },
 };
-use crate::compiler::ir::arena::BBId;
-use crate::compiler::irbuilder::context::BCTarget;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{
     ast::*,
@@ -19,7 +18,7 @@ use crate::compiler::syntax::{
 };
 
 use super::{
-    context::{Context, NameId},
+    context::{Context, NameId, BCTarget},
     err::SemanticError,
 };
 

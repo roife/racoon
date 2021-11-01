@@ -7,14 +7,18 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::compiler::ir::{
-    arena::{BBId, FuncId, GlobalId, InstId},
-    value::{basic_block::BasicBlock, func::IrFunc, inst::InstKind, module::Module, ty::IrTy},
+    arena::{BBId, FuncId, GlobalId, InstId, ParamId},
+    value::{
+        basic_block::BasicBlock,
+        constant::Constant,
+        func::IrFunc,
+        global::Global,
+        inst::InstKind,
+        module::Module,
+        ty::{FuncTy, IrTy},
+        value::Value,
+    },
 };
-use crate::compiler::ir::arena::ParamId;
-use crate::compiler::ir::value::constant::Constant;
-use crate::compiler::ir::value::global::Global;
-use crate::compiler::ir::value::ty::FuncTy;
-use crate::compiler::ir::value::value::Value;
 use crate::compiler::syntax::ast::{AstTy, LiteralExpr, LiteralKind};
 
 #[derive(Debug, Clone, EnumAsInner)]
@@ -159,6 +163,12 @@ impl Context {
     pub fn build_func_param(&mut self, ty: IrTy) -> ParamId {
         self.get_cur_func_mut().build_func_param(ty)
     }
+}
+
+pub struct NameTyInfo {
+    pub ty: AstTy,
+    pub init_val: Option<LiteralExpr>,
+    pub is_const: bool,
 }
 
 impl From<AstTy> for IrTy {

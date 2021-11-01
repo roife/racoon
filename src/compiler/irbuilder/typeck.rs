@@ -1,6 +1,8 @@
 use std::borrow::BorrowMut;
+
 use itertools::Itertools;
 
+use crate::compiler::irbuilder::context::NameTyInfo;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::ast::*;
 use crate::compiler::syntax::visitor::AstVisitorMut;
@@ -24,7 +26,7 @@ macro_rules! expect_type {
 }
 
 pub struct TypeChecker {
-    pub scopes: ScopeBuilder<(AstTy, Option<LiteralExpr>, bool)>,
+    pub scopes: ScopeBuilder<NameTyInfo>,
     pub cur_func_ret_ty: AstTy,
 }
 
@@ -149,7 +151,8 @@ impl AstVisitorMut for TypeChecker {
             };
 
             sub_decl.ty = ty.clone();
-            self.scopes.insert(&sub_decl.ident.name, (ty, init_val, decl.is_const));
+            self.scopes.insert(&sub_decl.ident.name,
+                               NameTyInfo { ty, init_val, is_const: decl.is_const });
         }
         Ok(())
     }
@@ -163,12 +166,22 @@ impl AstVisitorMut for TypeChecker {
             .collect();
 
         let func_ty = AstTy::Func { ret_ty, param_tys };
-        self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None, false))
+        self.scopes.insert(&ast_func.ident.name,
+                           NameTyInfo {
+                               ty: func_ty.clone(),
+                               init_val: None,
+                               is_const: false,
+                           })
             .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
 
         self.scopes.push_scope();
         for param in ast_func.params.iter() {
-            self.scopes.insert(&param.ident.name, (param.ty.clone(), None, false))
+            self.scopes.insert(&param.ident.name,
+                               NameTyInfo {
+                                   ty: param.ty.clone(),
+                                   init_val: None,
+                                   is_const: false,
+                               })
                 .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
         }
 
@@ -232,7 +245,7 @@ impl AstVisitorMut for TypeChecker {
             }
 
             sub_decl.ty = ty.clone();
-            self.scopes.insert(&sub_decl.ident.name, (ty, None, decl.is_const));
+            self.scopes.insert(&sub_decl.ident.name, NameTyInfo{ ty, init_val: None, is_const: decl.is_const});
         }
         Ok(())
     }
@@ -412,7 +425,7 @@ impl AstVisitorMut for TypeChecker {
 
         let (ret_ty, param_tys) = self.scopes.find_name_rec(&expr.func.name)
             .ok_or(SemanticError::UnknownName(expr.func.name.clone()))?
-            .0.as_func()
+            .ty.as_func()
             .ok_or(SemanticError::ExpectedFunction(expr.func.name.clone()))?;
 
         expr.args.iter().zip(param_tys)
