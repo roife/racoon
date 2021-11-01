@@ -167,12 +167,12 @@ impl From<AstTy> for IrTy {
             AstTy::Void => IrTy::Void,
             AstTy::Int => IrTy::Int(32),
             AstTy::Bool => IrTy::Int(1),
-            AstTy::Func { ret_ty, param_tys: params } => {
-                IrTy::Func(Box::new(FuncTy {
-                    ret_ty: ret_ty.as_ref().clone().into(),
-                    params_ty: params.iter().map(|x| x.as_ref().clone().into()).collect(),
-                }))
-            }
+            AstTy::Func { ret_ty, param_tys: params } => IrTy::Func(Box::new(
+                FuncTy {
+                    ret_ty: (*ret_ty).into(),
+                    params_ty: params.into_iter().map(|x| (*x).into()).collect(),
+                }
+            )),
             AstTy::Array { siz, elem_ty } => IrTy::Array(
                 siz,
                 Box::new(IrTy::from(*elem_ty))),

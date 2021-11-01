@@ -239,7 +239,7 @@ impl AstVisitorMut for TypeChecker {
         };
 
         if let Some(expr) = &mut stmt.val {
-            self.visit_expr(expr);
+            self.visit_expr(expr)?;
         }
 
         let expected = &self.cur_func_ret_ty;

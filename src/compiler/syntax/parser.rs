@@ -140,7 +140,7 @@ impl<T> Parser<T>
             }
         } else {
             let expr_val = self.parse_expr()?;
-            let span = expr_val.span().clone();
+            let span = expr_val.span();
             InitVal {
                 ty: AstTy::Unknown,
                 kind: InitValKind::Expr(expr_val),

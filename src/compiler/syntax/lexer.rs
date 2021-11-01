@@ -132,7 +132,7 @@ impl<T> Lexer<T>
                     None => self.err = Some(vec![e.clone()])
                 }
                 Token {
-                    token_type: TokenType::Err(e.clone()),
+                    token_type: TokenType::Err(e),
                     span: Span { start, end },
                 }
             }
