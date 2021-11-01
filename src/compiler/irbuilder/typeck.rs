@@ -40,16 +40,19 @@ impl TypeChecker {
     fn fix_array_literal(literal: &mut LiteralExpr, expected_ty: &AstTy) -> Result<(), SemanticError> {
         match (&mut literal.kind, expected_ty) {
             (LiteralKind::Integer(_), AstTy::Int) => Ok(()),
-            (LiteralKind::Array(literal_siz, vals),
-                AstTy::Array { siz: ty_siz, elem_ty }) => {
+            (LiteralKind::Array(literal_siz, literal_vals),
+                AstTy::Array { siz: ty_siz, elem_ty })
+            => {
                 if *literal_siz > *ty_siz {
-                    return Err(SemanticError::TooMuchElement)
+                    return Err(SemanticError::TooMuchElement);
                 }
 
-                vals.iter_mut()
+                literal_vals.iter_mut()
                     .try_for_each(|x| Self::fix_array_literal(x, elem_ty))?;
 
+                // fix array literal
                 *literal_siz = *ty_siz;
+                literal.ty = expected_ty.clone();
                 Ok(())
             }
             _ => assert_type_eq(&expected_ty, &AstTy::Unknown)
@@ -81,33 +84,35 @@ impl AstVisitorMut for TypeChecker {
     fn visit_const_init_val(&mut self, init_val: &mut InitVal) -> Self::ConstInitValResult {
         match &mut init_val.kind {
             InitValKind::Expr(x) => {
-                let val = self.visit_expr(x)?;
                 init_val.ty = x.ty();
-
-                match val {
+                match self.visit_expr(x)? {
+                    Some(x) => Ok(x),
                     None => Err(SemanticError::NotConstant),
-                    Some(x) => Ok(x)
                 }
             }
             InitValKind::ArrayVal(vals) => {
-                let literals : Vec<_> = vals.iter_mut()
+                let literals: Vec<_> = vals.iter_mut()
                     .map(|x| self.visit_const_init_val(x))
                     .try_collect()?;
                 Ok(LiteralExpr {
                     kind: LiteralKind::Array(literals.len(), literals),
                     span: init_val.span,
-                    ty: AstTy::Unknown
+                    ty: AstTy::Unknown,
                 })
             }
+            _ => unreachable!()
         }
     }
 
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
         let ty = self.visit_ty(&mut decl.ty_ident)?;
+
         for sub_decl in decl.sub_decls.iter_mut() {
             if sub_decl.subs.is_some() {
                 for sub in sub_decl.subs.as_mut().unwrap().subs.iter_mut() {
-                    let literal = self.visit_expr(sub)?.ok_or(SemanticError::NotConstant)?;
+                    let literal = self.visit_expr(sub)?
+                        .ok_or(SemanticError::NotConstant)?;
+
                     if literal.get_int().unwrap() <= 0 {
                         return Err(SemanticError::IllegalArrayDim);
                     }
@@ -128,16 +133,11 @@ impl AstVisitorMut for TypeChecker {
             let init_val = if let Some(init_val) = &mut sub_decl.init_val {
                 let mut literal = self.visit_const_init_val(init_val)?;
                 match ty.as_ref() {
-                    AstTy::Int => {
-                        assert_type_eq(&ty, &literal.ty)?;
-                        init_val.kind = InitValKind::Expr(Expr::Literal(literal.clone()));
-                    }
-                    AstTy::Array { .. } => {
-                        Self::fix_array_literal(&mut literal, &ty)?;
-                        init_val.kind = InitValKind::Expr(Expr::Literal(literal.clone()));
-                    }
+                    AstTy::Int => assert_type_eq(&ty, &literal.ty)?,
+                    AstTy::Array { .. } => Self::fix_array_literal(&mut literal, &ty)?,
                     _ => unreachable!()
                 };
+                init_val.kind = InitValKind::Const(literal.clone());
                 Some(literal)
             } else {
                 None
@@ -152,20 +152,20 @@ impl AstVisitorMut for TypeChecker {
     fn visit_func(&mut self, ast_func: &mut AstFunc) -> Self::FuncResult {
         let ret_ty = Box::new(self.visit_ty(&mut ast_func.ret_ty_ident)?);
 
-        ast_func.params.iter_mut().try_for_each(|mut param| self.visit_func_param(&mut param))?;
+        ast_func.params.iter_mut().try_for_each(|param| self.visit_func_param(param))?;
         let param_tys = ast_func.params.iter().map(|x| Box::new(x.ty.clone())).collect();
 
         let func_ty = AstTy::Func { ret_ty, param_tys };
         self.scopes.insert(&ast_func.ident.name, (func_ty.clone(), None))
             .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
 
-        ast_func.params.iter().try_for_each(|param|
-            self.scopes.insert(&param.ident.name, (param.ty.clone(), None))
-                .map_or(Err(SemanticError::DuplicateName(param.ident.name.clone())),
-                        |x| Ok(()))
-        )?;
-
         self.scopes.push_scope();
+        for param in ast_func.params.iter() {
+            if self.scopes.insert(&param.ident.name, (param.ty.clone(), None)).is_none() {
+                return Err(SemanticError::DuplicateName(param.ident.name.clone()));
+            }
+        }
+
         self.visit_block_stmt(&mut ast_func.body)?;
         self.scopes.pop_scope();
         Ok(())
@@ -281,10 +281,12 @@ impl AstVisitorMut for TypeChecker {
     fn visit_unary_expr(&mut self, expr: &mut UnaryExpr) -> Self::ExprResult {
         let val = self.visit_expr(&mut expr.sub_expr)?;
         let sub_expr_ty = expr.sub_expr.ty();
+
         let res = match expr.op {
             UnaryOp::Neg => {
                 expect_type!(sub_expr_ty, AstTy::Int)?;
                 expr.ty = AstTy::Int;
+
                 val.and_then(|x| x.get_int())
                     .map(|x| LiteralExpr {
                         kind: LiteralKind::Integer(-x),
@@ -300,6 +302,7 @@ impl AstVisitorMut for TypeChecker {
             UnaryOp::Not => {
                 expect_type!(sub_expr_ty, AstTy::Int | AstTy::Bool)?;
                 expr.ty = expr.sub_expr.ty();
+
                 val.and_then(|x| x.get_int())
                     .map(|x| LiteralExpr {
                         kind: LiteralKind::Integer((x != 0) as i32),
@@ -341,10 +344,6 @@ impl AstVisitorMut for TypeChecker {
             Some(LiteralExpr { kind: LiteralKind::Integer(lval), span: lspan, .. }),
             Some(LiteralExpr { kind: LiteralKind::Integer(rval), span: rspan, .. })
         ) = (lval, rval) {
-            let span = Span {
-                start: lspan.start,
-                end: rspan.end,
-            };
             let new_val = match op {
                 Add => lval + rval,
                 Sub => lval - rval,
@@ -362,7 +361,7 @@ impl AstVisitorMut for TypeChecker {
             };
             Some(LiteralExpr {
                 kind: LiteralKind::Integer(new_val),
-                span,
+                span: Span { start: lspan.start, end: rspan.end },
                 ty: new_ty,
             })
         } else {

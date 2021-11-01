@@ -39,10 +39,11 @@ pub struct InitVal {
     pub span: Span,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumAsInner)]
 pub enum InitValKind {
     Expr(Expr),
     ArrayVal(Vec<InitVal>),
+    Const(LiteralExpr),
 }
 
 #[derive(Debug, Clone)]

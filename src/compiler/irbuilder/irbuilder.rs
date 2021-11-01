@@ -72,25 +72,19 @@ impl AstVisitor for IrBuilder {
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
         self.ctx.scope_builder.push_scope();
-        program.program_items.iter().try_for_each(|item| {
-            match item {
+        program.program_items.iter()
+            .try_for_each(|item| match item {
                 ProgramItem::Decl(x) => self.visit_global_decl(x),
                 ProgramItem::Func(x) => self.visit_func(x),
-            }
-        })?;
+            })?;
         self.ctx.scope_builder.pop_scope();
         Ok(())
     }
 
     fn visit_const_init_val(&mut self, init_val: &InitVal) -> Self::ConstInitValResult {
-        match &init_val.kind {
-            InitValKind::Expr(Expr::Literal(x)) => {
-                Ok(match &x.kind {
-                    LiteralKind::Integer(x) => Constant::Int(*x),
-                    LiteralKind::Array(_, _) => x.clone().into()
-                })
-            }
-            _ => Err(SemanticError::NotConstant),
+        match init_val.kind.as_const() {
+            Some(literal) => Ok(literal.clone().into()),
+            None => Err(SemanticError::NotConstant)
         }
     }
 
@@ -102,16 +96,17 @@ impl AstVisitor for IrBuilder {
                 _ => unreachable!()
             };
 
-            let init_val = if let Some(init_val) = &sub_decl.init_val {
-                self.visit_const_init_val(init_val)?
-            } else {
-                Constant::build_zero(sub_decl.ty.clone().into())
-            };
+            let const_init_val =
+                if let Some(init_val) = &sub_decl.init_val {
+                    self.visit_const_init_val(init_val)?
+                } else {
+                    Constant::build_zero(sub_decl.ty.clone().into())
+                };
 
             let global = self.ctx.build_global(Global::new(
                 ty,
                 &sub_decl.ident.name,
-                init_val));
+                const_init_val));
             self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Global(global));
         }
         Ok(())
@@ -215,10 +210,12 @@ impl AstVisitor for IrBuilder {
             }),
             IrTy::Void,
             old_bb);
+
         self.ctx.build_inst_end(
             InstKind::Branch(BranchInst::Jump { nxt_bb }),
             IrTy::Void,
             then_bb_end);
+
         if let Some(else_bb_end) = else_bb_end {
             self.ctx.build_inst_end(
                 InstKind::Branch(BranchInst::Jump { nxt_bb }),

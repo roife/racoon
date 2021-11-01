@@ -1,18 +1,12 @@
-use std::fs;
+use std::fs::{self, File};
 use std::io::Write;
-use itertools::Itertools;
 
 use structopt::StructOpt;
 
 use racoon::compiler::{
     irbuilder::*,
-    syntax::*,
+    syntax::{*, visitor::AstVisitorMut},
 };
-use racoon::compiler::ir::value::constant::Constant;
-use racoon::compiler::ir::value::ty::IrTy;
-use racoon::compiler::ir::value::value::Operand::Global;
-use racoon::compiler::irbuilder::typeck::TypeChecker;
-use racoon::compiler::syntax::visitor::AstVisitorMut;
 
 mod options;
 
@@ -41,7 +35,6 @@ fn main() {
         println!("{:?}", e);
         return;
     };
-    println!("{:#?}", ast);
 
     let mut ir_builder = irbuilder::IrBuilder::new();
     let ir = match ir_builder.visit(&ast) {
@@ -53,12 +46,7 @@ fn main() {
     };
 
     let output_file = options.output_file;
-    let mut output = Box::new(
-        fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(output_file)
-            .expect("Failed to open or create output file")
-    );
+    let mut output = File::create(output_file)
+        .expect("Failed to open or create output file");
     writeln!(output, "{}", ir).expect("Failed to write output file");
 }
