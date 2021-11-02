@@ -74,7 +74,7 @@ pub struct BinaryInst {
     pub right: Operand,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum BinaryInstOp {
     Add,
     Sub,
@@ -138,7 +138,7 @@ pub struct StoreInst {
     pub data: Operand,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct GEPInst {
     // ptr: Value,
     // indices: Vec<Value>,

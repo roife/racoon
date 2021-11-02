@@ -235,19 +235,19 @@ pub struct Subs {
     pub span: Span,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct TypeIdent {
-    pub ty_ident: TyIdent,
+    pub kind: TyIdentKind,
     pub span: Span,
 }
 
-#[derive(Debug, Clone)]
-pub enum TyIdent {
+#[derive(Debug, Clone, Copy)]
+pub enum TyIdentKind {
     Primitive(PrimitiveTy),
     Void,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum PrimitiveTy {
     Integer,
 }
@@ -343,10 +343,10 @@ impl TokenType {
         }
     }
 
-    pub fn to_ty_ident(&self) -> Option<TyIdent> {
+    pub fn to_ty_ident(&self) -> Option<TyIdentKind> {
         match self {
-            TokenType::IntTy => Some(TyIdent::Primitive(PrimitiveTy::Integer)),
-            TokenType::VoidTy => Some(TyIdent::Void),
+            TokenType::IntTy => Some(TyIdentKind::Primitive(PrimitiveTy::Integer)),
+            TokenType::VoidTy => Some(TyIdentKind::Void),
             _ => None,
         }
     }

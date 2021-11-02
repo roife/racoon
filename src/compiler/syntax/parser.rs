@@ -46,6 +46,7 @@ macro_rules! parse_separate_match {
     }};
 }
 
+#[derive(Debug)]
 pub struct Parser<T>
     where T: Iterator<Item=char>,
 {
@@ -495,7 +496,7 @@ impl<T> Parser<T>
     fn parse_ty(&mut self) -> Result<TypeIdent, ParseError> {
         let ty_token = expect_token!(self.iter, TokenType::IntTy | TokenType::VoidTy)?;
         Ok(TypeIdent {
-            ty_ident: ty_token.token_type.to_ty_ident().unwrap(),
+            kind: ty_token.token_type.to_ty_ident().unwrap(),
             span: ty_token.span,
         })
     }

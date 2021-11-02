@@ -6,7 +6,7 @@ use super::{
     value::Value,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct BasicBlock {
     pub insts_head: Option<InstId>,
     pub insts_tail: Option<InstId>,

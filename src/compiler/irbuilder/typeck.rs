@@ -23,6 +23,7 @@ macro_rules! expect_type {
     }};
 }
 
+#[derive(Debug)]
 pub struct TypeChecker {
     pub scopes: ScopeBuilder<NameTyInfo>,
     pub cur_func_ret_ty: AstTy,
@@ -368,7 +369,7 @@ impl AstVisitorMut for TypeChecker {
         }
     }
 
-    fn visit_assign_expr(&mut self, expr: &mut AssignExpr) -> Self::ExprResult {
+    fn visit_assign_expr(&mut self, _expr: &mut AssignExpr) -> Self::ExprResult {
         todo!()
     }
 
@@ -490,11 +491,11 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_ty(&mut self, ty_def: &mut TypeIdent) -> Self::TyResult {
-        let ty = match &ty_def.ty_ident {
-            TyIdent::Primitive(prim_ty) => match prim_ty {
+        let ty = match &ty_def.kind {
+            TyIdentKind::Primitive(prim_ty) => match prim_ty {
                 PrimitiveTy::Integer => AstTy::Int
             }
-            TyIdent::Void => AstTy::Void
+            TyIdentKind::Void => AstTy::Void
         };
         Ok(ty)
     }

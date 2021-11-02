@@ -21,7 +21,7 @@ use crate::compiler::ir::{
 };
 use crate::compiler::syntax::ast::{AstTy, LiteralExpr, LiteralKind};
 
-#[derive(Debug, Clone, EnumAsInner)]
+#[derive(Debug, Clone, Copy, EnumAsInner)]
 pub enum NameId {
     Inst(InstId),
     Func(FuncId),
@@ -29,6 +29,7 @@ pub enum NameId {
     Param(ParamId),
 }
 
+#[derive(Debug)]
 pub struct Scope<T> {
     vars: HashMap<String, T>,
 }
@@ -51,6 +52,7 @@ impl<T> Scope<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct ScopeBuilder<T> {
     scopes: Vec<Scope<T>>,
 }
@@ -86,11 +88,13 @@ impl<T> ScopeBuilder<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct BCTarget {
     pub break_target: BBId,
     pub continue_target: BBId,
 }
 
+#[derive(Debug)]
 pub struct Context {
     pub scope_builder: ScopeBuilder<NameId>,
     pub cur_module: Module,

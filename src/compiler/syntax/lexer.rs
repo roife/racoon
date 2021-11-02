@@ -16,6 +16,7 @@ macro_rules! next_if_ch_eq {
     };
 }
 
+#[derive(Debug)]
 struct StringIter<T>
     where T: Iterator<Item = char>,
 {
@@ -70,6 +71,7 @@ impl<T> Iterator for StringIter<T>
     }
 }
 
+#[derive(Debug)]
 pub struct Lexer<T>
     where T: Iterator<Item = char>,
 {

@@ -22,6 +22,7 @@ use super::{
     err::SemanticError,
 };
 
+#[derive(Debug)]
 pub struct IrBuilder {
     pub ctx: Context,
     loop_targets: Vec<BCTarget>,
@@ -342,14 +343,14 @@ impl AstVisitor for IrBuilder {
         }
     }
 
-    fn visit_lexpr(&mut self, expr: &Expr, is_lvalue: bool) -> Self::LExprResult {
+    fn visit_lexpr(&mut self, _expr: &Expr, _is_lvalue: bool) -> Self::LExprResult {
         // let val= expr.as_l_val().unwrap();
         // let base_addr = self.ctx.scope_builder.find_name_rec(&val.ident.name)
         //    .ok_or(SemanticError::UnknownName(val.ident.name.clone()))?;
         todo!()
     }
 
-    fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Self::ExprResult {
+    fn visit_assign_expr(&mut self, _expr: &AssignExpr) -> Self::ExprResult {
         // let lv_addr = self.visit_lexpr(&expr.lhs)?;
         // let rv = self.visit_expr(&expr.rhs)?;
         // let inst = StoreInst { addr: lv_addr, data: rv };
@@ -424,11 +425,11 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_ty(&mut self, ty_def: &TypeIdent) -> Self::TyResult {
-        let ty = match &ty_def.ty_ident {
-            TyIdent::Primitive(prim_ty) => match prim_ty {
+        let ty = match &ty_def.kind {
+            TyIdentKind::Primitive(prim_ty) => match prim_ty {
                 PrimitiveTy::Integer => IrTy::Int(32)
             }
-            TyIdent::Void => IrTy::Void
+            TyIdentKind::Void => IrTy::Void
         };
         Ok(ty)
     }
