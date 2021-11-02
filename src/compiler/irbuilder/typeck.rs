@@ -193,9 +193,9 @@ impl AstVisitorMut for TypeChecker {
     fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut param.ty_ident)?;
         let mut ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
-        if let AstTy::Array { .. } = &ty {
-            ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
-        }
+        // if let AstTy::Array { .. } = &ty {
+        //     ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
+        // }
         param.ty = ty;
         Ok(())
     }

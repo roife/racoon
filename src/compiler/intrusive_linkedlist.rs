@@ -17,11 +17,6 @@ pub trait IntrusiveLinkedList<Key>
 
     /// Position this item after the given item.
     fn attach_after(&mut self, after: Key, cur: Key) {
-        debug_assert!(
-            self.get_item(after).is_freestanding(),
-            "The value attached should be freestanding"
-        );
-
         let cur_item = self.get_item_mut(cur);
         let next = cur_item.next();
         cur_item.set_next(Some(after));
@@ -37,11 +32,6 @@ pub trait IntrusiveLinkedList<Key>
 
     /// Position this item before the given item.
     fn attach_before(&mut self, before: Key, cur: Key) {
-        debug_assert!(
-            self.get_item(before).is_freestanding(),
-            "The value attached should be freestanding"
-        );
-
         let cur_item = self.get_item_mut(cur);
         let prev = cur_item.prev();
         cur_item.set_prev(Some(before));

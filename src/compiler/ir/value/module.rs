@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use itertools::Itertools;
 use slotmap::SlotMap;
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 
 use crate::compiler::ir::arena::{FuncId, GlobalId};
+use crate::compiler::ir::value::value::Operand;
 
 use super::{func::IrFunc, global::Global};
 
@@ -57,12 +59,26 @@ impl Module {
 
 impl Display for Module {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.global_arena
-            .items_iter(self.first_global, None)
-            .try_for_each(|(_, global)|
-                writeln!(f, "@{} = global {}", global.name, global.init_val)
-            )?;
-        Ok(())
+        for (_, global) in self.global_arena.items_iter(self.first_global, None) {
+            writeln!(f, "@{} = global {}", global.name, global.init_val)?;
+        }
+
+        for (_, func) in self.func_arena.items_iter(self.first_func, None) {
+            let mut cnt = 0;
+            let mut cnt_id_map = HashMap::new();
+            let param_str = func.params.iter()
+                .map(|&param_id| {
+                    let param = func.get_param(param_id).unwrap();
+                    let s = format!("{} %{}", param.ty, cnt);
+                    cnt_id_map.insert(cnt, Operand::Param(param_id));
+                    cnt += 1;
+                    s
+                })
+                .join(", ");
+            writeln!(f, "define {} @{}({})", func.ret_ty, func.name, param_str)?;
+
+        }
         // todo
+        Ok(())
     }
 }

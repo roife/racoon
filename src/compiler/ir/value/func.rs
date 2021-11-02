@@ -12,12 +12,6 @@ pub struct IrFuncParam {
     pub pos: usize,
 }
 
-impl Display for IrFuncParam {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
-    }
-}
-
 #[derive(Debug)]
 pub struct IrFunc {
     pub name: String,
@@ -65,7 +59,7 @@ impl IntrusiveLinkedListItem for IrFunc {
 
 impl Display for IrFunc {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{} @{}", self.ret_ty, self.name)
     }
 }
 
@@ -156,29 +150,39 @@ impl IrFunc {
     }
 
     pub fn build_inst_at_end(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
-        let new_inst = self.new_inst(inst_kind, ty, bb);
+        let new_inst_id = self.new_inst(inst_kind, ty, bb);
         let bb = self.get_bb_mut(bb).unwrap();
-        let old_tail = bb.insts_tail.replace(new_inst);
+        let old_tail = bb.insts_tail.replace(new_inst_id);
         if bb.insts_head.is_none() {
-            bb.insts_head = Some(new_inst);
+            bb.insts_head = Some(new_inst_id);
         }
-        if let Some(old_tail) = old_tail {
-            self.set_inst_before_cur(old_tail, new_inst);
+        if let Some(old_tail_id) = old_tail {
+            let old_prev = self.get_inst(old_tail_id).unwrap().prev;
+            let old_next = self.get_inst(old_tail_id).unwrap().next;
+            let new_inst = self.get_inst_mut(new_inst_id).unwrap();
+            new_inst.prev = old_prev;
+            new_inst.next = old_next;
+            self.set_inst_before_cur(old_tail_id, new_inst_id);
         }
-        new_inst
+        new_inst_id
     }
 
     pub fn build_inst_at_start(&mut self, inst_kind: InstKind, ty: IrTy, bb: BBId) -> InstId {
-        let new_inst = self.new_inst(inst_kind, ty, bb);
+        let new_inst_id = self.new_inst(inst_kind, ty, bb);
         let bb = self.get_bb_mut(bb).unwrap();
-        let old_head = bb.insts_head.replace(new_inst);
+        let old_head = bb.insts_head.replace(new_inst_id);
         if bb.insts_tail.is_none() {
-            bb.insts_tail = Some(new_inst);
+            bb.insts_tail = Some(new_inst_id);
         }
-        if let Some(old_head) = old_head {
-            self.set_inst_after_cur(old_head, new_inst);
+        if let Some(old_head_id) = old_head {
+            let old_prev = self.get_inst(old_head_id).unwrap().prev;
+            let old_next = self.get_inst(old_head_id).unwrap().next;
+            let new_inst = self.get_inst_mut(new_inst_id).unwrap();
+            new_inst.prev = old_prev;
+            new_inst.next = old_next;
+            self.set_inst_after_cur(old_head_id, new_inst_id);
         }
-        new_inst
+        new_inst_id
     }
 }
 
