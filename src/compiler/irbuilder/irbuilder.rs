@@ -18,7 +18,7 @@ use crate::compiler::syntax::{
 };
 
 use super::{
-    context::{Context, NameId, BCTarget},
+    context::{BCTarget, Context, NameId},
     err::SemanticError,
 };
 
@@ -89,21 +89,20 @@ impl AstVisitor for IrBuilder {
 
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
         for sub_decl in &decl.sub_decls {
-            let ty = match sub_decl.ty.clone().into() {
+            let ptr_ty = match sub_decl.ty.clone().into() {
                 int @ IrTy::Int(_) => IrTy::ptr_of(int),
                 arr @ IrTy::Array(_, _) => arr,
                 _ => unreachable!()
             };
 
-            let const_init_val =
-                if let Some(init_val) = &sub_decl.init_val {
-                    self.visit_const_init_val(init_val)?
-                } else {
-                    Constant::build_zero(sub_decl.ty.clone().into())
-                };
+            let const_init_val = if let Some(init_val) = &sub_decl.init_val {
+                self.visit_const_init_val(init_val)?
+            } else {
+                Constant::build_zero(sub_decl.ty.clone().into())
+            };
 
             let global = self.ctx.build_global(Global::new(
-                ty,
+                ptr_ty,
                 &sub_decl.ident.name,
                 const_init_val));
             self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Global(global));
@@ -173,22 +172,25 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_decl_stmt(&mut self, decl: &Decl) -> Self::StmtResult {
-        todo!()
-        // for sub_decl in &decl.sub_decls {
-        //     let ty = match sub_decl.ty.clone().into() {
-        //         int @ IrTy::Int(_) => IrTy::ptr_of(int),
-        //         _ => unreachable!()
-        //     };
-        //
-        //     if decl.
-        //
-        //     // let inst = self.ctx.build_global(::new(
-        //     //     ty,
-        //     //     &sub_decl.ident.name,
-        //     //     const_init_val));
-        //     self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Inst(inst));
-        // }
-        // Ok(())
+        for sub_decl in &decl.sub_decls {
+            let ty = IrTy::from(sub_decl.ty.clone());
+
+            let alloca_addr = self.ctx.build_inst_end_of_cur(
+                InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
+                IrTy::ptr_of(ty.clone()),
+            );
+            self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Inst(alloca_addr));
+
+            if let Some(init_val) = &sub_decl.init_val {
+                let init_expr_id = self.visit_expr(init_val.kind.as_expr().unwrap())?;
+                let store_inst = self.ctx.build_inst_end_of_cur(
+                    InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: init_expr_id }),
+                    IrTy::ptr_of(IrTy::Void),
+                );
+                self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Inst(store_inst));
+            }
+        }
+        Ok(())
     }
 
     fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult {

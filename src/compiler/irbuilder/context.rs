@@ -167,7 +167,7 @@ impl Context {
 
 pub struct NameTyInfo {
     pub ty: AstTy,
-    pub init_val: Option<LiteralExpr>,
+    pub val: Option<LiteralExpr>,
     pub is_const: bool,
 }
 

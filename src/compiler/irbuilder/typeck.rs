@@ -150,9 +150,13 @@ impl AstVisitorMut for TypeChecker {
                 None
             };
 
+            if decl.is_const && init_val.is_none() {
+                return Err(SemanticError::RequireConstant);
+            }
+
             sub_decl.ty = ty.clone();
             self.scopes.insert(&sub_decl.ident.name,
-                               NameTyInfo { ty, init_val, is_const: decl.is_const });
+                               NameTyInfo { ty, val: init_val, is_const: decl.is_const });
         }
         Ok(())
     }
@@ -169,7 +173,7 @@ impl AstVisitorMut for TypeChecker {
         self.scopes.insert(&ast_func.ident.name,
                            NameTyInfo {
                                ty: func_ty.clone(),
-                               init_val: None,
+                               val: None,
                                is_const: false,
                            })
             .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
@@ -179,7 +183,7 @@ impl AstVisitorMut for TypeChecker {
             self.scopes.insert(&param.ident.name,
                                NameTyInfo {
                                    ty: param.ty.clone(),
-                                   init_val: None,
+                                   val: None,
                                    is_const: false,
                                })
                 .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
@@ -192,10 +196,7 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut param.ty_ident)?;
-        let mut ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
-        // if let AstTy::Array { .. } = &ty {
-        //     ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
-        // }
+        let ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
         param.ty = ty;
         Ok(())
     }
@@ -244,8 +245,12 @@ impl AstVisitorMut for TypeChecker {
                 };
             }
 
+            if decl.is_const && sub_decl.init_val.is_none() {
+                return Err(SemanticError::RequireConstant);
+            }
+
             sub_decl.ty = ty.clone();
-            self.scopes.insert(&sub_decl.ident.name, NameTyInfo{ ty, init_val: None, is_const: decl.is_const});
+            self.scopes.insert(&sub_decl.ident.name, NameTyInfo{ ty, val: None, is_const: decl.is_const});
         }
         Ok(())
     }

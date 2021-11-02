@@ -76,7 +76,6 @@ impl Display for Module {
                 })
                 .join(", ");
             writeln!(f, "define {} @{}({})", func.ret_ty, func.name, param_str)?;
-
         }
         // todo
         Ok(())
