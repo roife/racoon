@@ -5,6 +5,7 @@ use slotmap::SlotMap;
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 
 use crate::compiler::ir::arena::{FuncId, GlobalId};
+use crate::compiler::ir::value::inst::InstKind;
 use crate::compiler::ir::value::value::Operand;
 
 use super::{func::IrFunc, global::Global};
@@ -70,12 +71,37 @@ impl Display for Module {
                 .map(|&param_id| {
                     let param = func.get_param(param_id).unwrap();
                     let s = format!("{} %{}", param.ty, cnt);
-                    cnt_id_map.insert(cnt, Operand::Param(param_id));
+                    cnt_id_map.insert( Operand::Param(param_id), cnt);
                     cnt += 1;
                     s
                 })
                 .join(", ");
-            writeln!(f, "define {} @{}({})", func.ret_ty, func.name, param_str)?;
+            writeln!(f, "define {} @{}({}) {{", func.ret_ty, func.name, param_str)?;
+            for (bb_id, bb) in func.bb_arena.items_iter(func.first_block, None) {
+                writeln!(f, "{}:", cnt)?;
+                cnt_id_map.insert(Operand::BB(bb_id), cnt);
+                cnt += 1;
+
+                let mut inst_ptr = bb.insts_head;
+                while let Some(inst_id) = inst_ptr {
+                    let inst = func.get_inst(inst_id).unwrap();
+                    match inst.kind {
+                        InstKind::Binary(_) => {}
+                        InstKind::Branch(_) => {}
+                        InstKind::ReturnInst(_) => {}
+                        InstKind::Alloca(_) => {}
+                        InstKind::Load(_) => {}
+                        InstKind::Store(_) => {}
+                        InstKind::GEP(_) => {}
+                        InstKind::ZExt(_) => {}
+                        InstKind::Call(_) => {}
+                    }
+                    cnt_id_map.insert(Operand::Inst(inst_id), cnt);
+                    cnt += 1;
+                    inst_ptr = inst.next;
+                }
+            }
+            writeln!(f, "}}")?;
         }
         // todo
         Ok(())

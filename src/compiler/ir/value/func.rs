@@ -20,9 +20,9 @@ pub struct IrFunc {
     pub params: Vec<ParamId>,
     pub first_block: Option<BBId>,
 
-    param_arena: SlotMap<ParamId, IrFuncParam>,
-    inst_arena: SlotMap<InstId, Inst>,
-    bb_arena: SlotMap<BBId, BasicBlock>,
+    pub param_arena: SlotMap<ParamId, IrFuncParam>,
+    pub inst_arena: SlotMap<InstId, Inst>,
+    pub bb_arena: SlotMap<BBId, BasicBlock>,
 
     pub prev: Option<FuncId>,
     pub next: Option<FuncId>,

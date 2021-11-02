@@ -226,6 +226,7 @@ pub struct LVal {
     pub subs: Option<Subs>,
     pub span: Span,
     pub ty: AstTy,
+    pub is_lvalue: bool
 }
 
 #[derive(Debug, Clone)]

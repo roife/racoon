@@ -1,14 +1,25 @@
 use std::fmt::{Debug, Display, Formatter};
 
-use super::{ty::IrTy, value::Value};
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
-#[derive(Debug, Clone, EnumAsInner)]
+use super::{ty::IrTy, value::Value};
+
+#[derive(Debug, Clone, Eq, Hash, EnumAsInner)]
 pub enum Constant {
     Int(i32),
     // empty vec represents zero initializer
     Array(IrTy, Vec<Constant>),
+}
+
+impl PartialEq for Constant {
+    fn eq(&self, other: &Self) -> bool {
+        use Constant::*;
+        match (self, other) {
+            (Int(x), Int(y)) => x == y,
+            _ => false
+        }
+    }
 }
 
 impl Constant {

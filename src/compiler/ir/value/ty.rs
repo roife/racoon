@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use enum_as_inner::EnumAsInner;
 
-#[derive(Debug, Clone, Eq, EnumAsInner)]
+#[derive(Debug, Clone, Eq, Hash, EnumAsInner)]
 pub enum IrTy {
     Void,
     Int(usize),
@@ -27,7 +27,7 @@ impl PartialEq<Self> for IrTy {
     }
 }
 
-#[derive(Debug, Eq, Clone)]
+#[derive(Debug, Eq, Clone, Hash)]
 pub struct FuncTy {
     pub ret_ty: IrTy,
     pub params_ty: Vec<IrTy>,

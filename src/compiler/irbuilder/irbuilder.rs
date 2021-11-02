@@ -131,17 +131,23 @@ impl AstVisitor for IrBuilder {
         let ty = IrTy::from(param.ty.clone());
         let param_id = self.ctx.build_func_param(ty.clone());
 
-        self.ctx.scope_builder.insert(&param.ident.name, NameId::Param(param_id))
-            .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
-
         let alloca_addr = self.ctx.build_inst_end_of_cur(
             InstKind::Alloca(AllocaInst { alloca_ty: ty.clone() }),
             IrTy::ptr_of(ty.clone()),
         );
+
+        self.ctx.scope_builder.insert(&param.ident.name, NameId::Inst(alloca_addr))
+            .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
+
+
+        let store_id = self.ctx.build_inst_end_of_cur(
+            InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: Operand::Param(param_id) }),
+            IrTy::Void,
+        );
         self.ctx.build_inst_end_of_cur(
             InstKind::Store(StoreInst {
                 addr: Operand::Inst(alloca_addr),
-                data: Operand::Param(param_id),
+                data: Operand::Inst(store_id),
             }),
             IrTy::Void,
         );
@@ -327,7 +333,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_expr(&mut self, expr: &Expr) -> Self::ExprResult {
         match expr {
-            Expr::LVal(_) => self.visit_lexpr(expr),
+            Expr::LVal(_) => self.visit_lexpr(expr, false),
             Expr::Assign(x) => self.visit_assign_expr(x),
             Expr::Literal(x) => self.visit_literal_expr(x),
             Expr::Unary(x) => self.visit_unary_expr(x),
@@ -336,7 +342,7 @@ impl AstVisitor for IrBuilder {
         }
     }
 
-    fn visit_lexpr(&mut self, expr: &Expr) -> Self::LExprResult {
+    fn visit_lexpr(&mut self, expr: &Expr, is_lvalue: bool) -> Self::LExprResult {
         // let val= expr.as_l_val().unwrap();
         // let base_addr = self.ctx.scope_builder.find_name_rec(&val.ident.name)
         //    .ok_or(SemanticError::UnknownName(val.ident.name.clone()))?;

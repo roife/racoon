@@ -165,9 +165,10 @@ impl Context {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct NameTyInfo {
     pub ty: AstTy,
-    pub val: Option<LiteralExpr>,
+    pub const_val: Option<LiteralExpr>,
     pub is_const: bool,
 }
 

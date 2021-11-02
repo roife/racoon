@@ -473,7 +473,13 @@ impl<T> Parser<T>
             None
         };
 
-        Ok(LVal { ident: name, subs: subs, span, ty: AstTy::Unknown })
+        Ok(LVal {
+            ident: name,
+            subs: subs,
+            span,
+            ty: AstTy::Unknown,
+            is_lvalue: false
+        })
     }
 
     fn parse_subs(&mut self) -> Result<Subs, ParseError> {

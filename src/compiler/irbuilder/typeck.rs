@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-
 use itertools::Itertools;
 
 use crate::compiler::irbuilder::context::NameTyInfo;
@@ -155,8 +153,13 @@ impl AstVisitorMut for TypeChecker {
             }
 
             sub_decl.ty = ty.clone();
-            self.scopes.insert(&sub_decl.ident.name,
-                               NameTyInfo { ty, val: init_val, is_const: decl.is_const });
+
+            let info = NameTyInfo {
+                ty,
+                const_val: if decl.is_const { init_val } else { None },
+                is_const: decl.is_const,
+            };
+            self.scopes.insert(&sub_decl.ident.name, info);
         }
         Ok(())
     }
@@ -170,22 +173,22 @@ impl AstVisitorMut for TypeChecker {
             .collect();
 
         let func_ty = AstTy::Func { ret_ty, param_tys };
-        self.scopes.insert(&ast_func.ident.name,
-                           NameTyInfo {
-                               ty: func_ty.clone(),
-                               val: None,
-                               is_const: false,
-                           })
+        let func_info = NameTyInfo {
+            ty: func_ty.clone(),
+            const_val: None,
+            is_const: false,
+        };
+        self.scopes.insert(&ast_func.ident.name, func_info)
             .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
 
         self.scopes.push_scope();
         for param in ast_func.params.iter() {
-            self.scopes.insert(&param.ident.name,
-                               NameTyInfo {
-                                   ty: param.ty.clone(),
-                                   val: None,
-                                   is_const: false,
-                               })
+            let param_info = NameTyInfo {
+                ty: param.ty.clone(),
+                const_val: None,
+                is_const: false,
+            };
+            self.scopes.insert(&param.ident.name, param_info)
                 .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
         }
 
@@ -250,7 +253,7 @@ impl AstVisitorMut for TypeChecker {
             }
 
             sub_decl.ty = ty.clone();
-            self.scopes.insert(&sub_decl.ident.name, NameTyInfo{ ty, val: None, is_const: decl.is_const});
+            self.scopes.insert(&sub_decl.ident.name, NameTyInfo { ty, const_val: None, is_const: decl.is_const });
         }
         Ok(())
     }
@@ -306,7 +309,7 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_expr(&mut self, expr: &mut Expr) -> Self::ExprResult {
         match expr {
-            Expr::LVal(_) => self.visit_lexpr(expr),
+            Expr::LVal(_) => self.visit_lexpr(expr, false).and(Ok(None)),
             Expr::Assign(x) => self.visit_assign_expr(x),
             Expr::Literal(x) => self.visit_literal_expr(x),
             Expr::Unary(x) => self.visit_unary_expr(x),
@@ -315,8 +318,54 @@ impl AstVisitorMut for TypeChecker {
         }
     }
 
-    fn visit_lexpr(&mut self, _expr: &mut Expr) -> Self::LExprResult {
-        todo!()
+    fn visit_lexpr(&mut self, expr: &mut Expr, is_lvalue: bool) -> Self::LExprResult {
+        match expr {
+            Expr::LVal(lval) => {
+                let ty_info = self.scopes.find_name_rec(&lval.ident.name.clone())
+                    .ok_or(SemanticError::UnknownName(lval.ident.name.clone()))?
+                    .clone();
+                if ty_info.is_const && is_lvalue {
+                    return Err(SemanticError::CannotModifyConstValue(lval.ident.name.clone()));
+                }
+
+                lval.is_lvalue = is_lvalue;
+
+                if let Some(Subs { subs, .. }) = &mut lval.subs {
+                    let mut cur_ty = &ty_info.ty;
+
+                    for sub in subs.iter_mut() {
+                        self.visit_expr(sub)?;
+                        expect_type!(sub.ty(), AstTy::Int)?;
+
+                        if let AstTy::Array { elem_ty, .. } = cur_ty {
+                            cur_ty = &elem_ty.as_ref();
+                        } else {
+                            return Err(SemanticError::TypeMismatch {
+                                expected: String::from("ArrayType"),
+                                found: (*cur_ty).clone(),
+                            })
+                        }
+                    }
+
+                    if let AstTy::Array { .. } = cur_ty {
+                        return Err(SemanticError::TypeMismatch {
+                            expected: String::from("Not Array Type"),
+                            found: (*cur_ty).clone(),
+                        })
+                    }
+
+                    lval.ty = (*cur_ty).clone();
+                }
+
+                let literal = if ty_info.is_const {
+                    ty_info.const_val.clone()
+                } else {
+                    None
+                };
+                Ok(literal)
+            }
+            _ => Err(SemanticError::RequireLValue)
+        }
     }
 
     fn visit_assign_expr(&mut self, expr: &mut AssignExpr) -> Self::ExprResult {

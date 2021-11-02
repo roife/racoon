@@ -42,7 +42,7 @@ pub trait AstVisitor {
 
     fn visit_expr(&mut self, expr: &Expr) -> Self::ExprResult;
 
-    fn visit_lexpr(&mut self, _expr: &Expr) -> Self::LExprResult;
+    fn visit_lexpr(&mut self, _expr: &Expr, is_lvalue: bool) -> Self::LExprResult;
 
     fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Self::ExprResult;
 
@@ -98,7 +98,7 @@ pub trait AstVisitorMut {
 
     fn visit_expr(&mut self, expr: &mut Expr) -> Self::ExprResult;
 
-    fn visit_lexpr(&mut self, _expr: &mut Expr) -> Self::LExprResult;
+    fn visit_lexpr(&mut self, _expr: &mut Expr, is_lvalue: bool) -> Self::LExprResult;
 
     fn visit_assign_expr(&mut self, expr: &mut AssignExpr) -> Self::ExprResult;
 

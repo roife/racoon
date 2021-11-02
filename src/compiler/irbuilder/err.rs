@@ -12,4 +12,6 @@ pub enum SemanticError {
     TooMuchElement,
     IllegalArrayDim,
     RequireConstant,
+    RequireLValue,
+    CannotModifyConstValue(String),
 }
