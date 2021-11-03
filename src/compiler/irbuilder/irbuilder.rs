@@ -96,7 +96,7 @@ impl AstVisitor for IrBuilder {
                 _ => unreachable!()
             };
 
-            let const_init_val = if let Some(init_val) = &sub_decl.init_val {
+            let const_init_val = if let Some(init_val) = &sub_decl.init_expr {
                 self.visit_const_init_val(init_val)?
             } else {
                 Constant::build_zero(sub_decl.ty.clone().into())
@@ -187,7 +187,7 @@ impl AstVisitor for IrBuilder {
             );
             self.ctx.scope_builder.insert(&sub_decl.ident.name, NameId::Inst(alloca_addr));
 
-            if let Some(init_val) = &sub_decl.init_val {
+            if let Some(init_val) = &sub_decl.init_expr {
                 let init_expr_id = self.visit_expr(init_val.kind.as_expr().unwrap())?;
                 let store_inst = self.ctx.build_inst_end_of_cur(
                     InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: init_expr_id }),
@@ -368,14 +368,13 @@ impl AstVisitor for IrBuilder {
                 addr,
             };
             addr = Operand::from(self.ctx.build_inst_end_of_cur(InstKind::Load(load_inst),
-                                                                IrTy::deptr_of(lval.ty.clone().into())
-                                                                    .ok_or(SemanticError::DerefToNotPtrType)?));
+                                                                lval.ty.clone().into()));
             return Ok(addr);
         }
     }
 
     fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Self::ExprResult {
-        let lval = self.visit_lexpr(&expr.lhs, false)?;
+        let lval = self.visit_lexpr(&expr.lhs, true)?;
         let rval = self.visit_expr(&expr.rhs)?;
         let store_inst = StoreInst {
             addr: lval,

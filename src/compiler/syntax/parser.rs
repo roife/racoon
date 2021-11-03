@@ -121,7 +121,7 @@ impl<T> Parser<T>
         Ok(SubDecl {
             ident: lvalue.ident,
             subs: lvalue.subs,
-            init_val,
+            init_expr: init_val,
             span,
             ty: AstTy::Unknown,
         })

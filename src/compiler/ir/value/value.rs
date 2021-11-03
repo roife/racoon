@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::compiler::ir::arena::{BBId, GlobalId, InstId, ParamId};
 use crate::compiler::ir::value::{constant::Constant, ty::IrTy};
 

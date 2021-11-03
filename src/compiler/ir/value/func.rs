@@ -5,6 +5,7 @@ use slotmap::SlotMap;
 use crate::compiler::intrusive_linkedlist::{IntrusiveLinkedList, IntrusiveLinkedListItem};
 use crate::compiler::ir::arena::{BBId, FuncId, InstId, ParamId};
 use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
+use crate::compiler::ir::value::value::Operand;
 
 #[derive(Debug)]
 pub struct IrFuncParam {
@@ -195,7 +196,7 @@ impl IrFunc {
         self.bb_arena.get_mut(bb_id)
     }
 
-    pub fn build_bb(&mut self) -> BBId {
+    pub fn new_bb(&mut self) -> BBId {
         self.bb_arena.insert(BasicBlock::default())
     }
 
@@ -208,14 +209,22 @@ impl IrFunc {
     }
 
     pub fn build_bb_after_cur(&mut self, cur_bb: BBId) -> BBId {
-        let new_bb = self.build_bb();
+        let new_bb = self.new_bb();
         self.set_bb_after_cur(new_bb, cur_bb);
         new_bb
     }
 
     pub fn build_bb_before_cur(&mut self, cur_bb: BBId) -> BBId {
-        let new_bb = self.build_bb();
+        let new_bb = self.new_bb();
         self.set_bb_before_cur(new_bb, cur_bb);
+        new_bb
+    }
+
+    pub fn build_bb(&mut self) -> BBId {
+        let new_bb = self.new_bb();
+        if self.first_block.is_none() {
+            self.first_block = Some(new_bb);
+        }
         new_bb
     }
 }

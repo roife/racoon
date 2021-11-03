@@ -203,6 +203,7 @@ impl From<AstTy> for IrTy {
             AstTy::Array { siz, elem_ty } => IrTy::Array(
                 siz,
                 Box::new(IrTy::from(*elem_ty))),
+            AstTy::Ptr(x) => IrTy::Ptr(Box::new(x.as_ref().clone().into())),
             AstTy::Unknown => unreachable!(),
         }
     }

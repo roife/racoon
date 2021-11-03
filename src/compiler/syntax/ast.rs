@@ -27,7 +27,7 @@ pub struct Decl {
 pub struct SubDecl {
     pub ident: Ident,
     pub subs: Option<Subs>,
-    pub init_val: Option<InitVal>,
+    pub init_expr: Option<InitVal>,
     pub span: Span,
     pub ty: AstTy,
 }
@@ -289,7 +289,8 @@ pub enum AstTy {
     Int,
     Bool,
     Func { ret_ty: Box<AstTy>, param_tys: Vec<Box<AstTy>> },
-    Array { siz: usize, elem_ty: Box<AstTy> }
+    Array { siz: usize, elem_ty: Box<AstTy> },
+    Ptr(Box<AstTy>),
 }
 
 impl TokenType {
