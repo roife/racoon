@@ -19,6 +19,7 @@ use crate::compiler::ir::{
         value::Value,
     },
 };
+use crate::compiler::ir::value::value::Operand;
 use crate::compiler::syntax::ast::{AstTy, LiteralExpr, LiteralKind};
 
 #[derive(Debug, Clone, Copy, EnumAsInner)]
@@ -27,6 +28,17 @@ pub enum NameId {
     Func(FuncId),
     Global(GlobalId),
     Param(ParamId),
+}
+
+impl From<NameId> for Operand {
+    fn from(name_id: NameId) -> Self {
+        match name_id {
+            NameId::Inst(x) => Operand::Inst(x),
+            NameId::Global(x) => Operand::Global(x),
+            NameId::Param(x) => Operand::Param(x),
+            _ => unreachable!()
+        }
+    }
 }
 
 #[derive(Debug)]

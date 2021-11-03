@@ -137,8 +137,7 @@ impl AstVisitor for IrBuilder {
             IrTy::ptr_of(ty.clone()),
         );
 
-        self.ctx.scope_builder.insert(&param.ident.name, NameId::Inst(alloca_addr))
-            .ok_or(SemanticError::DuplicateName(param.ident.name.clone()))?;
+        self.ctx.scope_builder.insert(&param.ident.name, NameId::Inst(alloca_addr));
 
 
         let store_id = self.ctx.build_inst_end_of_cur(
@@ -343,11 +342,36 @@ impl AstVisitor for IrBuilder {
         }
     }
 
-    fn visit_lexpr(&mut self, _expr: &Expr, _is_lvalue: bool) -> Self::LExprResult {
-        // let val= expr.as_l_val().unwrap();
-        // let base_addr = self.ctx.scope_builder.find_name_rec(&val.ident.name)
-        //    .ok_or(SemanticError::UnknownName(val.ident.name.clone()))?;
-        todo!()
+    fn visit_lexpr(&mut self, expr: &Expr, is_lvalue: bool) -> Self::LExprResult {
+        let lval = expr.as_l_val().unwrap();
+        let mut addr = Operand::from(*self.ctx.scope_builder.find_name_rec(&lval.ident.name).unwrap());
+
+        if let Some(Subs { subs, .. }) = &lval.subs {
+            let mut indices = vec![];
+
+            for sub in subs.iter() {
+                let idx = self.visit_expr(sub)?;
+                indices.push(idx);
+            }
+
+            let gep = GEPInst {
+                ptr: addr,
+                indices
+            };
+            addr = Operand::from(self.ctx.build_inst_end_of_cur(InstKind::GEP(gep), lval.ty.clone().into()));
+        }
+
+        if is_lvalue || matches!(lval.ty, AstTy::Array { .. }) {
+            return Ok(addr);
+        } else {
+            let load_inst = LoadInst {
+                addr,
+            };
+            addr = Operand::from(self.ctx.build_inst_end_of_cur(InstKind::Load(load_inst),
+                                                                IrTy::deptr_of(lval.ty.clone().into())
+                                                                    .ok_or(SemanticError::DerefToNotPtrType)?));
+            return Ok(addr);
+        }
     }
 
     fn visit_assign_expr(&mut self, _expr: &AssignExpr) -> Self::ExprResult {

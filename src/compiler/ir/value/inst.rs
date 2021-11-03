@@ -138,10 +138,10 @@ pub struct StoreInst {
     pub data: Operand,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct GEPInst {
-    // ptr: Value,
-    // indices: Vec<Value>,
+    pub ptr: Operand,
+    pub indices: Vec<Operand>,
 }
 
 #[derive(Debug, Clone)]

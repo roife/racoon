@@ -61,6 +61,13 @@ impl IrTy {
     pub fn ptr_of(ty: IrTy) -> IrTy {
         IrTy::Ptr(Box::new(ty))
     }
+
+    pub fn deptr_of(ty: IrTy) -> Option<IrTy> {
+        match ty {
+            IrTy::Ptr(x) => Some(x.as_ref().clone()),
+            _ => None
+        }
+    }
 }
 
 impl Display for IrTy {

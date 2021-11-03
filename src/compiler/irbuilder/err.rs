@@ -14,4 +14,5 @@ pub enum SemanticError {
     RequireConstant,
     RequireLValue,
     CannotModifyConstValue(String),
+    DerefToNotPtrType,
 }

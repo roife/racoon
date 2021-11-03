@@ -348,21 +348,15 @@ impl AstVisitorMut for TypeChecker {
                         }
                     }
 
-                    if let AstTy::Array { .. } = cur_ty {
-                        return Err(SemanticError::TypeMismatch {
-                            expected: String::from("Not Array Type"),
-                            found: (*cur_ty).clone(),
-                        })
-                    }
-
                     lval.ty = (*cur_ty).clone();
                 }
 
-                let literal = if ty_info.is_const {
-                    ty_info.const_val.clone()
-                } else {
-                    None
-                };
+                let literal =
+                    if ty_info.is_const && !matches!(lval.ty, AstTy::Array { .. }) {
+                        ty_info.const_val.clone()
+                    } else {
+                        None
+                    };
                 Ok(literal)
             }
             _ => Err(SemanticError::RequireLValue)
