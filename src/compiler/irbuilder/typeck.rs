@@ -310,7 +310,7 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_expr(&mut self, expr: &mut Expr) -> Self::ExprResult {
         match expr {
-            Expr::LVal(_) => self.visit_lexpr(expr, false).and(Ok(None)),
+            Expr::LVal(_) => self.visit_lexpr(expr, false),
             Expr::Assign(x) => self.visit_assign_expr(x),
             Expr::Literal(x) => self.visit_literal_expr(x),
             Expr::Unary(x) => self.visit_unary_expr(x),
@@ -330,6 +330,7 @@ impl AstVisitorMut for TypeChecker {
                 }
 
                 lval.is_lvalue = is_lvalue;
+                lval.ty = ty_info.ty.clone();
 
                 if let Some(Subs { subs, .. }) = &mut lval.subs {
                     let mut cur_ty = &ty_info.ty;
@@ -353,7 +354,7 @@ impl AstVisitorMut for TypeChecker {
 
                 let literal =
                     if ty_info.is_const && !matches!(lval.ty, AstTy::Array { .. }) {
-                        ty_info.const_val.clone()
+                        ty_info.const_val
                     } else {
                         None
                     };
@@ -425,7 +426,7 @@ impl AstVisitorMut for TypeChecker {
 
         if !legal {
             return Err(SemanticError::TypeMismatch {
-                expected: String::from(stringify!(lty)),
+                expected: String::from(format!("{:#?}", expr.lhs.ty())),
                 found: expr.rhs.ty().into(),
             })
         }
