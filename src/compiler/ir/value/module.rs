@@ -103,7 +103,6 @@ impl Display for Module {
             }
             writeln!(f, "}}")?;
         }
-        // todo
         Ok(())
     }
 }

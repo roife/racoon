@@ -1,12 +1,11 @@
 use itertools::Itertools;
 
-use crate::compiler::irbuilder::context::NameTyInfo;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::ast::*;
 use crate::compiler::syntax::visitor::AstVisitorMut;
 
 use super::{
-    context::ScopeBuilder,
+    context::{ScopeBuilder, NameTyInfo},
     err::SemanticError::{self, *},
 };
 
@@ -364,8 +363,17 @@ impl AstVisitorMut for TypeChecker {
         }
     }
 
-    fn visit_assign_expr(&mut self, _expr: &mut AssignExpr) -> Self::ExprResult {
-        todo!()
+    fn visit_assign_expr(&mut self, expr: &mut AssignExpr) -> Self::ExprResult {
+        self.visit_lexpr(&mut expr.lhs, false)?;
+        let rval = self.visit_expr(&mut expr.rhs)?;
+        match &expr.lhs.ty() {
+            AstTy::Int | AstTy::Bool => {}
+            ty @ _ => return Err(SemanticError::TypeMismatch {
+                expected: String::from("Int | Bool"),
+                found: ty.clone()
+            })
+        }
+        Ok(rval)
     }
 
     fn visit_literal_expr(&mut self, expr: &mut LiteralExpr) -> Self::ExprResult {

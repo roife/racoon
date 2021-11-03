@@ -374,12 +374,15 @@ impl AstVisitor for IrBuilder {
         }
     }
 
-    fn visit_assign_expr(&mut self, _expr: &AssignExpr) -> Self::ExprResult {
-        // let lv_addr = self.visit_lexpr(&expr.lhs)?;
-        // let rv = self.visit_expr(&expr.rhs)?;
-        // let inst = StoreInst { addr: lv_addr, data: rv };
-        // self.ctx.build_inst_end_of_cur(InstKind::Store(inst), IrTy::Void);
-        todo!()
+    fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Self::ExprResult {
+        let lval = self.visit_lexpr(&expr.lhs, false)?;
+        let rval = self.visit_expr(&expr.rhs)?;
+        let store_inst = StoreInst {
+            addr: lval,
+            data: rval.clone()
+        };
+        self.ctx.build_inst_end_of_cur(InstKind::Store(store_inst), IrTy::Void);
+        Ok(rval)
     }
 
     fn visit_literal_expr(&mut self, expr: &LiteralExpr) -> Self::ExprResult {
