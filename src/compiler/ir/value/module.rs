@@ -6,6 +6,7 @@ use slotmap::SlotMap;
 
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 use crate::compiler::ir::arena::{FuncId, GlobalId};
+use crate::compiler::ir::value::constant::Constant;
 use crate::compiler::ir::value::inst::{BinaryInstOp, BranchInst, InstKind};
 use crate::compiler::ir::value::ty::IrTy;
 use crate::compiler::ir::value::value::{Operand, Value};
@@ -79,13 +80,34 @@ impl Display for Module {
                 })
                 .join(", ");
             writeln!(f, "define {} @{}({}) {{", func.ret_ty, func.name, param_str)?;
-            let get_operand_ty = |operand: &Operand| {
+
+            let print_operand = |map: &HashMap<Operand, i32>, operand: &Operand| -> String {
                 match operand {
-                    Operand::Inst(x) => func.inst_arena.get(*x).and_then(|x| Some(x.ty.clone())),
-                    Operand::Constant(x) => Some(x.get_ty()),
-                    Operand::Global(x) => self.global_arena.get(*x).and_then(|x| Some(x.ty.clone())),
-                    Operand::Param(x) => func.get_param(*x).and_then(|x| Some(x.ty.clone())),
-                    Operand::BB(_) => Some(IrTy::Label),
+                    Operand::Inst(x) => {
+                        let ty = &func.inst_arena.get(*x).unwrap().ty;
+                        let val = map.get(operand).unwrap();
+                        format!("{} %{}", ty, val)
+                    }
+                    Operand::Constant(x) => {
+                        let ty = x.get_ty();
+                        match x {
+                            Constant::Int(x) => format!("{} {}", ty, x),
+                            _ => unreachable!()
+                        }
+                    }
+                    Operand::Global(x) => {
+                        let ty = &self.global_arena.get(*x).unwrap().ty;
+                        let val = &self.global_arena.get(*x).unwrap().name;
+                        format!("{} @{}", ty, val)
+                    }
+                    Operand::Param(x) => {
+                        let ty = &func.get_param(*x).unwrap().ty;
+                        let val = map.get(operand).unwrap();
+                        format!("{} {}", ty, val)
+                    }
+                    Operand::BB(x) => {
+                        format!("{} {}", IrTy::Label, x)
+                    },
                 }
             };
             for (bb_id, bb) in func.bb_arena.items_iter(func.first_block, None) {
@@ -96,12 +118,9 @@ impl Display for Module {
                 let mut inst_ptr = bb.insts_head;
                 while let Some(inst_id) = inst_ptr {
                     let inst = func.get_inst(inst_id).unwrap();
+                    dbg!(inst.clone());
                     match &inst.kind {
                         InstKind::Binary(binary_inst) => {
-                            let left_ty = get_operand_ty(&binary_inst.left).unwrap();
-                            let left_id = id_cnt_map.get(&binary_inst.left).unwrap();
-                            let right_ty = get_operand_ty(&binary_inst.right).unwrap();
-                            let right_id = id_cnt_map.get(&binary_inst.right).unwrap();
                             let op = match binary_inst.op {
                                 BinaryInstOp::Add => "add",
                                 BinaryInstOp::Sub => "sub",
@@ -117,11 +136,11 @@ impl Display for Module {
                                 BinaryInstOp::And => todo!(),
                                 BinaryInstOp::Or => todo!(),
                             };
-                            writeln!(f, "%{} = {} {} {}, {} {}", cnt, op, left_ty, left_id, right_ty, right_id)?;
+                            writeln!(f, "%{} = {} {}, {}", cnt, op, print_operand(&id_cnt_map, &binary_inst.left), print_operand(&id_cnt_map, &binary_inst.right))?;
                             id_cnt_map.insert(Operand::Inst(inst_id), cnt);
                             cnt += 1;
                         }
-                        InstKind::Branch(branch_inst) => {
+                        InstKind::Branch(_) => {
                             // match branch_inst {
                             //     BranchInst::Br { cond, true_bb, false_bb } => {
                             //         let cond_id = i
@@ -131,9 +150,19 @@ impl Display for Module {
                             // }
                         }
                         InstKind::ReturnInst(_) => {}
-                        InstKind::Alloca(_) => {}
-                        InstKind::Load(_) => {}
-                        InstKind::Store(_) => {}
+                        InstKind::Alloca(alloca_inst) => {
+                            writeln!(f, "%{} = alloca {}", cnt, alloca_inst.alloca_ty)?;
+                            id_cnt_map.insert(Operand::Inst(inst_id), cnt);
+                            cnt += 1;
+                        }
+                        InstKind::Load(load_inst) => {
+                            writeln!(f, "%{} = load {}, {}", cnt, inst.ty, print_operand(&id_cnt_map, &load_inst.addr))?;
+                            id_cnt_map.insert(Operand::Inst(inst_id), cnt);
+                            cnt += 1;
+                        }
+                        InstKind::Store(store_inst) => {
+                            writeln!(f, "store {}, {}", print_operand(&id_cnt_map, &store_inst.data), print_operand(&id_cnt_map, &store_inst.addr))?;
+                        }
                         InstKind::GEP(_) => {}
                         InstKind::ZExt(_) => {}
                         InstKind::Call(_) => {}
