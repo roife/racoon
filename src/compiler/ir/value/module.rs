@@ -163,7 +163,39 @@ impl Display for Module {
                                 BinaryInstOp::And => todo!(),
                                 BinaryInstOp::Or => todo!(),
                             };
-                            writeln!(f, "%{} = {} {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), op, print_operand(&id_cnt_map, &binary_inst.left), print_operand(&id_cnt_map, &binary_inst.right))?;
+                            let rhs_str = match &binary_inst.right {
+                                Operand::Inst(x) => {
+                                    let val = id_cnt_map.get(&binary_inst.right).unwrap();
+                                    format!("%{}", val)
+                                }
+                                Operand::Constant(x) => {
+                                    match x {
+                                        Constant::Int(x) => format!("{}", x),
+                                        _ => unreachable!()
+                                    }
+                                }
+                                Operand::Global(x) => {
+                                    let val = &self.global_arena.get(*x).unwrap().name;
+                                    format!("@{}", val)
+                                }
+                                Operand::Param(x) => {
+                                    let val = id_cnt_map.get(&binary_inst.right).unwrap();
+                                    format!("%{}", val)
+                                }
+                                Operand::BB(x) => {
+                                    // format!("{} {}", IrTy::Label, map.get(&Operand::BB(*x)).unwrap())
+                                    format!("%{}", id_cnt_map.get(&binary_inst.right).unwrap())
+                                },
+                            };
+                            writeln!(f, "%{} = {} {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), op, print_operand(&id_cnt_map, &binary_inst.left), rhs_str)?;
+                            // if let Operand::Constant(const_right) = &binary_inst.right {
+                            //     match const_right {
+                            //         Constant::Int(x) => writeln!(f, "%{} = {} {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), op, print_operand(&id_cnt_map, &binary_inst.left), x)?,
+                            //         _ => unreachable!()
+                            //     }
+                            // } else {
+                            //     writeln!(f, "%{} = {} {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), op, print_operand(&id_cnt_map, &binary_inst.left), print_operand(&id_cnt_map, &binary_inst.right))?;
+                            // }
                         }
                         InstKind::Branch(branch_inst) => {
                             match branch_inst {

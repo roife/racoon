@@ -295,7 +295,7 @@ impl AstVisitor for IrBuilder {
             cond_bb);
 
         self.ctx.build_inst_end(
-            InstKind::Branch(BranchInst::Jump { nxt_bb }),
+            InstKind::Branch(BranchInst::Jump { nxt_bb: cond_bb }),
             IrTy::Void,
             loop_end_bb);
 
