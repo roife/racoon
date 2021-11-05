@@ -146,8 +146,8 @@ pub struct GEPInst {
 
 #[derive(Debug, Clone)]
 pub struct ZExtInst {
-    pub(crate) ori_val: Operand,
-    pub(crate) target_ty: IrTy,
+    pub ori_val: Operand,
+    pub target_ty: IrTy,
 }
 
 #[derive(Debug, Clone)]

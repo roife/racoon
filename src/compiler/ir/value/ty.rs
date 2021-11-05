@@ -77,7 +77,7 @@ impl Display for IrTy {
             IrTy::Func(_) => format!("todo"),
             IrTy::Int(x) => format!("i{}", x),
             IrTy::Ptr(t) => format!("{}*", t),
-            IrTy::Label => format!("todo"),
+            IrTy::Label => format!("label"),
             IrTy::Array(dim_size, elem_ty) => format!("[{} x {}]", dim_size, elem_ty),
         };
         write!(f, "{}", s)

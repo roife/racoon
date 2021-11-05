@@ -373,6 +373,9 @@ impl AstVisitorMut for TypeChecker {
     fn visit_assign_expr(&mut self, expr: &mut AssignExpr) -> Self::ExprResult {
         self.visit_lexpr(&mut expr.lhs, true)?;
         let rval = self.visit_expr(&mut expr.rhs)?;
+        if let Some(rval) = &rval {
+            expr.rhs = Box::new(Expr::Literal(rval.clone()));
+        }
         expect_type!(expr.lhs.ty(), AstTy::Int | AstTy::Bool)?;
         Ok(rval)
     }
@@ -387,6 +390,9 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_unary_expr(&mut self, expr: &mut UnaryExpr) -> Self::ExprResult {
         let sub_expr_val = self.visit_expr(&mut expr.sub_expr)?;
+        if let Some(sub_expr_val) = &sub_expr_val {
+            expr.sub_expr = Box::new(Expr::Literal(sub_expr_val.clone()));
+        }
         let sub_expr_ty = expr.sub_expr.ty();
 
         let result_val = match expr.op {
@@ -427,6 +433,14 @@ impl AstVisitorMut for TypeChecker {
         let rval = self.visit_expr(&mut expr.rhs)?;
         let op = expr.op;
 
+        if let Some(lval) = lval {
+            expr.lhs = Box::new(Expr::Literal(lval));
+        }
+
+        if let Some(rval) = rval {
+            expr.rhs = Box::new(Expr::Literal(rval));
+        }
+
         let legal = match (expr.lhs.ty(), expr.rhs.ty()) {
             (AstTy::Int, AstTy::Int) => matches!(op, Add | Sub | Mul | Div | Mod | Lt | Le | Gt | Ge | Eq | Ne),
             (AstTy::Bool, AstTy::Bool) => matches!(op, And | Or),
@@ -449,10 +463,13 @@ impl AstVisitorMut for TypeChecker {
         };
         expr.ty = result_ty.clone();
 
+        dbg!(&expr.clone());
         let result_val = if let (
-            Some(LiteralExpr { kind: LiteralKind::Integer(lval), span: lspan, .. }),
-            Some(LiteralExpr { kind: LiteralKind::Integer(rval), span: rspan, .. })
-        ) = (lval, rval) {
+            Expr::Literal(LiteralExpr { kind: LiteralKind::Integer(lval), span: lspan, .. }),
+            Expr::Literal(LiteralExpr { kind: LiteralKind::Integer(rval), span: rspan, .. })
+        ) = (expr.lhs.as_ref(), expr.rhs.as_ref()) {
+            let lval = *lval;
+            let rval = *rval;
             let result = match op {
                 Add => lval + rval,
                 Sub => lval - rval,

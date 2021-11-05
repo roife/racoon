@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use enum_as_inner::EnumAsInner;
 use crate::compiler::ir::arena::{BBId, GlobalId, InstId, ParamId};
 use crate::compiler::ir::value::{constant::Constant, ty::IrTy};
 
@@ -6,7 +7,7 @@ pub trait Value {
     fn get_ty(&self) -> IrTy;
 }
 
-#[derive(Debug, Clone, Eq, Hash)]
+#[derive(Debug, Clone, Eq, Hash, EnumAsInner)]
 pub enum Operand {
     Inst(InstId),
     Constant(Constant),

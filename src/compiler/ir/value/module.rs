@@ -106,6 +106,7 @@ impl Display for Module {
                         format!("{} {}", ty, val)
                     }
                     Operand::BB(x) => {
+                        // format!("{} {}", IrTy::Label, map.get(&Operand::BB(*x)).unwrap())
                         format!("{} {}", IrTy::Label, x)
                     },
                 }
@@ -118,7 +119,7 @@ impl Display for Module {
                 let mut inst_ptr = bb.insts_head;
                 while let Some(inst_id) = inst_ptr {
                     let inst = func.get_inst(inst_id).unwrap();
-                    dbg!(inst.clone());
+                    // dbg!(inst.clone());
                     match &inst.kind {
                         InstKind::Binary(binary_inst) => {
                             let op = match binary_inst.op {
@@ -140,16 +141,22 @@ impl Display for Module {
                             id_cnt_map.insert(Operand::Inst(inst_id), cnt);
                             cnt += 1;
                         }
-                        InstKind::Branch(_) => {
-                            // match branch_inst {
-                            //     BranchInst::Br { cond, true_bb, false_bb } => {
-                            //         let cond_id = i
-                            //         writeln!(f, "br {}, {}, {}")
-                            //     }
-                            //     BranchInst::Jump { .. } => {}
-                            // }
+                        InstKind::Branch(branch_inst) => {
+                            match branch_inst {
+                                BranchInst::Br { cond, true_bb, false_bb } => {
+                                    writeln!(f, "br {}, {}, {}", print_operand(&id_cnt_map, cond), print_operand(&id_cnt_map, &Operand::BB(*true_bb)), print_operand(&id_cnt_map, &Operand::BB(*false_bb)))?
+                                }
+                                BranchInst::Jump { nxt_bb } => {
+                                    writeln!(f, "br {}", print_operand(&id_cnt_map, &Operand::BB(*nxt_bb)))?
+                                }
+                            };
                         }
-                        InstKind::ReturnInst(_) => {}
+                        InstKind::ReturnInst(return_inst) => {
+                            match &return_inst.val {
+                                None => writeln!(f, "ret void")?,
+                                Some(operand) => writeln!(f, "ret {}", print_operand(&id_cnt_map, operand))?,
+                            };
+                        }
                         InstKind::Alloca(alloca_inst) => {
                             writeln!(f, "%{} = alloca {}", cnt, alloca_inst.alloca_ty)?;
                             id_cnt_map.insert(Operand::Inst(inst_id), cnt);
@@ -163,9 +170,27 @@ impl Display for Module {
                         InstKind::Store(store_inst) => {
                             writeln!(f, "store {}, {}", print_operand(&id_cnt_map, &store_inst.data), print_operand(&id_cnt_map, &store_inst.addr))?;
                         }
-                        InstKind::GEP(_) => {}
-                        InstKind::ZExt(_) => {}
-                        InstKind::Call(_) => {}
+                        InstKind::GEP(gep_inst) => {
+                            let indices_str = gep_inst.indices.iter().map(|x| print_operand(&id_cnt_map, x)).join(", ");
+                            writeln!(f, "%{} = getelementptr {}, {}, {}", cnt, inst.ty, print_operand(&id_cnt_map, &gep_inst.ptr), indices_str)?
+                        }
+                        InstKind::ZExt(zext_inst) => {
+                            writeln!(f, "%{} = zext {} to {}", cnt, print_operand(&id_cnt_map, &zext_inst.ori_val), zext_inst.target_ty)?
+                        }
+                        InstKind::Call(call_inst) => {
+                            let callee = self.func_arena.get(call_inst.func).unwrap();
+                            match inst.ty {
+                                IrTy::Void => write!(f, "call void")?,
+                                IrTy::Int(_) => {
+                                    write!(f, "%{} = call", cnt)?;
+                                    id_cnt_map.insert(Operand::Inst(inst_id), cnt);
+                                    cnt += 1;
+                                },
+                                _ => unreachable!()
+                            }
+                            let args_str = call_inst.args.iter().map(|x| print_operand(&id_cnt_map, x)).join(", ");
+                            writeln!(f, "@{}({})", callee.name, args_str)?
+                        }
                     }
                     inst_ptr = inst.next;
                 }
