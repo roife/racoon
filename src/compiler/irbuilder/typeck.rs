@@ -464,7 +464,7 @@ impl AstVisitorMut for TypeChecker {
         };
         expr.ty = result_ty.clone();
 
-        dbg!(&expr.clone());
+        // dbg!(&expr.clone());
         let result_val = if let (
             Expr::Literal(LiteralExpr { kind: LiteralKind::Integer(lval), span: lspan, .. }),
             Expr::Literal(LiteralExpr { kind: LiteralKind::Integer(rval), span: rspan, .. })
