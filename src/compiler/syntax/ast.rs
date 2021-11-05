@@ -27,7 +27,7 @@ pub struct Decl {
 pub struct SubDecl {
     pub ident: Ident,
     pub subs: Option<Subs>,
-    pub init_expr: Option<InitVal>,
+    pub init_val: Option<InitVal>,
     pub span: Span,
     pub ty: AstTy,
 }

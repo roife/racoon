@@ -16,26 +16,25 @@ use crate::compiler::ir::{
         inst::InstKind,
         module::Module,
         ty::{FuncTy, IrTy},
-        value::Value,
+        value::{Operand, Value},
     },
 };
-use crate::compiler::ir::value::value::Operand;
 use crate::compiler::syntax::ast::{AstTy, LiteralExpr, LiteralKind};
 
 #[derive(Debug, Clone, Copy, EnumAsInner)]
-pub enum NameId {
+pub enum IdInfo {
     Inst(InstId),
     Func(FuncId),
     Global(GlobalId),
     Param(ParamId),
 }
 
-impl From<NameId> for Operand {
-    fn from(name_id: NameId) -> Self {
+impl From<IdInfo> for Operand {
+    fn from(name_id: IdInfo) -> Self {
         match name_id {
-            NameId::Inst(x) => Operand::Inst(x),
-            NameId::Global(x) => Operand::Global(x),
-            NameId::Param(x) => Operand::Param(x),
+            IdInfo::Inst(x) => Operand::Inst(x),
+            IdInfo::Global(x) => Operand::Global(x),
+            IdInfo::Param(x) => Operand::Param(x),
             _ => unreachable!()
         }
     }
@@ -101,16 +100,10 @@ impl<T> ScopeBuilder<T> {
 }
 
 #[derive(Debug)]
-pub struct BCTarget {
-    pub break_target: BBId,
-    pub continue_target: BBId,
-}
-
-#[derive(Debug)]
 pub struct Context {
-    pub scope_builder: ScopeBuilder<NameId>,
+    pub scope_builder: ScopeBuilder<IdInfo>,
     pub cur_module: Module,
-    pub cur_func: FuncId,
+    cur_func: FuncId,
     cur_bb: BBId,
 }
 
@@ -186,7 +179,7 @@ impl Context {
 }
 
 #[derive(Debug, Clone)]
-pub struct NameTyInfo {
+pub struct TyInfo {
     pub ty: AstTy,
     pub const_val: Option<LiteralExpr>,
     pub is_const: bool,
@@ -221,7 +214,10 @@ impl From<LiteralExpr> for Constant {
                 let vals = vals.into_iter()
                     .map(|x| Constant::from(x))
                     .collect_vec();
-                Constant::Array(literal.ty.into(), vals)
+                Constant::Array {
+                    ty: literal.ty.into(),
+                    elems: vals
+                }
             }
         }
     }

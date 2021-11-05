@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use enum_as_inner::EnumAsInner;
 use crate::compiler::ir::arena::{BBId, GlobalId, InstId, ParamId};
 use crate::compiler::ir::value::{constant::Constant, ty::IrTy};
@@ -10,7 +9,7 @@ pub trait Value {
 #[derive(Debug, Clone, Eq, Hash, EnumAsInner)]
 pub enum Operand {
     Inst(InstId),
-    Constant(Constant),
+    Const(Constant),
     Global(GlobalId),
     Param(ParamId),
     BB(BBId),
@@ -21,7 +20,7 @@ impl PartialEq for Operand {
         use Operand::*;
         match (self, other) {
             (Inst(x), Inst(y)) => x == y,
-            (Constant(x), Constant(y)) => x == y,
+            (Const(x), Const(y)) => x == y,
             (Global(x), Global(y)) => x == y,
             (Param(x), Param(y)) => x == y,
             (BB(x), BB(y)) => x == y,
@@ -36,8 +35,20 @@ impl From<InstId> for Operand {
     }
 }
 
+impl From<ParamId> for Operand {
+    fn from(param_id: ParamId) -> Self {
+        Operand::Param(param_id)
+    }
+}
+
 impl From<i32> for Operand {
     fn from(i: i32) -> Self {
-        Operand::Constant(Constant::Int(i))
+        Operand::Const(Constant::Int(i))
+    }
+}
+
+impl From<BBId> for Operand {
+    fn from(bb_id: BBId) -> Self {
+        Operand::BB(bb_id)
     }
 }

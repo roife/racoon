@@ -4,7 +4,7 @@ use std::io::Write;
 use structopt::StructOpt;
 
 use racoon::compiler::{
-    irbuilder::*,
+    ir_builder::*,
     syntax::{*, visitor::AstVisitorMut},
 };
 
@@ -28,13 +28,13 @@ fn main() {
         }
     };
 
-    let mut ty_checker = typeck::TypeChecker::new();
+    let mut ty_checker = type_checker::TypeChecker::new();
     if let Err(e) = ty_checker.visit_program(&mut ast) {
         println!("{:?}", e);
         return;
     };
 
-    let mut ir_builder = irbuilder::IrBuilder::new();
+    let mut ir_builder = ir_builder::IrBuilder::new();
     let ir = match ir_builder.visit(&ast) {
         Ok(_) => ir_builder.ctx.cur_module,
         Err(e) => {

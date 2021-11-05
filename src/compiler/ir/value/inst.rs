@@ -51,8 +51,8 @@ pub enum InstKind {
     Binary(BinaryInst),
 
     // Terminator Instruction
-    Branch(BranchInst),
-    ReturnInst(RetInst),
+    Br(BrInst),
+    RetInst(RetInst),
 
     // Memory
     Alloca(AllocaInst),
@@ -112,7 +112,7 @@ impl BinaryOp {
 }
 
 #[derive(Debug, Clone)]
-pub enum BranchInst {
+pub enum BrInst {
     Br { cond: Operand, true_bb: BBId, false_bb: BBId },
     Jump { nxt_bb: BBId },
 }
@@ -152,6 +152,6 @@ pub struct ZExtInst {
 
 #[derive(Debug, Clone)]
 pub struct CallInst {
-    pub func: FuncId,
+    pub func_id: FuncId,
     pub args: Vec<Operand>,
 }

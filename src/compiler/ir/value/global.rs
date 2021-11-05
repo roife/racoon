@@ -1,9 +1,8 @@
-use std::fmt::{Display, Formatter};
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedListItem;
-use crate::compiler::ir::arena::GlobalId;
-
-use crate::compiler::ir::value::{ty::IrTy, value::Value};
-use crate::compiler::ir::value::constant::Constant;
+use crate::compiler::ir::{
+    arena::GlobalId,
+    value::{ty::IrTy, value::Value, constant::Constant}
+};
 
 #[derive(Debug, Clone)]
 pub struct Global {
@@ -30,12 +29,6 @@ impl Global {
 impl Value for Global {
     fn get_ty(&self) -> IrTy {
         self.ty.clone()
-    }
-}
-
-impl Display for Global {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} @{}", self.ty, self.name)
     }
 }
 

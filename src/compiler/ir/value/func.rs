@@ -1,11 +1,9 @@
-use std::fmt::{Display, Formatter};
 use itertools::Itertools;
 use slotmap::SlotMap;
 
 use crate::compiler::intrusive_linkedlist::{IntrusiveLinkedList, IntrusiveLinkedListItem};
 use crate::compiler::ir::arena::{BBId, FuncId, InstId, ParamId};
-use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
-use crate::compiler::ir::value::value::Operand;
+use crate::compiler::ir::value::{basic_block::*, inst::*, ty::*, value::*};
 
 #[derive(Debug)]
 pub struct IrFuncParam {
@@ -19,6 +17,7 @@ pub struct IrFunc {
     pub ret_ty: IrTy,
     pub is_builtin: bool,
     pub params: Vec<ParamId>,
+
     pub first_block: Option<BBId>,
 
     pub param_arena: SlotMap<ParamId, IrFuncParam>,
@@ -55,12 +54,6 @@ impl IntrusiveLinkedListItem for IrFunc {
 
     fn set_prev(&mut self, key: Option<Self::Key>) {
         self.prev = key
-    }
-}
-
-impl Display for IrFunc {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} @{}", self.ret_ty, self.name)
     }
 }
 

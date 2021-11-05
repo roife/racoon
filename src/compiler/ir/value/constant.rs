@@ -9,7 +9,20 @@ use super::{ty::IrTy, value::Value};
 pub enum Constant {
     Int(i32),
     // empty vec represents zero initializer
-    Array(IrTy, Vec<Constant>),
+    Array { ty: IrTy, elems: Vec<Constant> },
+}
+
+impl Constant {
+    pub fn build_zero(ty: &IrTy) -> Constant {
+        match ty {
+            IrTy::Int(_) => Self::Int(0),
+            ty @ IrTy::Array(_, _) => Self::Array {
+                ty: ty.clone(),
+                elems: vec![],
+            },
+            _ => unreachable!()
+        }
+    }
 }
 
 impl PartialEq for Constant {
@@ -22,21 +35,11 @@ impl PartialEq for Constant {
     }
 }
 
-impl Constant {
-    pub fn build_zero(ty: IrTy) -> Constant {
-        match ty {
-            IrTy::Int(_) => Self::Int(0),
-            ty @ IrTy::Array(_, _) => Self::Array(ty, vec![]),
-            _ => unreachable!()
-        }
-    }
-}
-
 impl Value for Constant {
     fn get_ty(&self) -> IrTy {
         match self {
             Constant::Int(_) => IrTy::Int(32),
-            Constant::Array(ty, _) => ty.clone(),
+            Constant::Array { ty, .. } => ty.clone(),
         }
     }
 }
@@ -45,15 +48,14 @@ impl Display for Constant {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
             Constant::Int(x) => write!(f, "i32 {}", x),
-            Constant::Array(ty @ IrTy::Array(siz, elem_ty),
-                            vals) => {
+            Constant::Array { ty: ty @ IrTy::Array(siz, elem_ty), elems: vals } => {
                 if vals.is_empty() {
                     write!(f, "{} zeroinitializer", ty)
                 } else {
                     let mut data_str: String = vals.iter().join(", ");
 
                     if vals.len() < *siz {
-                        let zeros = Self::build_zero(elem_ty.as_ref().clone());
+                        let zeros = Self::build_zero(elem_ty.as_ref());
                         let zeros_str = format!(", {}", zeros).repeat(*siz - vals.len());
                         data_str.push_str(&zeros_str);
                     }

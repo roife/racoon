@@ -5,7 +5,7 @@ use crate::compiler::syntax::ast::*;
 use crate::compiler::syntax::visitor::AstVisitorMut;
 
 use super::{
-    context::{NameTyInfo, ScopeBuilder},
+    context::{TyInfo, ScopeBuilder},
     err::SemanticError::{self, *},
 };
 
@@ -24,7 +24,7 @@ macro_rules! expect_type {
 
 #[derive(Debug)]
 pub struct TypeChecker {
-    pub scopes: ScopeBuilder<NameTyInfo>,
+    pub scopes: ScopeBuilder<TyInfo>,
     pub cur_func_ret_ty: AstTy,
 }
 
@@ -135,7 +135,7 @@ impl AstVisitorMut for TypeChecker {
         for sub_decl in decl.sub_decls.iter_mut() {
             let ty = self.build_ast_ty(&ty, &mut sub_decl.subs)?;
 
-            let init_val = if let Some(init_val) = &mut sub_decl.init_expr {
+            let init_val = if let Some(init_val) = &mut sub_decl.init_val {
                 let mut literal = self.visit_const_init_val(init_val)?;
                 match ty {
                     AstTy::Int => assert_type_eq(&ty, &literal.ty)?,
@@ -154,7 +154,7 @@ impl AstVisitorMut for TypeChecker {
 
             sub_decl.ty = ty.clone();
 
-            let info = NameTyInfo {
+            let info = TyInfo {
                 ty,
                 const_val: if decl.is_const { init_val } else { None },
                 is_const: decl.is_const,
@@ -175,7 +175,7 @@ impl AstVisitorMut for TypeChecker {
             .collect();
 
         let func_ty = AstTy::Func { ret_ty: Box::new(ret_ty), param_tys };
-        let func_info = NameTyInfo {
+        let func_info = TyInfo {
             ty: func_ty.clone(),
             const_val: None,
             is_const: false,
@@ -185,7 +185,7 @@ impl AstVisitorMut for TypeChecker {
 
         self.scopes.push_scope();
         for param in ast_func.params.iter() {
-            let param_info = NameTyInfo {
+            let param_info = TyInfo {
                 ty: param.ty.clone(),
                 const_val: None,
                 is_const: false,
@@ -236,7 +236,7 @@ impl AstVisitorMut for TypeChecker {
             let ty = self.build_ast_ty(&base_ty, &mut sub_decl.subs)?;
 
             let init_val =
-                if let Some(init_expr) = &mut sub_decl.init_expr {
+                if let Some(init_expr) = &mut sub_decl.init_val {
                     // todo!()
                     let expr = init_expr.kind.as_expr_mut()
                         .ok_or(SemanticError::TypeMismatch {
@@ -257,7 +257,7 @@ impl AstVisitorMut for TypeChecker {
 
             sub_decl.ty = ty.clone();
 
-            let ty_info = NameTyInfo {
+            let ty_info = TyInfo {
                 ty,
                 const_val: init_val,
                 is_const: decl.is_const

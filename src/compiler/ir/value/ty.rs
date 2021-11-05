@@ -58,8 +58,8 @@ impl IrTy {
         }))
     }
 
-    pub fn ptr_of(ty: IrTy) -> IrTy {
-        IrTy::Ptr(Box::new(ty))
+    pub fn ptr_of(ty: &IrTy) -> IrTy {
+        IrTy::Ptr(Box::new(ty.clone()))
     }
 
     pub fn deptr_of(ty: IrTy) -> Option<IrTy> {
@@ -74,11 +74,11 @@ impl Display for IrTy {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             IrTy::Void => String::from("void"),
-            IrTy::Func(_) => format!("todo"),
             IrTy::Int(x) => format!("i{}", x),
             IrTy::Ptr(t) => format!("{}*", t),
             IrTy::Label => format!("label"),
             IrTy::Array(dim_size, elem_ty) => format!("[{} x {}]", dim_size, elem_ty),
+            _ => unreachable!()
         };
         write!(f, "{}", s)
     }
