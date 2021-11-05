@@ -160,8 +160,8 @@ impl Display for Module {
                                 BinaryInstOp::Ge => "icmp sge",
                                 BinaryInstOp::Eq => "icmp eq",
                                 BinaryInstOp::Ne => "icmp ne",
-                                BinaryInstOp::And => todo!(),
-                                BinaryInstOp::Or => todo!(),
+                                BinaryInstOp::And => "ans",
+                                BinaryInstOp::Or => "or",
                             };
                             let rhs_str = match &binary_inst.right {
                                 Operand::Inst(x) => {
