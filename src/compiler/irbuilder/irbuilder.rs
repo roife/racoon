@@ -59,6 +59,10 @@ impl IrBuilder {
     pub fn get_continue_target(&self) -> Option<BBId> {
         Some(self.loop_targets.last()?.continue_target)
     }
+
+    pub fn set_bb_after(&mut self, after: BBId, cur: BBId) {
+        self.ctx.set_bb_after(after, cur);
+    }
 }
 
 impl AstVisitor for IrBuilder {
@@ -113,7 +117,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_func(&mut self, ast_func: &AstFunc) -> Self::FuncResult {
         let ret_ty = self.visit_ty(&ast_func.ret_ty_ident)?;
-        let func = self.ctx.build_func(IrFunc::new(&ast_func.ident.name, ret_ty, false));
+        let func = self.ctx.build_func(IrFunc::new(&ast_func.ident.name, ret_ty.clone(), false));
         self.ctx.scope_builder.insert(&ast_func.ident.name, NameId::Func(func));
 
         self.ctx.scope_builder.push_scope();
@@ -123,6 +127,13 @@ impl AstVisitor for IrBuilder {
         self.ctx.set_cur_bb(init_bb);
         ast_func.params.iter().try_for_each(|param| self.visit_func_param(param))?;
         self.visit_block_stmt(&ast_func.body)?;
+
+        let ret_inst = match &ret_ty {
+            IrTy::Void => RetInst { val: None },
+            IrTy::Int(_) => RetInst { val: Some(Operand::Constant(Constant::Int(0))) },
+            _ => unreachable!()
+        };
+        self.ctx.build_inst_end_of_cur(InstKind::ReturnInst(ret_inst), IrTy::Void);
 
         self.ctx.scope_builder.pop_scope();
         Ok(())
@@ -139,18 +150,18 @@ impl AstVisitor for IrBuilder {
 
         self.ctx.scope_builder.insert(&param.ident.name, NameId::Inst(alloca_addr));
 
-
-        let store_id = self.ctx.build_inst_end_of_cur(
+        self.ctx.build_inst_end_of_cur(
             InstKind::Store(StoreInst { addr: Operand::Inst(alloca_addr), data: Operand::Param(param_id) }),
             IrTy::Void,
         );
-        self.ctx.build_inst_end_of_cur(
-            InstKind::Store(StoreInst {
-                addr: Operand::Inst(alloca_addr),
-                data: Operand::Inst(store_id),
-            }),
-            IrTy::Void,
-        );
+        // todo
+        // self.ctx.build_inst_end_of_cur(
+        //     InstKind::Store(StoreInst {
+        //         addr: Operand::Inst(alloca_addr),
+        //         data: Operand::Inst(store_id),
+        //     }),
+        //     IrTy::Void,
+        // );
         Ok(())
     }
 
@@ -288,7 +299,7 @@ impl AstVisitor for IrBuilder {
             IrTy::Void,
             loop_end_bb);
 
-        self.ctx.set_cur_bb(loop_end_bb);
+        self.ctx.set_cur_bb(nxt_bb);
         Ok(())
     }
 

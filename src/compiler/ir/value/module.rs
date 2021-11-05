@@ -103,23 +103,49 @@ impl Display for Module {
                     Operand::Param(x) => {
                         let ty = &func.get_param(*x).unwrap().ty;
                         let val = map.get(operand).unwrap();
-                        format!("{} {}", ty, val)
+                        format!("{} %{}", ty, val)
                     }
                     Operand::BB(x) => {
                         // format!("{} {}", IrTy::Label, map.get(&Operand::BB(*x)).unwrap())
-                        format!("{} {}", IrTy::Label, x)
+                        format!("{} %{}", IrTy::Label, map.get(operand).unwrap())
                     },
                 }
             };
             for (bb_id, bb) in func.bb_arena.items_iter(func.first_block, None) {
-                writeln!(f, "{}:", cnt)?;
                 id_cnt_map.insert(Operand::BB(bb_id), cnt);
                 cnt += 1;
 
                 let mut inst_ptr = bb.insts_head;
                 while let Some(inst_id) = inst_ptr {
                     let inst = func.get_inst(inst_id).unwrap();
-                    // dbg!(inst.clone());
+                    match &inst.kind {
+                        InstKind::Binary(_) | InstKind::Alloca(_) | InstKind::Load(_) | InstKind::GEP(_) | InstKind::ZExt(_) => {
+                            id_cnt_map.insert(Operand::Inst(inst_id), cnt);
+                            cnt += 1;
+                        }
+                        InstKind::Call(_) => {
+                            match inst.ty {
+                                IrTy::Void => {},
+                                IrTy::Int(_) => {
+                                    id_cnt_map.insert(Operand::Inst(inst_id), cnt);
+                                    cnt += 1;
+                                },
+                                _ => unreachable!()
+                            }
+                        }
+                        _ => {}
+                    }
+                    inst_ptr = inst.next;
+                }
+            }
+
+            for (bb_id, bb) in func.bb_arena.items_iter(func.first_block, None) {
+                writeln!(f, "{}:", id_cnt_map.get(&Operand::BB(bb_id)).unwrap())?;
+
+                let mut inst_ptr = bb.insts_head;
+                while let Some(inst_id) = inst_ptr {
+                    let inst = func.get_inst(inst_id).unwrap();
+                    write!(f, "\t");
                     match &inst.kind {
                         InstKind::Binary(binary_inst) => {
                             let op = match binary_inst.op {
@@ -137,9 +163,7 @@ impl Display for Module {
                                 BinaryInstOp::And => todo!(),
                                 BinaryInstOp::Or => todo!(),
                             };
-                            writeln!(f, "%{} = {} {}, {}", cnt, op, print_operand(&id_cnt_map, &binary_inst.left), print_operand(&id_cnt_map, &binary_inst.right))?;
-                            id_cnt_map.insert(Operand::Inst(inst_id), cnt);
-                            cnt += 1;
+                            writeln!(f, "%{} = {} {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), op, print_operand(&id_cnt_map, &binary_inst.left), print_operand(&id_cnt_map, &binary_inst.right))?;
                         }
                         InstKind::Branch(branch_inst) => {
                             match branch_inst {
@@ -158,33 +182,27 @@ impl Display for Module {
                             };
                         }
                         InstKind::Alloca(alloca_inst) => {
-                            writeln!(f, "%{} = alloca {}", cnt, alloca_inst.alloca_ty)?;
-                            id_cnt_map.insert(Operand::Inst(inst_id), cnt);
-                            cnt += 1;
+                            writeln!(f, "%{} = alloca {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), alloca_inst.alloca_ty)?;
                         }
                         InstKind::Load(load_inst) => {
-                            writeln!(f, "%{} = load {}, {}", cnt, inst.ty, print_operand(&id_cnt_map, &load_inst.addr))?;
-                            id_cnt_map.insert(Operand::Inst(inst_id), cnt);
-                            cnt += 1;
+                            writeln!(f, "%{} = load {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), inst.ty, print_operand(&id_cnt_map, &load_inst.addr))?;
                         }
                         InstKind::Store(store_inst) => {
                             writeln!(f, "store {}, {}", print_operand(&id_cnt_map, &store_inst.data), print_operand(&id_cnt_map, &store_inst.addr))?;
                         }
                         InstKind::GEP(gep_inst) => {
                             let indices_str = gep_inst.indices.iter().map(|x| print_operand(&id_cnt_map, x)).join(", ");
-                            writeln!(f, "%{} = getelementptr {}, {}, {}", cnt, inst.ty, print_operand(&id_cnt_map, &gep_inst.ptr), indices_str)?
+                            writeln!(f, "%{} = getelementptr {}, {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), inst.ty, print_operand(&id_cnt_map, &gep_inst.ptr), indices_str)?
                         }
                         InstKind::ZExt(zext_inst) => {
-                            writeln!(f, "%{} = zext {} to {}", cnt, print_operand(&id_cnt_map, &zext_inst.ori_val), zext_inst.target_ty)?
+                            writeln!(f, "%{} = zext {} to {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), print_operand(&id_cnt_map, &zext_inst.ori_val), zext_inst.target_ty)?
                         }
                         InstKind::Call(call_inst) => {
                             let callee = self.func_arena.get(call_inst.func).unwrap();
                             match inst.ty {
-                                IrTy::Void => write!(f, "call void")?,
+                                IrTy::Void => write!(f, "call void ")?,
                                 IrTy::Int(_) => {
-                                    write!(f, "%{} = call", cnt)?;
-                                    id_cnt_map.insert(Operand::Inst(inst_id), cnt);
-                                    cnt += 1;
+                                    write!(f, "%{} = call i32 ", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap())?;
                                 },
                                 _ => unreachable!()
                             }

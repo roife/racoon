@@ -110,7 +110,7 @@ pub struct BCTarget {
 pub struct Context {
     pub scope_builder: ScopeBuilder<NameId>,
     pub cur_module: Module,
-    cur_func: FuncId,
+    pub cur_func: FuncId,
     cur_bb: BBId,
 }
 
@@ -178,6 +178,10 @@ impl Context {
 
     pub fn build_func_param(&mut self, ty: IrTy) -> ParamId {
         self.get_cur_func_mut().build_func_param(ty)
+    }
+
+    pub fn set_bb_after(&mut self, after: BBId, cur: BBId) {
+        self.get_cur_func_mut().set_bb_after_cur(after, cur);
     }
 }
 
