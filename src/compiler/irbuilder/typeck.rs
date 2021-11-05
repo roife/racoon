@@ -237,15 +237,16 @@ impl AstVisitorMut for TypeChecker {
 
             let init_val =
                 if let Some(init_expr) = &mut sub_decl.init_expr {
-                    let expr = init_expr.kind.as_expr_mut()
-                        .ok_or(SemanticError::TypeMismatch {
-                            expected: String::from("Expression"),
-                            found: AstTy::Unknown,
-                        })?;
-
-                    let val = self.visit_expr(expr)?;
-                    assert_type_eq(&base_ty, &expr.ty())?;
-                    val
+                    todo!()
+                    // let expr = init_expr.kind.as_expr_mut()
+                    //     .ok_or(SemanticError::TypeMismatch {
+                    //         expected: String::from("Expression"),
+                    //         found: AstTy::Unknown,
+                    //     })?;
+                    //
+                    // let val = self.visit_expr(expr)?;
+                    // assert_type_eq(&base_ty, &expr.ty())?;
+                    // val
                 } else {
                     None
                 };

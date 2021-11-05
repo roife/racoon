@@ -96,7 +96,7 @@ impl Display for Module {
                         }
                     }
                     Operand::Global(x) => {
-                        let ty = &self.global_arena.get(*x).unwrap().ty;
+                        let ty = IrTy::ptr_of(self.global_arena.get(*x).unwrap().ty.clone());
                         let val = &self.global_arena.get(*x).unwrap().name;
                         format!("{} @{}", ty, val)
                     }
@@ -192,7 +192,15 @@ impl Display for Module {
                         }
                         InstKind::GEP(gep_inst) => {
                             let indices_str = gep_inst.indices.iter().map(|x| print_operand(&id_cnt_map, x)).join(", ");
-                            writeln!(f, "%{} = getelementptr {}, {}, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), inst.ty, print_operand(&id_cnt_map, &gep_inst.ptr), indices_str)?
+                            let ty = match &gep_inst.ptr {
+                                Operand::Inst(inst) => func.get_inst(*inst).unwrap().ty.clone(),
+                                Operand::Constant(c) => c.get_ty(),
+                                Operand::Global(g) => self.global_arena.get(*g).unwrap().ty.clone(),
+                                Operand::Param(p) => func.get_param(*p).unwrap().ty.clone(),
+                                Operand::BB(_) => IrTy::Label,
+                            };
+                            // todo
+                            writeln!(f, "%{} = getelementptr {}, {}, i32 0, {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), ty.clone(), print_operand(&id_cnt_map, &gep_inst.ptr), indices_str)?
                         }
                         InstKind::ZExt(zext_inst) => {
                             writeln!(f, "%{} = zext {} to {}", id_cnt_map.get(&Operand::Inst(inst_id)).unwrap(), print_operand(&id_cnt_map, &zext_inst.ori_val), zext_inst.target_ty)?

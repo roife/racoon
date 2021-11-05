@@ -369,7 +369,7 @@ impl AstVisitor for IrBuilder {
                 ptr: addr,
                 indices
             };
-            addr = Operand::from(self.ctx.build_inst_end_of_cur(InstKind::GEP(gep), lval.ty.clone().into()));
+            addr = Operand::from(self.ctx.build_inst_end_of_cur(InstKind::GEP(gep), IrTy::ptr_of(lval.ty.clone().into())));
         }
 
         if is_lvalue || matches!(lval.ty, AstTy::Array { .. }) {
