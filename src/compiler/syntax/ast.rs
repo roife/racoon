@@ -282,7 +282,7 @@ pub enum BinaryOp {
     Or,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumAsInner)]
+#[derive(Debug, Clone, Eq, EnumAsInner)]
 pub enum AstTy {
     Unknown,
     Void,
@@ -291,6 +291,23 @@ pub enum AstTy {
     Func { ret_ty: Box<AstTy>, param_tys: Vec<Box<AstTy>> },
     Array { siz: usize, elem_ty: Box<AstTy> },
     Ptr(Box<AstTy>),
+}
+
+impl PartialEq for AstTy {
+    fn eq(&self, other: &Self) -> bool {
+        use AstTy::*;
+        match (self, other) {
+            (Unknown, Unknown) | (Void, Void) | (Int, Int) => true,
+            (Func { ret_ty: ret_ty_x, param_tys: param_tys_x },
+                Func { ret_ty: ret_ty_y, param_tys: param_tys_y }) =>
+                ret_ty_x == ret_ty_y && param_tys_x == param_tys_y,
+            (Array { siz: siz_x, elem_ty: elem_ty_x },
+                Array { siz: siz_y, elem_ty: elem_ty_y }) =>
+                siz_x == siz_y && elem_ty_x == elem_ty_y,
+            (Ptr(x) | Array { elem_ty: x, .. }, Ptr(y) | Array { elem_ty: y, .. }) => x == y,
+            _ => false
+        }
+    }
 }
 
 impl TokenType {

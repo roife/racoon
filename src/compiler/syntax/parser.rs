@@ -121,7 +121,7 @@ impl<T> Parser<T>
         Ok(SubDecl {
             ident: lvalue.ident,
             subs: lvalue.subs,
-            init_val: init_val,
+            init_val,
             span,
             ty: AstTy::Unknown,
         })
@@ -476,7 +476,7 @@ impl<T> Parser<T>
 
         Ok(LVal {
             ident: name,
-            subs: subs,
+            subs,
             span,
             ty: AstTy::Unknown,
             is_lvalue: false
@@ -490,7 +490,7 @@ impl<T> Parser<T>
             span.end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
             Ok(dim)
         });
-        Ok(Subs { subs: subs, span })
+        Ok(Subs { subs, span })
     }
 
     fn parse_ty(&mut self) -> Result<TypeIdent, ParseError> {

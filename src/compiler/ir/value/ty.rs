@@ -12,16 +12,22 @@ pub enum IrTy {
     Array(usize, Box<IrTy>),
 }
 
+impl Default for IrTy {
+    fn default() -> Self {
+        IrTy::Void
+    }
+}
+
 impl PartialEq<Self> for IrTy {
     fn eq(&self, other: &Self) -> bool {
         use IrTy::*;
         match (self, other) {
             (Void, Void) => true,
             (Int(x), Int(y)) => x == y,
-            (Ptr(x), Ptr(y)) => x.as_ref() == y.as_ref(),
+            (Array(siz1, ty1), Array(siz2, ty2)) => siz1 == siz2 && ty1 == ty2,
+            (Ptr(x) | Array(_, x), Ptr(y) | Array(_, y)) => x.as_ref() == y.as_ref(),
             (Func(x), Func(y)) => x.as_ref() == y.as_ref(),
             (Label, Label) => true,
-            (Array(siz1, ty1), Array(siz2, ty2)) => siz1 == siz2 && ty1 == ty2,
             _ => false,
         }
     }

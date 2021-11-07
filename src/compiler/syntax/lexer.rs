@@ -48,10 +48,10 @@ impl<T> Iterator for StringIter<T>
                 let ret = Some((self.pos, c));
                 match c {
                     '\n' => {
-                        if !self.is_last_cr {
-                            self.pos.move_next_line();
-                        } else {
+                        if self.is_last_cr {
                             self.pos.move_next_idx();
+                        } else {
+                            self.pos.move_next_line();
                         }
                         self.is_last_cr = false;
                     }
@@ -118,7 +118,7 @@ impl<T> Lexer<T>
             'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier_keyword(),
             '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '|' | '&' | '^' | '(' | ')' | '['
             | ']' | '{' | '}' | ',' | ';' => self.lex_operator(),
-            c @ _ => Err(LexError{
+            c => Err(LexError{
                 lex_error_kind: LexErrorKind::UnexpectedCharacter(c),
                 span: self.iter.peek().map_or(Pos::MAX, |(pos, _)| *pos)
             }),

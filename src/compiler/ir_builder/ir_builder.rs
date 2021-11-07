@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::compiler::ir::{
-    arena::BBId,
+    arena::{BBId, InstId},
     value::{
         constant::Constant,
         func::IrFunc,
@@ -11,7 +11,6 @@ use crate::compiler::ir::{
         value::Operand,
     },
 };
-use crate::compiler::ir::arena::InstId;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{ast::*, visitor::AstVisitor};
 
@@ -42,6 +41,72 @@ impl IrBuilder {
 
     pub fn visit(&mut self, program: &Program) -> Result<(), SemanticError> {
         self.visit_program(program)?;
+
+        // getint
+        let func_getint = IrFunc {
+            name: String::from("getint"),
+            ret_ty: IrTy::Int(32),
+            is_builtin: true,
+            params: vec![],
+            ..Default::default()
+        };
+        self.ctx.cur_module.build_func(func_getint);
+
+        // getch
+        let func_getch = IrFunc {
+            name: String::from("getch"),
+            ret_ty: IrTy::Int(32),
+            is_builtin: true,
+            params: vec![],
+            ..Default::default()
+        };
+        self.ctx.cur_module.build_func(func_getch);
+
+        // getarray
+        let mut func_getarray = IrFunc {
+            name: String::from("getarray"),
+            ret_ty: IrTy::Int(32),
+            is_builtin: true,
+            params: vec![],
+            ..Default::default()
+        };
+        func_getarray.build_func_param(IrTy::Array(0, Box::from(IrTy::Int(32))));
+        self.ctx.cur_module.build_func(func_getarray);
+
+        // putint
+        let mut func_putint = IrFunc {
+            name: String::from("putint"),
+            ret_ty: IrTy::Void,
+            is_builtin: true,
+            params: vec![],
+            ..Default::default()
+        };
+        func_putint.build_func_param(IrTy::Int(32));
+        self.ctx.cur_module.build_func(func_putint);
+
+        // putch
+        let mut func_putch = IrFunc {
+            name: String::from("putch"),
+            ret_ty: IrTy::Void,
+            is_builtin: true,
+            params: vec![],
+            ..Default::default()
+        };
+        func_putch.build_func_param(IrTy::Int(32));
+        self.ctx.cur_module.build_func(func_putch);
+
+        // putarray
+        let mut func_putarray = IrFunc {
+            name: String::from("putarray"),
+            ret_ty: IrTy::Int(32),
+            is_builtin: true,
+            params: vec![],
+            ..Default::default()
+        };
+        func_putarray.build_func_param(IrTy::Int(32));
+        func_putarray.build_func_param(IrTy::Array(0, Box::from(IrTy::Int(32))));
+        self.ctx.cur_module.build_func(func_putarray);
+
         Ok(())
     }
 

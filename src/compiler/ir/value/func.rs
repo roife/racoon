@@ -11,7 +11,7 @@ pub struct IrFuncParam {
     pub pos: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct IrFunc {
     pub name: String,
     pub ret_ty: IrTy,

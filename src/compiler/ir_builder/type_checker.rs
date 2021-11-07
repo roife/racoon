@@ -224,7 +224,8 @@ impl AstVisitorMut for TypeChecker {
     fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut param.ty_ident)?;
         let ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
-        param.ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
+        param.ty = AstTy::Ptr(Box::new(ty));
+        // param.ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
         Ok(())
     }
 
@@ -378,7 +379,7 @@ impl AstVisitorMut for TypeChecker {
                         self.visit_expr(sub)?;
                         expect_type!(sub.ty(), AstTy::Int)?;
 
-                        if let AstTy::Array { elem_ty, .. } = cur_ty {
+                        if let AstTy::Array { elem_ty, .. } | AstTy::Ptr(elem_ty) = cur_ty {
                             cur_ty = &elem_ty.as_ref();
                         } else {
                             return Err(SemanticError::TypeMismatch {
@@ -486,7 +487,7 @@ impl AstVisitorMut for TypeChecker {
                     Add | Sub | Mul | Div | Mod | Lt | Le | Gt | Ge | Eq | Ne => String::from("AstTy::Int"),
                     And | Or => String::from("AstTy::Bool"),
                 },
-                found: expr.lhs.ty().into(),
+                found: expr.lhs.ty(),
             })
         }
 
@@ -543,15 +544,17 @@ impl AstVisitorMut for TypeChecker {
             .map(|arg| arg.ty())
             .zip(param_tys)
             .try_for_each(|(expected, found)| {
-                // dbg!(&expected);
-                match found.as_ref() {
-                    AstTy::Int | AstTy::Bool => assert_type_eq(&expected, &found),
-                    AstTy::Array { elem_ty, .. } => {
-                        let expected_sub_ty = expected.as_array().unwrap().1;
-                        assert_type_eq(expected_sub_ty.as_ref(), elem_ty.as_ref())
-                    }
-                    _ => unreachable!()
-                }
+                assert_type_eq(&expected, found)
+                // match found.as_ref() {
+                //     AstTy::Int | AstTy::Bool => assert_type_eq(&expected, &found),
+                //     AstTy::Array { .. } => {
+                //         // todo
+                //         assert_type_eq(&expected, &found)
+                //         // let expected_sub_ty = expected.as_array().unwrap().1;
+                //         // assert_type_eq(expected_sub_ty.as_ref(), elem_ty.as_ref())
+                //     }
+                //     _ => unreachable!()
+                // }
             })?;
 
         expr.ty = ret_ty.as_ref().clone();
@@ -572,7 +575,7 @@ impl AstVisitorMut for TypeChecker {
 fn assert_type_eq(expected: &AstTy, found: &AstTy) -> Result<(), SemanticError> {
     if expected != found {
         return Err(TypeMismatch {
-            expected: String::from(format!("{:?}", expected)),
+            expected: format!("{:?}", expected),
             found: found.clone(),
         });
     }

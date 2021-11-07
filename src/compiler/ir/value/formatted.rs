@@ -78,10 +78,22 @@ impl Display for Module {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // print globals
         for (_, global) in self.global_arena.items_iter(self.first_global, None) {
-            writeln!(f, "@{} = global {}\n", global.name, global.init_val)?;
+            writeln!(f, "@{} = global {}", global.name, global.init_val)?;
+            writeln!(f)?;
         }
 
         for (_, func) in self.func_arena.items_iter(self.first_func, None) {
+            if func.is_builtin {
+                let param_str = func.params.iter()
+                    .map(|&param_id| {
+                        let param = func.get_param(param_id).unwrap();
+                        format!("{}", param.ty)
+                    })
+                    .join(", ");
+                writeln!(f, "declare {} @{}({}) #1", func.ret_ty, func.name, param_str)?;
+                writeln!(f)?;
+                continue;
+            }
             let mut vregs = VRegManager::new(&self, func);
 
             // print params
@@ -217,7 +229,8 @@ impl Display for Module {
                     inst_iter = inst.next;
                 }
             }
-            writeln!(f, "}}\n")?;
+            writeln!(f, "}}")?;
+            writeln!(f)?;
         }
         Ok(())
     }
