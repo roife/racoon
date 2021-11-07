@@ -224,7 +224,7 @@ impl AstVisitorMut for TypeChecker {
     fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut param.ty_ident)?;
         let ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
-        param.ty = ty;
+        param.ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
         Ok(())
     }
 
@@ -542,7 +542,17 @@ impl AstVisitorMut for TypeChecker {
         expr.args.iter()
             .map(|arg| arg.ty())
             .zip(param_tys)
-            .try_for_each(|(found, expected)| assert_type_eq(&found, &expected))?;
+            .try_for_each(|(expected, found)| {
+                // dbg!(&expected);
+                match found.as_ref() {
+                    AstTy::Int | AstTy::Bool => assert_type_eq(&expected, &found),
+                    AstTy::Array { elem_ty, .. } => {
+                        let expected_sub_ty = expected.as_array().unwrap().1;
+                        assert_type_eq(expected_sub_ty.as_ref(), elem_ty.as_ref())
+                    }
+                    _ => unreachable!()
+                }
+            })?;
 
         expr.ty = ret_ty.as_ref().clone();
         Ok(None)
