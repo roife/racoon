@@ -179,9 +179,12 @@ impl Display for Module {
                             let indices = gep_inst.indices.iter()
                                 .map(|x| vregs.print(&x)).join(", ");
                             let ty = match &gep_inst.ptr {
-                                Operand::Inst(inst) => &func.get_inst(*inst).unwrap().ty,
-                                Operand::Global(g) => &self.global_arena.get(*g).unwrap().ty,
-                                Operand::Param(p) => &func.get_param(*p).unwrap().ty,
+                                Operand::Inst(inst) => {
+                                    let ptr = &func.get_inst(*inst).unwrap().ty;
+                                    IrTy::deptr_of(ptr).unwrap()
+                                }
+                                Operand::Global(g) => self.global_arena.get(*g).unwrap().ty.clone(),
+                                Operand::Param(p) => func.get_param(*p).unwrap().ty.clone(),
                                 _ => unreachable!()
                             };
 

@@ -11,6 +11,7 @@ use crate::compiler::ir::{
         value::Operand,
     },
 };
+use crate::compiler::ir::arena::InstId;
 use crate::compiler::span::Span;
 use crate::compiler::syntax::{ast::*, visitor::AstVisitor};
 
@@ -60,8 +61,40 @@ impl IrBuilder {
         Some(self.loop_targets.last()?.continue_target)
     }
 
-    pub fn set_bb_after(&mut self, after: BBId, cur: BBId) {
-        self.ctx.set_bb_after(after, cur);
+    // fn set_bb_after(&mut self, after: BBId, cur: BBId) {
+    //     self.ctx.set_bb_after(after, cur);
+    // }
+
+    fn build_decl_init_val(&mut self, init_val: &InitVal, base_addr: InstId) -> Result<(), SemanticError> {
+        match &init_val.kind {
+            InitValKind::Expr(expr) => {
+                let init_expr_id = self.visit_expr(expr)?;
+
+                let store_inst = StoreInst {
+                    addr: base_addr.into(),
+                    data: init_expr_id,
+                };
+                self.ctx.build_inst_end_of_cur(InstKind::Store(store_inst), IrTy::Void);
+            }
+            InitValKind::ArrayVal(array_vals) => {
+                array_vals.iter().enumerate()
+                    .try_for_each(|(idx, val)| {
+                        let gep_inst = GEPInst {
+                            ptr: base_addr.into(),
+                            indices: vec![0.into(), (idx as i32).into()]
+                        };
+                        let ir_ty = IrTy::from(init_val.ty.clone());
+                        let ty = ir_ty.as_array().unwrap().1.as_ref();
+                        let gep_inst_id = self.ctx.build_inst_end_of_cur(
+                            InstKind::GEP(gep_inst),
+                            IrTy::ptr_of(&ty)
+                        );
+                        Self::build_decl_init_val(self, val, gep_inst_id)
+                    })?;
+            }
+            _ => unreachable!(),
+        }
+        Ok(())
     }
 }
 
@@ -201,6 +234,10 @@ impl AstVisitor for IrBuilder {
         }
     }
 
+    fn visit_init_val(&mut self, _init_val: &InitVal) -> Self::StmtResult {
+        Ok(())
+    }
+
     fn visit_decl_stmt(&mut self, decl: &Decl) -> Self::StmtResult {
         for sub_decl in &decl.sub_decls {
             let ty = IrTy::from(sub_decl.ty.clone());
@@ -212,15 +249,8 @@ impl AstVisitor for IrBuilder {
             );
             self.ctx.scope_builder.insert(&sub_decl.ident.name, IdInfo::Inst(alloca_addr));
 
-            // todo
             if let Some(init_val) = &sub_decl.init_val {
-                let init_expr_id = self.visit_expr(init_val.kind.as_expr().unwrap())?;
-
-                let store_inst = StoreInst {
-                    addr: alloca_addr.into(),
-                    data: init_expr_id,
-                };
-                self.ctx.build_inst_end_of_cur(InstKind::Store(store_inst), IrTy::Void);
+                self.build_decl_init_val(init_val, alloca_addr)?;
             }
         }
         Ok(())

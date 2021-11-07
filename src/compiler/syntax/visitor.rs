@@ -24,6 +24,8 @@ pub trait AstVisitor {
 
     fn visit_stmt(&mut self, stmt: &Stmt) -> Self::StmtResult;
 
+    fn visit_init_val(&mut self, init_val: &InitVal) -> Self::StmtResult;
+
     fn visit_decl_stmt(&mut self, decl: &Decl) -> Self::StmtResult;
 
     fn visit_expr_stmt(&mut self, stmt: &Expr) -> Self::StmtResult;
@@ -79,6 +81,8 @@ pub trait AstVisitorMut {
     fn visit_block_stmt(&mut self, stmt: &mut BlockStmt) -> Self::StmtResult;
 
     fn visit_stmt(&mut self, stmt: &mut Stmt) -> Self::StmtResult;
+
+    fn visit_init_val(&mut self, init_val: &mut InitVal) -> Self::StmtResult;
 
     fn visit_decl_stmt(&mut self, decl: &mut Decl) -> Self::StmtResult;
 

@@ -62,7 +62,7 @@ impl IrTy {
         IrTy::Ptr(Box::new(ty.clone()))
     }
 
-    pub fn deptr_of(ty: IrTy) -> Option<IrTy> {
+    pub fn deptr_of(ty: &IrTy) -> Option<IrTy> {
         match ty {
             IrTy::Ptr(x) => Some(x.as_ref().clone()),
             _ => None

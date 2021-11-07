@@ -9,7 +9,6 @@ use itertools::Itertools;
 use crate::compiler::ir::{
     arena::{BBId, FuncId, GlobalId, InstId, ParamId},
     value::{
-        basic_block::BasicBlock,
         constant::Constant,
         func::IrFunc,
         global::Global,
@@ -125,10 +124,10 @@ impl Context {
         self.cur_module.get_func_mut(self.cur_func).unwrap()
     }
 
-    fn get_cur_bb_mut(&mut self) -> &mut BasicBlock {
-        let bb = self.cur_bb;
-        self.get_cur_func_mut().get_bb_mut(bb).unwrap()
-    }
+    // fn get_cur_bb_mut(&mut self) -> &mut BasicBlock {
+    //     let bb = self.cur_bb;
+    //     self.get_cur_func_mut().get_bb_mut(bb).unwrap()
+    // }
 
     pub fn get_func_ty(&self, func: FuncId) -> FuncTy {
         let func_ty = self.cur_module.get_func(func).unwrap().get_ty();

@@ -5,7 +5,7 @@ use crate::compiler::syntax::ast::*;
 use crate::compiler::syntax::visitor::AstVisitorMut;
 
 use super::{
-    context::{TyInfo, ScopeBuilder},
+    context::{ScopeBuilder, TyInfo},
     err::SemanticError::{self, *},
 };
 
@@ -54,6 +54,27 @@ impl TypeChecker {
                 // fix array literal
                 *literal_siz = *ty_siz;
                 literal.ty = expected_ty.clone();
+                Ok(())
+            }
+            _ => assert_type_eq(&expected_ty, &AstTy::Unknown)
+        }
+    }
+
+    fn fix_array_init_val(init_val: &mut InitVal, expected_ty: &AstTy) -> Result<(), SemanticError> {
+        match (&mut init_val.kind, expected_ty) {
+            (InitValKind::Expr(expr), _) => assert_type_eq(&expected_ty, &expr.ty()),
+            (InitValKind::ArrayVal(elem_vals),
+                AstTy::Array { siz: ty_siz, elem_ty })
+            => {
+                if elem_vals.len() > *ty_siz {
+                    return Err(SemanticError::TooMuchElement);
+                }
+
+                elem_vals.iter_mut()
+                    .try_for_each(|x| Self::fix_array_init_val(x, elem_ty))?;
+
+                // fix array init_val
+                init_val.ty = expected_ty.clone();
                 Ok(())
             }
             _ => assert_type_eq(&expected_ty, &AstTy::Unknown)
@@ -109,11 +130,12 @@ impl AstVisitorMut for TypeChecker {
     fn visit_const_init_val(&mut self, init_val: &mut InitVal) -> Self::ConstInitValResult {
         match &mut init_val.kind {
             InitValKind::Expr(x) => {
-                init_val.ty = x.ty();
-                match self.visit_expr(x)? {
+                let literal = match self.visit_expr(x)? {
                     Some(x) => Ok(x),
                     None => Err(SemanticError::RequireConstant),
-                }
+                };
+                init_val.ty = x.ty();
+                literal
             }
             InitValKind::ArrayVal(vals) => {
                 let literals: Vec<_> = vals.iter_mut()
@@ -229,29 +251,39 @@ impl AstVisitorMut for TypeChecker {
         }
     }
 
+    fn visit_init_val(&mut self, init_val: &mut InitVal) -> Self::StmtResult {
+        match &mut init_val.kind {
+            InitValKind::Expr(expr) => {
+                if let Some(literal) = self.visit_expr(expr)? {
+                    init_val.ty = expr.ty();
+                    init_val.kind = InitValKind::Expr(Expr::Literal(literal));
+                }
+            }
+            InitValKind::ArrayVal(vals) => {
+                vals.iter_mut()
+                    .try_for_each(|x| self.visit_init_val(x))?;
+            }
+            _ => unreachable!()
+        }
+        Ok(())
+    }
+
     fn visit_decl_stmt(&mut self, decl: &mut Decl) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut decl.ty_ident)?;
 
         for sub_decl in decl.sub_decls.iter_mut() {
             let ty = self.build_ast_ty(&base_ty, &mut sub_decl.subs)?;
 
-            let init_val =
-                if let Some(init_expr) = &mut sub_decl.init_val {
-                    // todo!()
-                    let expr = init_expr.kind.as_expr_mut()
-                        .ok_or(SemanticError::TypeMismatch {
-                            expected: String::from("Expression"),
-                            found: AstTy::Unknown,
-                        })?;
-
-                    let val = self.visit_expr(expr)?;
-                    assert_type_eq(&base_ty, &expr.ty())?;
-                    val
-                } else {
-                    None
+            if let Some(init_val) = &mut sub_decl.init_val {
+                self.visit_init_val(init_val)?;
+                match ty {
+                    AstTy::Int => assert_type_eq(&ty, &init_val.ty)?,
+                    AstTy::Array { .. } => Self::fix_array_init_val(init_val, &ty)?,
+                    _ => unreachable!()
                 };
+            }
 
-            if decl.is_const && init_val.is_none() {
+            if decl.is_const && sub_decl.init_val.is_none() {
                 return Err(SemanticError::RequireConstant);
             }
 
@@ -259,8 +291,8 @@ impl AstVisitorMut for TypeChecker {
 
             let ty_info = TyInfo {
                 ty,
-                const_val: init_val,
-                is_const: decl.is_const
+                const_val: None,
+                is_const: decl.is_const,
             };
             self.scopes.insert(&sub_decl.ident.name, ty_info);
         }
@@ -464,7 +496,6 @@ impl AstVisitorMut for TypeChecker {
         };
         expr.ty = result_ty.clone();
 
-        // dbg!(&expr.clone());
         let result_val = if let (
             Expr::Literal(LiteralExpr { kind: LiteralKind::Integer(lval), span: lspan, .. }),
             Expr::Literal(LiteralExpr { kind: LiteralKind::Integer(rval), span: rspan, .. })
