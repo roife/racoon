@@ -129,9 +129,9 @@ impl Context {
     //     self.get_cur_func_mut().get_bb_mut(bb).unwrap()
     // }
 
-    pub fn get_func_ty(&self, func: FuncId) -> FuncTy {
+    pub fn get_func_ty(&self, func: FuncId) -> &FuncTy {
         let func_ty = self.cur_module.get_func(func).unwrap().get_ty();
-        *func_ty.into_func().unwrap()
+        func_ty.as_func().unwrap()
     }
 
     pub fn set_cur_bb(&mut self, bb: BBId) {
@@ -175,17 +175,17 @@ impl Context {
     pub fn set_bb_after(&mut self, after: BBId, cur: BBId) {
         self.get_cur_func_mut().set_bb_after_cur(after, cur);
     }
-
-    pub fn get_operand_ty(&self, operand: &Operand) -> &IrTy {
-        let cur_func = self.cur_module.get_func(self.cur_func).unwrap();
-        match operand {
-            Operand::Inst(inst) => &cur_func.get_inst(*inst).unwrap().ty,
-            Operand::Global(g) => &self.cur_module.global_arena.get(*g).unwrap().ty,
-            Operand::Param(p) => &cur_func.get_param(*p).unwrap().ty,
-            Operand::Const(c) => &c.get_ty(),
-            Operand::BB(_) => &IrTy::Label
-        }
-    }
+    
+    // pub fn get_operand_ty<'a>(&'a self, operand: &'a Operand) -> &'a IrTy {
+    //     let cur_func = self.cur_module.get_func(self.cur_func).unwrap();
+    //     match operand {
+    //         Operand::Inst(inst) => &cur_func.get_inst(*inst).unwrap().ty,
+    //         Operand::Global(g) => &self.cur_module.global_arena.get(*g).unwrap().ty,
+    //         Operand::Param(p) => &cur_func.get_param(*p).unwrap().ty,
+    //         Operand::Const(c) => &c.get_ty(),
+    //         Operand::BB(_) => &IrTy::Label
+    //     }
+    // }
 }
 
 #[derive(Debug, Clone)]

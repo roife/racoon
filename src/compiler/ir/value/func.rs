@@ -16,7 +16,7 @@ pub struct IrFunc {
     pub ret_ty: IrTy,
     pub is_builtin: bool,
     pub params: Vec<ParamId>,
-    pub ty: IrTy,
+    ty: IrTy,
 
     pub first_block: Option<BBId>,
 
@@ -58,11 +58,11 @@ impl IrFunc {
     pub fn new(name: &str, ret_ty: IrTy, is_builtin: bool) -> IrFunc {
         IrFunc {
             name: String::from(name),
-            ret_ty,
+            ret_ty: ret_ty.clone(),
             is_builtin,
             params: vec![],
             first_block: None,
-            ty: IrTy::func_of(ret_ty.clone(), vec![]),
+            ty: IrTy::func_of(ret_ty, vec![]),
 
             param_arena: SlotMap::with_key(),
             inst_arena: SlotMap::with_key(),
@@ -74,7 +74,7 @@ impl IrFunc {
     }
 
     pub fn build_func_param(&mut self, ty: IrTy) -> ParamId {
-        self.ty.as_func().unwrap().params_ty.push(ty.clone());
+        self.ty.as_func_mut().unwrap().params_ty.push(ty.clone());
         let pos = self.params.len();
         let param = IrFuncParam { ty, pos };
         let param_id = self.param_arena.insert(param);
