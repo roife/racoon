@@ -22,12 +22,11 @@ impl PartialEq<Self> for IrTy {
     fn eq(&self, other: &Self) -> bool {
         use IrTy::*;
         match (self, other) {
-            (Void, Void) => true,
+            (Void, Void) | (Label, Label) => true,
             (Int(x), Int(y)) => x == y,
             (Array(siz1, ty1), Array(siz2, ty2)) => siz1 == siz2 && ty1 == ty2,
             (Ptr(x) | Array(_, x), Ptr(y) | Array(_, y)) => x.as_ref() == y.as_ref(),
             (Func(x), Func(y)) => x.as_ref() == y.as_ref(),
-            (Label, Label) => true,
             _ => false,
         }
     }
@@ -82,7 +81,7 @@ impl Display for IrTy {
             IrTy::Void => String::from("void"),
             IrTy::Int(x) => format!("i{}", x),
             IrTy::Ptr(t) => format!("{}*", t),
-            IrTy::Label => format!("label"),
+            IrTy::Label => String::from("label"),
             IrTy::Array(dim_size, elem_ty) => format!("[{} x {}]", dim_size, elem_ty),
             _ => unreachable!()
         };

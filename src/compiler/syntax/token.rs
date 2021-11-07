@@ -7,6 +7,18 @@ use crate::compiler::span::Span;
 
 use super::err::LexError;
 
+#[derive(Clone)]
+pub struct Token {
+    pub token_type: TokenType,
+    pub span: Span,
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.token_type)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Hash, Clone, EnumAsInner)]
 pub enum TokenType {
     Ident(String),
@@ -24,16 +36,4 @@ pub enum TokenType {
     LParen, RParen, LBracket, RBracket, LBrace, RBrace,
     Comment(String),
     Err(Rc<LexError>)
-}
-
-#[derive(Clone)]
-pub struct Token {
-    pub token_type: TokenType,
-    pub span: Span,
-}
-
-impl Debug for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.token_type)
-    }
 }

@@ -115,7 +115,7 @@ impl<T> Lexer<T>
 
         let token_result = match c {
             '0'..='9' => self.lex_number(),
-            'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier_keyword(),
+            'a'..='z' | 'A'..='Z' | '_' => Ok(self.lex_identifier_keyword()),
             '+' | '-' | '*' | '/' | '%' | '<' | '>' | '=' | '!' | '|' | '&' | '^' | '(' | ')' | '['
             | ']' | '{' | '}' | ',' | ';' => self.lex_operator(),
             c => Err(LexError{
@@ -182,7 +182,7 @@ impl<T> Lexer<T>
         }
     }
 
-    fn lex_identifier_keyword(&mut self) -> LexResult {
+    fn lex_identifier_keyword(&mut self) -> Token {
         let start = self.iter.peek().unwrap().0;
 
         let mut ident = String::new();
@@ -204,10 +204,10 @@ impl<T> Lexer<T>
             "return" => TokenType::ReturnKw,
             _ => TokenType::Ident(ident),
         };
-        Ok(Token{
+        Token{
             token_type,
             span: Span { start, end }
-        })
+        }
     }
 
     fn lex_operator(&mut self) -> LexResult {
@@ -302,9 +302,8 @@ impl<T> Lexer<T>
             loop {
                 let c = self.iter.next();
                 match c {
-                    Some((_, '\r' | '\n' | '\0')) => break,
+                    Some((_, '\r' | '\n' | '\0')) | None => break,
                     Some((_, c)) => comment.push(c),
-                    None => break,
                 }
             }
         }

@@ -57,7 +57,7 @@ pub trait IntrusiveLinkedList<Key>
         }
         if let Some(next_idx) = next_idx {
             let next = self.get_item_mut(next_idx);
-            next.set_prev(prev_idx)
+            next.set_prev(prev_idx);
         }
     }
 

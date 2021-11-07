@@ -12,13 +12,10 @@ use super::{
 macro_rules! expect_token {
     ($self:expr, $pat:pat) => {
         $self.next_if(|token| matches!(token.token_type, $pat))
-        .map_or(
-            Err(ParseError {
-                parse_error_kind: ParseErrorKind::ExpectedPattern(stringify!($pat).to_owned()),
-                span: $self.peek().map_or(Span::MAX, |x| x.span),
-            }),
-            |token| Ok(token)
-        )
+        .ok_or(ParseError {
+            parse_error_kind: ParseErrorKind::ExpectedPattern(stringify!($pat).to_owned()),
+            span: $self.peek().map_or(Span::MAX, |x| x.span),
+        })
     };
 }
 
@@ -135,7 +132,7 @@ impl<T> Parser<T>
                 vec![]
             } else {
                 parse_separate_match!(self.iter, TokenType::Comma, {
-                    Ok(self.parse_init_val()?)
+                    self.parse_init_val()
                 })
             };
 
@@ -339,7 +336,7 @@ impl<T> Parser<T>
     fn parse_expr_stmt(&mut self) -> Result<Expr, ParseError> {
         let expr = self.parse_expr()?;
         expect_token!(self.iter, TokenType::Semicolon)?;
-        return Ok(expr);
+        Ok(expr)
     }
 
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
@@ -400,7 +397,7 @@ impl<T> Parser<T>
     fn parse_unary_expr(&mut self) -> Result<Expr, ParseError> {
         let mut pre_op_tokens = vec![];
         while self.iter.peek().map_or(false, |x| x.token_type.is_unary_op()) {
-            pre_op_tokens.push(self.iter.next().unwrap())
+            pre_op_tokens.push(self.iter.next().unwrap());
         }
 
         let mut expr_item = self.parse_expr_item()?;

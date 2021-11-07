@@ -13,6 +13,7 @@ pub enum Constant {
 }
 
 impl Constant {
+    #[must_use]
     pub fn build_zero(ty: &IrTy) -> Constant {
         match ty {
             IrTy::Int(_) => Self::Int(0),
@@ -27,9 +28,8 @@ impl Constant {
 
 impl PartialEq for Constant {
     fn eq(&self, other: &Self) -> bool {
-        use Constant::*;
         match (self, other) {
-            (Int(x), Int(y)) => x == y,
+            (Self::Int(x), Self::Int(y)) => x == y,
             _ => false
         }
     }
@@ -39,7 +39,7 @@ impl Value for Constant {
     fn get_ty(&self) -> &IrTy {
         match self {
             Constant::Int(_) => &IrTy::Int(32),
-            Constant::Array { ty, .. } => &ty,
+            Constant::Array { ty, .. } => ty,
         }
     }
 }

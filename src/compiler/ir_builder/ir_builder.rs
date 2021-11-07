@@ -117,7 +117,7 @@ impl IrBuilder {
                         };
                         let gep_inst_id = self.ctx.build_inst_end_of_cur(
                             InstKind::GEP(gep_inst),
-                            IrTy::ptr_of(&ty)
+                            IrTy::ptr_of(ty)
                         );
                         Self::build_decl_init_val(self, val, gep_inst_id)
                     })?;
@@ -216,7 +216,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
         let ty = IrTy::from(param.ty.clone());
-        let param_id = self.ctx.build_func_param(ty.clone());
+        let param_id = self.ctx.build_func_param(ty);
         self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Param(param_id));
 
         Ok(())
@@ -289,7 +289,7 @@ impl AstVisitor for IrBuilder {
             if let Some(else_blk) = &stmt.else_block {
                 let else_bb = self.ctx.build_bb_after_cur();
                 self.ctx.set_cur_bb(else_bb);
-                self.visit_stmt(&else_blk)?;
+                self.visit_stmt(else_blk)?;
                 (Some(else_bb), Some(self.ctx.get_cur_bb_id()))
             } else {
                 (None, None)
@@ -404,7 +404,7 @@ impl AstVisitor for IrBuilder {
 
     fn visit_return_stmt(&mut self, stmt: &ReturnStmt) -> Self::StmtResult {
         let val = stmt.val.as_ref()
-            .and_then(|val| Some(self.visit_expr(&val)))
+            .map(|val| self.visit_expr(val))
             .map_or(Ok(None), |r| r.map(Some))?;
 
         let ret_inst = RetInst { val };
@@ -459,7 +459,7 @@ impl AstVisitor for IrBuilder {
             addr = gep.into();
         }
 
-        return if is_lvalue || matches!(lval.ty, AstTy::Array { .. }) {
+        if is_lvalue || matches!(lval.ty, AstTy::Array { .. }) {
             Ok(addr)
         } else {
             let val_id = self.ctx.build_inst_end_of_cur(
@@ -537,13 +537,12 @@ impl AstVisitor for IrBuilder {
     }
 
     fn visit_call_expr(&mut self, expr: &CallExpr) -> Self::ExprResult {
-        let func_id = self.ctx.scope_builder.find_name_rec(&expr.func.name).unwrap()
-            .as_func().unwrap()
-            .clone();
+        let func_id = *self.ctx.scope_builder.find_name_rec(&expr.func.name).unwrap()
+            .as_func().unwrap();
 
         let args = expr.args.iter()
             .map(|x| {
-                let expr_id = self.visit_expr(&x)?;
+                let expr_id = self.visit_expr(x)?;
                 match x.ty() {
                     AstTy::Int | AstTy::Bool | AstTy::Ptr(_) => Ok(expr_id),
                     AstTy::Array { elem_ty, .. } => {

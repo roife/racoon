@@ -23,7 +23,7 @@ impl<'a> VRegManager<'a> {
     pub fn new(module: &'a Module, func: &'a IrFunc) -> VRegManager<'a> {
         VRegManager {
             cnt: 0,
-            map: Default::default(),
+            map: HashMap::default(),
             module,
             func,
         }
@@ -37,7 +37,7 @@ impl<'a> VRegManager<'a> {
     }
 
     pub fn get_vreg(&self, operand: &Operand) -> Option<usize> {
-        self.map.get(operand).map(|x| *x)
+        self.map.get(operand).copied()
     }
 
     pub fn get_vreg_unwrap(&self, operand: &Operand) -> usize {
@@ -94,7 +94,7 @@ impl Display for Module {
                 writeln!(f)?;
                 continue;
             }
-            let mut vregs = VRegManager::new(&self, func);
+            let mut vregs = VRegManager::new(self, func);
 
             // print params
             let param_str = func.params.iter()
@@ -112,8 +112,8 @@ impl Display for Module {
 
                 let mut inst_iter = bb.insts_head;
                 while let Some(inst_id) = inst_iter {
-                    let inst = func.get_inst(inst_id).unwrap();
                     use InstKind::*;
+                    let inst = func.get_inst(inst_id).unwrap();
                     match &inst.kind {
                         Binary(_) | Alloca(_) | Load(_) | GEP(_) | ZExt(_) => {
                             vregs.build_vreg(inst_id.into());
@@ -153,14 +153,14 @@ impl Display for Module {
                         InstKind::Br(branch_inst) => {
                             match branch_inst {
                                 BrInst::Br { cond, true_bb, false_bb } => {
-                                    let cond = vregs.print(&cond);
+                                    let cond = vregs.print(cond);
                                     let true_bb = vregs.print(&Operand::from(*true_bb));
                                     let false_bb = vregs.print(&Operand::from(*false_bb));
-                                    writeln!(f, "br {}, {}, {}", cond, true_bb, false_bb)?
+                                    writeln!(f, "br {}, {}, {}", cond, true_bb, false_bb)?;
                                 }
                                 BrInst::Jump { nxt_bb } => {
                                     let nxt_bb = vregs.print(&Operand::from(*nxt_bb));
-                                    writeln!(f, "br {}", nxt_bb)?
+                                    writeln!(f, "br {}", nxt_bb)?;
                                 }
                             };
                         }
@@ -168,8 +168,8 @@ impl Display for Module {
                             match &return_inst.val {
                                 None => writeln!(f, "ret void")?,
                                 Some(operand) => {
-                                    let ret_val = vregs.print(&operand);
-                                    writeln!(f, "ret {}", ret_val)?
+                                    let ret_val = vregs.print(operand);
+                                    writeln!(f, "ret {}", ret_val)?;
                                 },
                             };
                         }
@@ -189,24 +189,24 @@ impl Display for Module {
                         }
                         InstKind::GEP(gep_inst) => {
                             let indices = gep_inst.indices.iter()
-                                .map(|x| vregs.print(&x)).join(", ");
+                                .map(|x| vregs.print(x)).join(", ");
                             let ty = match &gep_inst.ptr {
                                 Operand::Inst(inst) => &func.get_inst(*inst).unwrap().ty,
                                 Operand::Global(g) => &self.global_arena.get(*g).unwrap().ty,
                                 Operand::Param(p) => &func.get_param(*p).unwrap().ty,
                                 _ => unreachable!()
                             };
-                            let ty = IrTy::deptr_of(&ty).unwrap();
+                            let ty = IrTy::deptr_of(ty).unwrap();
 
                             let dst = vregs.get_vreg_unwrap(&Operand::from(inst_id));
                             let addr = vregs.print(&gep_inst.ptr);
 
-                            writeln!(f, "%{} = getelementptr {}, {}, {}", dst, ty, addr, indices)?
+                            writeln!(f, "%{} = getelementptr {}, {}, {}", dst, ty, addr, indices)?;
                         }
                         InstKind::ZExt(zext_inst) => {
                             let dst = vregs.get_vreg_unwrap(&Operand::from(inst_id));
                             let src = vregs.print(&zext_inst.ori_val);
-                            writeln!(f, "%{} = zext {} to {}", dst, src, zext_inst.target_ty)?
+                            writeln!(f, "%{} = zext {} to {}", dst, src, zext_inst.target_ty)?;
                         }
                         InstKind::Call(call_inst) => {
                             let callee = self.func_arena.get(call_inst.func_id).unwrap();
@@ -219,9 +219,9 @@ impl Display for Module {
                                 _ => unreachable!()
                             }
                             let args_str = call_inst.args.iter()
-                                .map(|x| vregs.print(&x))
+                                .map(|x| vregs.print(x))
                                 .join(", ");
-                            writeln!(f, "@{}({})", callee.name, args_str)?
+                            writeln!(f, "@{}({})", callee.name, args_str)?;
                         }
                     }
                     inst_iter = inst.next;

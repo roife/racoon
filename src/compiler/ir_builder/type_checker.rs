@@ -56,13 +56,13 @@ impl TypeChecker {
                 literal.ty = expected_ty.clone();
                 Ok(())
             }
-            _ => assert_type_eq(&expected_ty, &AstTy::Unknown)
+            _ => assert_type_eq(expected_ty, &AstTy::Unknown)
         }
     }
 
     fn fix_array_init_val(init_val: &mut InitVal, expected_ty: &AstTy) -> Result<(), SemanticError> {
         match (&mut init_val.kind, expected_ty) {
-            (InitValKind::Expr(expr), _) => assert_type_eq(&expected_ty, &expr.ty()),
+            (InitValKind::Expr(expr), _) => assert_type_eq(expected_ty, &expr.ty()),
             (InitValKind::ArrayVal(elem_vals),
                 AstTy::Array { siz: ty_siz, elem_ty })
             => {
@@ -77,13 +77,13 @@ impl TypeChecker {
                 init_val.ty = expected_ty.clone();
                 Ok(())
             }
-            _ => assert_type_eq(&expected_ty, &AstTy::Unknown)
+            _ => assert_type_eq(expected_ty, &AstTy::Unknown)
         }
     }
 
     fn build_ast_ty(&mut self, base_ty: &AstTy, subs: &mut Option<Subs>) -> Result<AstTy, SemanticError> {
         if subs.is_some() {
-            for sub in subs.as_mut().unwrap().subs.iter_mut() {
+            for sub in &mut subs.as_mut().unwrap().subs {
                 let literal = self.visit_expr(sub)?
                     .ok_or(SemanticError::RequireConstant)?;
 
@@ -154,7 +154,7 @@ impl AstVisitorMut for TypeChecker {
     fn visit_global_decl(&mut self, decl: &mut Decl) -> Self::StmtResult {
         let ty = self.visit_ty(&mut decl.ty_ident)?;
 
-        for sub_decl in decl.sub_decls.iter_mut() {
+        for sub_decl in &mut decl.sub_decls {
             let ty = self.build_ast_ty(&ty, &mut sub_decl.subs)?;
 
             let init_val = if let Some(init_val) = &mut sub_decl.init_val {
@@ -193,12 +193,12 @@ impl AstVisitorMut for TypeChecker {
         ast_func.params.iter_mut()
             .try_for_each(|param| self.visit_func_param(param))?;
         let param_tys = ast_func.params.iter()
-            .map(|x| Box::new(x.ty.clone()))
+            .map(|x| x.ty.clone())
             .collect();
 
         let func_ty = AstTy::Func { ret_ty: Box::new(ret_ty), param_tys };
         let func_info = TyInfo {
-            ty: func_ty.clone(),
+            ty: func_ty,
             const_val: None,
             is_const: false,
         };
@@ -206,7 +206,7 @@ impl AstVisitorMut for TypeChecker {
             .ok_or(SemanticError::DuplicateName(ast_func.ident.name.clone()))?;
 
         self.scopes.push_scope();
-        for param in ast_func.params.iter() {
+        for param in &ast_func.params {
             let param_info = TyInfo {
                 ty: param.ty.clone(),
                 const_val: None,
@@ -272,7 +272,7 @@ impl AstVisitorMut for TypeChecker {
     fn visit_decl_stmt(&mut self, decl: &mut Decl) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut decl.ty_ident)?;
 
-        for sub_decl in decl.sub_decls.iter_mut() {
+        for sub_decl in &mut decl.sub_decls {
             let ty = self.build_ast_ty(&base_ty, &mut sub_decl.subs)?;
 
             if let Some(init_val) = &mut sub_decl.init_val {
@@ -380,7 +380,7 @@ impl AstVisitorMut for TypeChecker {
                         expect_type!(sub.ty(), AstTy::Int)?;
 
                         if let AstTy::Array { elem_ty, .. } | AstTy::Ptr(elem_ty) = cur_ty {
-                            cur_ty = &elem_ty.as_ref();
+                            cur_ty = elem_ty.as_ref();
                         } else {
                             return Err(SemanticError::TypeMismatch {
                                 expected: String::from("ArrayType"),
@@ -541,7 +541,7 @@ impl AstVisitorMut for TypeChecker {
             .ok_or(SemanticError::ExpectedFunction(func_name.clone()))?;
 
         expr.args.iter()
-            .map(|arg| arg.ty())
+            .map(Expr::ty)
             .zip(param_tys)
             .try_for_each(|(expected, found)| {
                 assert_type_eq(&expected, found)

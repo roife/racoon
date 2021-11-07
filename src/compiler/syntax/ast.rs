@@ -104,10 +104,8 @@ impl Stmt {
             Stmt::Block(v) => v.span,
             Stmt::If(v) => v.span,
             Stmt::While(v) => v.span,
-            Stmt::Break(span) => *span,
-            Stmt::Continue(span) => *span,
+            Stmt::Break(span) | Stmt::Empty(span) | Stmt::Continue(span) => *span,
             Stmt::Return(v) => v.span,
-            Stmt::Empty(span) => *span
         }
     }
 }
@@ -191,7 +189,7 @@ pub enum LiteralKind {
 
 impl LiteralExpr {
     pub fn get_int(&self) -> Option<i32> {
-        self.kind.as_integer().and_then(|x| Some(*x))
+        self.kind.as_integer().copied()
     }
 }
 
@@ -288,14 +286,14 @@ pub enum AstTy {
     Void,
     Int,
     Bool,
-    Func { ret_ty: Box<AstTy>, param_tys: Vec<Box<AstTy>> },
+    Func { ret_ty: Box<AstTy>, param_tys: Vec<AstTy> },
     Array { siz: usize, elem_ty: Box<AstTy> },
     Ptr(Box<AstTy>),
 }
 
 impl PartialEq for AstTy {
     fn eq(&self, other: &Self) -> bool {
-        use AstTy::*;
+        use AstTy::{Array, Func, Int, Ptr, Unknown, Void};
         match (self, other) {
             (Unknown, Unknown) | (Void, Void) | (Int, Int) => true,
             (Func { ret_ty: ret_ty_x, param_tys: param_tys_x },

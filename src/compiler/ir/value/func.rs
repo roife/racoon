@@ -42,7 +42,7 @@ impl IntrusiveLinkedListItem for IrFunc {
     }
 
     fn set_next(&mut self, key: Option<Self::Key>) {
-        self.next = key
+        self.next = key;
     }
 
     fn prev(&self) -> Option<Self::Key> {
@@ -50,7 +50,7 @@ impl IntrusiveLinkedListItem for IrFunc {
     }
 
     fn set_prev(&mut self, key: Option<Self::Key>) {
-        self.prev = key
+        self.prev = key;
     }
 }
 

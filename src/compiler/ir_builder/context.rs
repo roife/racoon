@@ -111,8 +111,8 @@ impl Context {
         Context {
             scope_builder: ScopeBuilder::new(),
             cur_module: Module::new(),
-            cur_func: Default::default(),
-            cur_bb: Default::default(),
+            cur_func: FuncId::default(),
+            cur_bb: BBId::default(),
         }
     }
 
@@ -175,7 +175,7 @@ impl Context {
     pub fn set_bb_after(&mut self, after: BBId, cur: BBId) {
         self.get_cur_func_mut().set_bb_after_cur(after, cur);
     }
-    
+
     // pub fn get_operand_ty<'a>(&'a self, operand: &'a Operand) -> &'a IrTy {
     //     let cur_func = self.cur_module.get_func(self.cur_func).unwrap();
     //     match operand {
@@ -204,7 +204,7 @@ impl From<AstTy> for IrTy {
             AstTy::Func { ret_ty, param_tys: params } => IrTy::Func(Box::new(
                 FuncTy {
                     ret_ty: (*ret_ty).into(),
-                    params_ty: params.into_iter().map(|x| (*x).into()).collect(),
+                    params_ty: params.into_iter().map(|x| x.into()).collect(),
                 }
             )),
             AstTy::Array { siz, elem_ty } => IrTy::Array(
@@ -222,7 +222,7 @@ impl From<LiteralExpr> for Constant {
             LiteralKind::Integer(x) => Constant::from(x),
             LiteralKind::Array(_, vals) => {
                 let vals = vals.into_iter()
-                    .map(|x| Constant::from(x))
+                    .map(Constant::from)
                     .collect_vec();
                 Constant::Array {
                     ty: literal.ty.into(),
