@@ -181,9 +181,18 @@ impl<T> Parser<T>
         let name = self.parse_ident()?;
         let param_start = name.span.start;
         let mut param_end = name.span.end;
-        let subs = if next_if_match!(self.iter, TokenType::LBracket) {
-            expect_token!(self.iter, TokenType::RBracket)?;
-            let subs = self.parse_subs()?;
+        let subs = if is_next!(self.iter, TokenType::LBracket) {
+            let span = Span {
+                start: expect_token!(self.iter, TokenType::LBracket)?.span.start,
+                end: expect_token!(self.iter, TokenType::RBracket)?.span.end,
+            };
+            let subs = if is_next!(self.iter, TokenType::LBracket) {
+                let mut subs = self.parse_subs()?;
+                subs.span.start = span.start;
+                subs
+            } else {
+                Subs { subs: vec![], span }
+            };
             param_end = subs.span.end;
             Some(subs)
         } else {
@@ -449,7 +458,11 @@ impl<T> Parser<T>
     fn parse_func_call(&mut self, func: Ident) -> Result<CallExpr, ParseError> {
         let start = func.span.start;
         expect_token!(self.iter, TokenType::LParen)?;
-        let params = parse_separate_match!(self.iter,TokenType::Comma,self.parse_expr());
+        let params = if is_next!(self.iter, TokenType::RParen) {
+            vec![]
+        } else {
+            parse_separate_match!(self.iter, TokenType::Comma, self.parse_expr())
+        };
         let end = expect_token!(self.iter, TokenType::RParen)?.span.end;
 
         Ok(CallExpr {
@@ -481,7 +494,7 @@ impl<T> Parser<T>
     }
 
     fn parse_subs(&mut self) -> Result<Subs, ParseError> {
-        let mut span = expect_token!(self.iter, TokenType::LBracket).unwrap().span;
+        let mut span = expect_token!(self.iter, TokenType::LBracket)?.span;
         let subs = parse_separate_match!(self.iter, TokenType::LBracket, {
             let dim = self.parse_expr()?;
             span.end = expect_token!(self.iter, TokenType::RBracket)?.span.end;
