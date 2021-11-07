@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use slotmap::SlotMap;
 
 use crate::compiler::intrusive_linkedlist::{IntrusiveLinkedList, IntrusiveLinkedListItem};
@@ -17,6 +16,7 @@ pub struct IrFunc {
     pub ret_ty: IrTy,
     pub is_builtin: bool,
     pub params: Vec<ParamId>,
+    pub ty: IrTy,
 
     pub first_block: Option<BBId>,
 
@@ -29,11 +29,8 @@ pub struct IrFunc {
 }
 
 impl Value for IrFunc {
-    fn get_ty(&self) -> IrTy {
-        let param_tys = self.params.iter()
-            .map(|param_id| self.param_arena.get(*param_id).unwrap().ty.clone())
-            .collect_vec();
-        IrTy::func_of(self.ret_ty.clone(), param_tys)
+    fn get_ty(&self) -> &IrTy {
+        &self.ty
     }
 }
 
@@ -65,6 +62,7 @@ impl IrFunc {
             is_builtin,
             params: vec![],
             first_block: None,
+            ty: IrTy::func_of(ret_ty.clone(), vec![]),
 
             param_arena: SlotMap::with_key(),
             inst_arena: SlotMap::with_key(),
@@ -76,6 +74,7 @@ impl IrFunc {
     }
 
     pub fn build_func_param(&mut self, ty: IrTy) -> ParamId {
+        self.ty.as_func().unwrap().params_ty.push(ty.clone());
         let pos = self.params.len();
         let param = IrFuncParam { ty, pos };
         let param_id = self.param_arena.insert(param);

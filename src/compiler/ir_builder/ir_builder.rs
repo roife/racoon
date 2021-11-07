@@ -144,12 +144,13 @@ impl IrBuilder {
             InitValKind::ArrayVal(array_vals) => {
                 array_vals.iter().enumerate()
                     .try_for_each(|(idx, val)| {
+                        let ir_ty = IrTy::from(init_val.ty.clone());
+                        let ty = ir_ty.as_array().unwrap().1.as_ref();
+
                         let gep_inst = GEPInst {
                             ptr: base_addr.into(),
                             indices: vec![0.into(), (idx as i32).into()]
                         };
-                        let ir_ty = IrTy::from(init_val.ty.clone());
-                        let ty = ir_ty.as_array().unwrap().1.as_ref();
                         let gep_inst_id = self.ctx.build_inst_end_of_cur(
                             InstKind::GEP(gep_inst),
                             IrTy::ptr_of(&ty)
@@ -190,11 +191,7 @@ impl AstVisitor for IrBuilder {
     fn visit_global_decl(&mut self, decl: &Decl) -> Self::StmtResult {
         for sub_decl in &decl.sub_decls {
             let ty = IrTy::from(sub_decl.ty.clone());
-            let ptr_ty = match ty.clone() {
-                int_ty @ IrTy::Int(_) => IrTy::ptr_of(&int_ty),
-                arr_ty @ IrTy::Array(_, _) => arr_ty,
-                _ => unreachable!()
-            };
+            let ptr_ty = IrTy::ptr_of(&ty);
 
             // visit initial value
             let const_init_val = if let Some(init_val) = &sub_decl.init_val {
@@ -256,20 +253,7 @@ impl AstVisitor for IrBuilder {
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
         let ty = IrTy::from(param.ty.clone());
         let param_id = self.ctx.build_func_param(ty.clone());
-
-        let alloca_inst = AllocaInst { alloca_ty: ty.clone() };
-        let alloca_addr = self.ctx.build_inst_end_of_cur(
-            InstKind::Alloca(alloca_inst),
-            IrTy::ptr_of(&ty),
-        );
-
-        self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Inst(alloca_addr));
-
-        let store_inst = StoreInst {
-            addr: alloca_addr.into(),
-            data: param_id.into(),
-        };
-        self.ctx.build_inst_end_of_cur(InstKind::Store(store_inst), IrTy::Void);
+        self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Param(param_id));
 
         Ok(())
     }
@@ -489,8 +473,9 @@ impl AstVisitor for IrBuilder {
         let mut addr = (*self.ctx.scope_builder.find_name_rec(&lval.ident.name).unwrap()).into();
 
         if let Some(Subs { subs, .. }) = &lval.subs {
+            dbg!(&addr);
             let mut indices = vec![0.into()];
-
+            // todo
             for sub in subs.iter() {
                 let idx = self.visit_expr(sub)?;
                 indices.push(idx);
@@ -587,7 +572,26 @@ impl AstVisitor for IrBuilder {
             .clone();
 
         let args = expr.args.iter()
-            .map(|x| self.visit_expr(&x))
+            .map(|x| {
+                let expr_id = self.visit_expr(&x)?;
+                match x.ty() {
+                    AstTy::Int | AstTy::Bool | AstTy::Ptr(_) => Ok(expr_id),
+                    AstTy::Array { elem_ty, .. } => {
+                        let gep_inst = GEPInst {
+                            ptr: expr_id,
+                            // convert array type to ptr
+                            indices: vec![0.into(), 0.into()],
+                        };
+                        let gep_id = self.ctx.build_inst_end_of_cur(
+                            InstKind::GEP(gep_inst),
+                            IrTy::ptr_of(&elem_ty.as_ref().clone().into())
+                        );
+                        Ok(Operand::Inst(gep_id))
+                    }
+                    _ => unreachable!()
+                }
+
+            })
             .try_collect()?;
 
         let ret_ty = self.ctx.get_func_ty(func_id).ret_ty;

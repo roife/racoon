@@ -36,10 +36,10 @@ impl PartialEq for Constant {
 }
 
 impl Value for Constant {
-    fn get_ty(&self) -> IrTy {
+    fn get_ty(&self) -> &IrTy {
         match self {
-            Constant::Int(_) => IrTy::Int(32),
-            Constant::Array { ty, .. } => ty.clone(),
+            Constant::Int(_) => &IrTy::Int(32),
+            Constant::Array { ty, .. } => &ty,
         }
     }
 }

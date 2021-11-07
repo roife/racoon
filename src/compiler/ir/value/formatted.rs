@@ -59,7 +59,7 @@ impl<'a> VRegManager<'a> {
             }
             Operand::Global(x) => {
                 let global = self.module.global_arena.get(*x).unwrap();
-                let ty = IrTy::ptr_of(&global.ty);
+                let ty = &global.ty;
                 let val = &global.name;
                 format!("{} @{}", ty, val)
             }
@@ -191,14 +191,12 @@ impl Display for Module {
                             let indices = gep_inst.indices.iter()
                                 .map(|x| vregs.print(&x)).join(", ");
                             let ty = match &gep_inst.ptr {
-                                Operand::Inst(inst) => {
-                                    let ptr = &func.get_inst(*inst).unwrap().ty;
-                                    IrTy::deptr_of(ptr).unwrap()
-                                }
-                                Operand::Global(g) => self.global_arena.get(*g).unwrap().ty.clone(),
-                                Operand::Param(p) => func.get_param(*p).unwrap().ty.clone(),
+                                Operand::Inst(inst) => &func.get_inst(*inst).unwrap().ty,
+                                Operand::Global(g) => &self.global_arena.get(*g).unwrap().ty,
+                                Operand::Param(p) => &func.get_param(*p).unwrap().ty,
                                 _ => unreachable!()
                             };
+                            let ty = IrTy::deptr_of(&ty).unwrap();
 
                             let dst = vregs.get_vreg_unwrap(&Operand::from(inst_id));
                             let addr = vregs.print(&gep_inst.ptr);

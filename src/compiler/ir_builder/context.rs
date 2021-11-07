@@ -175,6 +175,17 @@ impl Context {
     pub fn set_bb_after(&mut self, after: BBId, cur: BBId) {
         self.get_cur_func_mut().set_bb_after_cur(after, cur);
     }
+
+    pub fn get_operand_ty(&self, operand: &Operand) -> &IrTy {
+        let cur_func = self.cur_module.get_func(self.cur_func).unwrap();
+        match operand {
+            Operand::Inst(inst) => &cur_func.get_inst(*inst).unwrap().ty,
+            Operand::Global(g) => &self.cur_module.global_arena.get(*g).unwrap().ty,
+            Operand::Param(p) => &cur_func.get_param(*p).unwrap().ty,
+            Operand::Const(c) => &c.get_ty(),
+            Operand::BB(_) => &IrTy::Label
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

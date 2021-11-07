@@ -20,8 +20,8 @@ pub struct Inst {
 }
 
 impl Value for Inst {
-    fn get_ty(&self) -> IrTy {
-        self.ty.clone()
+    fn get_ty(&self) -> &IrTy {
+        &self.ty
     }
 }
 

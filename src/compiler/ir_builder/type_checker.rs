@@ -545,16 +545,6 @@ impl AstVisitorMut for TypeChecker {
             .zip(param_tys)
             .try_for_each(|(expected, found)| {
                 assert_type_eq(&expected, found)
-                // match found.as_ref() {
-                //     AstTy::Int | AstTy::Bool => assert_type_eq(&expected, &found),
-                //     AstTy::Array { .. } => {
-                //         // todo
-                //         assert_type_eq(&expected, &found)
-                //         // let expected_sub_ty = expected.as_array().unwrap().1;
-                //         // assert_type_eq(expected_sub_ty.as_ref(), elem_ty.as_ref())
-                //     }
-                //     _ => unreachable!()
-                // }
             })?;
 
         expr.ty = ret_ty.as_ref().clone();

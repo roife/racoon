@@ -16,8 +16,8 @@ pub struct BasicBlock {
 }
 
 impl Value for BasicBlock {
-    fn get_ty(&self) -> IrTy {
-        IrTy::Label
+    fn get_ty(&self) -> &IrTy {
+        &IrTy::Label
     }
 }
 

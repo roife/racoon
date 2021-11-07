@@ -3,7 +3,7 @@ use crate::compiler::ir::arena::{BBId, GlobalId, InstId, ParamId};
 use crate::compiler::ir::value::{constant::Constant, ty::IrTy};
 
 pub trait Value {
-    fn get_ty(&self) -> IrTy;
+    fn get_ty(&self) -> &IrTy;
 }
 
 #[derive(Debug, Clone, Eq, Hash, EnumAsInner)]

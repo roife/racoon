@@ -27,8 +27,8 @@ impl Global {
 }
 
 impl Value for Global {
-    fn get_ty(&self) -> IrTy {
-        self.ty.clone()
+    fn get_ty(&self) -> &IrTy {
+        &self.ty
     }
 }
 
