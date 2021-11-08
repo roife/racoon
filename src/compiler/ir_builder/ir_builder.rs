@@ -226,8 +226,25 @@ impl AstVisitor for IrBuilder {
 
     fn visit_func_param(&mut self, param: &FuncParam) -> Self::StmtResult {
         let ty = IrTy::from(param.ty.clone());
-        let param_id = self.ctx.build_func_param(ty);
-        self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Param(param_id));
+        let param_id = self.ctx.build_func_param(ty.clone());
+
+        if let IrTy::Ptr(_) = ty {
+            self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Param(param_id));
+        } else {
+            let alloca_inst = AllocaInst { alloca_ty: ty.clone() };
+            let alloca_addr = self.ctx.build_inst_end_of_cur(
+                InstKind::Alloca(alloca_inst),
+                IrTy::ptr_of(&ty),
+            );
+
+            self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Inst(alloca_addr));
+
+            let store_inst = StoreInst {
+                addr: alloca_addr.into(),
+                data: param_id.into(),
+            };
+            self.ctx.build_inst_end_of_cur(InstKind::Store(store_inst), IrTy::Void);
+        }
 
         Ok(())
     }
@@ -452,7 +469,7 @@ impl AstVisitor for IrBuilder {
         if let Some(Subs { subs, .. }) = &lval.subs {
             let mut indices = vec![];
 
-            if let Operand::Global(_) = addr {
+            if !matches!(addr, Operand::Param(_)) {
                 indices.push(0.into());
             }
 

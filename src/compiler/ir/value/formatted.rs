@@ -246,7 +246,7 @@ impl Display for BinaryInstOp {
             Ge => "icmp sge",
             Eq => "icmp eq",
             Ne => "icmp ne",
-            And => "ans",
+            And => "and",
             Or => "or",
         };
         write!(f, "{}", op_str)
