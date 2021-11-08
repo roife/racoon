@@ -33,10 +33,10 @@ macro_rules! is_next {
 
 macro_rules! parse_separate_match {
     ($self:expr, $sep_pat:pat, $parse:expr) => {{
-        let first = (|| $parse)()?;
+        let first = $parse?;
         let mut v = vec![first];
         while next_if_match!($self, $sep_pat) {
-            let val = (|| $parse)()?;
+            let val = $parse?;
             v.push(val);
         }
         v

@@ -286,7 +286,7 @@ impl AstVisitorMut for TypeChecker {
     fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut param.ty_ident)?;
         let mut ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
-        if let Some(_) = &param.subs {
+        if param.subs.is_some() {
             ty = AstTy::Ptr(Box::new(ty));
         }
         param.ty = ty;
