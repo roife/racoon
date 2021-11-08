@@ -8,11 +8,11 @@ use super::{func::IrFunc, global::Global};
 
 #[derive(Debug)]
 pub struct Module {
-    pub(crate) first_func: Option<FuncId>,
-    pub(crate) first_global: Option<GlobalId>,
+    pub first_func: Option<FuncId>,
+    pub first_global: Option<GlobalId>,
 
-    pub(crate) global_arena: SlotMap<GlobalId, Global>,
-    pub(crate) func_arena: SlotMap<FuncId, IrFunc>,
+    pub global_arena: SlotMap<GlobalId, Global>,
+    pub func_arena: SlotMap<FuncId, IrFunc>,
 }
 
 impl Module {

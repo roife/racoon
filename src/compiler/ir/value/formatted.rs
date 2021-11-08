@@ -139,13 +139,10 @@ impl Display for Module {
                         InstKind::Binary(binary_inst) => {
                             let dst = vregs.get_vreg_unwrap(&inst_id.into());
                             let lhs = vregs.print(&binary_inst.left);
-                            let rhs = if let Operand::Const(c) = &binary_inst.right {
-                                match c {
-                                    Constant::Int(x) => format!("{}", x),
-                                    _ => unreachable!()
-                                }
-                            } else {
-                                vregs.print(&binary_inst.right)
+                            let rhs = match &binary_inst.right {
+                                Operand::Inst(_) | Operand::Param(_) => format!("%{}", vregs.get_vreg_unwrap(&binary_inst.right)),
+                                Operand::Const(Constant::Int(x)) => format!("{}", x),
+                                _ => unreachable!()
                             };
 
                             writeln!(f, "%{} = {} {}, {}", dst, binary_inst.op, lhs, rhs)?;
