@@ -104,6 +104,65 @@ impl TypeChecker {
         }
         Ok(ty)
     }
+
+    fn push_built_in_funcs(&mut self) {
+        // getint
+        self.scopes.insert(
+            "getint",
+            TyInfo {
+                ty: AstTy::Func { ret_ty: Box::from(AstTy::Int), param_tys: vec![] },
+                const_val: None,
+                is_const: false,
+            });
+
+
+        // getch
+        self.scopes.insert(
+            "getch",
+            TyInfo {
+                ty: AstTy::Func { ret_ty: Box::from(AstTy::Int), param_tys: vec![] },
+                const_val: None,
+                is_const: false,
+            });
+
+        // getarray
+        self.scopes.insert(
+            "getarray",
+            TyInfo {
+                ty: AstTy::Func { ret_ty: Box::from(AstTy::Int), param_tys: vec![AstTy::Ptr(Box::new(AstTy::Int))] },
+                const_val: None,
+                is_const: false,
+            });
+
+        // putint
+        self.scopes.insert(
+            "putint",
+            TyInfo {
+                ty: AstTy::Func { ret_ty: Box::from(AstTy::Void), param_tys: vec![AstTy::Int] },
+                const_val: None,
+                is_const: false,
+            });
+
+        // putch
+        self.scopes.insert(
+            "putch",
+            TyInfo {
+                ty: AstTy::Func { ret_ty: Box::from(AstTy::Void), param_tys: vec![AstTy::Int] },
+                const_val: None,
+                is_const: false,
+            });
+
+        // putarray
+        self.scopes.insert(
+            "putarray",
+            TyInfo {
+                ty: AstTy::Func {
+                    ret_ty: Box::from(AstTy::Int),
+                    param_tys: vec![AstTy::Int, AstTy::Ptr(Box::new(AstTy::Int))] },
+                const_val: None,
+                is_const: false,
+            });
+    }
 }
 
 impl AstVisitorMut for TypeChecker {
@@ -117,6 +176,9 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_program(&mut self, program: &mut Program) -> Self::ProgramResult {
         self.scopes.push_scope();
+
+        self.push_built_in_funcs();
+
         program.program_items.iter_mut().try_for_each(|item| {
             match item {
                 ProgramItem::Decl(x) => self.visit_global_decl(x),
@@ -223,9 +285,11 @@ impl AstVisitorMut for TypeChecker {
 
     fn visit_func_param(&mut self, param: &mut FuncParam) -> Self::StmtResult {
         let base_ty = self.visit_ty(&mut param.ty_ident)?;
-        let ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
-        param.ty = AstTy::Ptr(Box::new(ty));
-        // param.ty = AstTy::Array { siz: 0, elem_ty: Box::new(ty) };
+        let mut ty = self.build_ast_ty(&base_ty, &mut param.subs)?;
+        if let Some(_) = &param.subs {
+            ty = AstTy::Ptr(Box::new(ty));
+        }
+        param.ty = ty;
         Ok(())
     }
 
@@ -255,8 +319,9 @@ impl AstVisitorMut for TypeChecker {
     fn visit_init_val(&mut self, init_val: &mut InitVal) -> Self::StmtResult {
         match &mut init_val.kind {
             InitValKind::Expr(expr) => {
-                if let Some(literal) = self.visit_expr(expr)? {
-                    init_val.ty = expr.ty();
+                let literal = self.visit_expr(expr)?;
+                init_val.ty = expr.ty();
+                if let Some(literal) = literal {
                     init_val.kind = InitValKind::Expr(Expr::Literal(literal));
                 }
             }

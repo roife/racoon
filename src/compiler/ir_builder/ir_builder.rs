@@ -41,36 +41,6 @@ impl IrBuilder {
 
     pub fn visit(&mut self, program: &Program) -> Result<(), SemanticError> {
         self.visit_program(program)?;
-
-        // getint
-        let func_getint = IrFunc::new("getint", IrTy::Int(32), true);
-        self.ctx.cur_module.build_func(func_getint);
-
-        // getch
-        let func_getch = IrFunc::new("getch", IrTy::Int(32), true);
-        self.ctx.cur_module.build_func(func_getch);
-
-        // getarray
-        let mut func_getarray = IrFunc::new("getarray", IrTy::Int(32), true);
-        func_getarray.build_func_param(IrTy::Array(0, Box::from(IrTy::Int(32))));
-        self.ctx.cur_module.build_func(func_getarray);
-
-        // putint
-        let mut func_putint = IrFunc::new("putint", IrTy::Void, true);
-        func_putint.build_func_param(IrTy::Int(32));
-        self.ctx.cur_module.build_func(func_putint);
-
-        // putch
-        let mut func_putch = IrFunc::new("putch", IrTy::Void, true);
-        func_putch.build_func_param(IrTy::Int(32));
-        self.ctx.cur_module.build_func(func_putch);
-
-        // putarray
-        let mut func_putarray = IrFunc::new("putarray", IrTy::Int(32), true);
-        func_putarray.build_func_param(IrTy::Int(32));
-        func_putarray.build_func_param(IrTy::Array(0, Box::from(IrTy::Int(32))));
-        self.ctx.cur_module.build_func(func_putarray);
-
         Ok(())
     }
 
@@ -126,6 +96,43 @@ impl IrBuilder {
         }
         Ok(())
     }
+
+    fn push_built_in_funcs(&mut self) {
+        // getint
+        let func_getint = IrFunc::new("getint", IrTy::Int(32), true);
+        let func_getint_id = self.ctx.cur_module.build_func(func_getint);
+        self.ctx.scope_builder.insert("getint", IdInfo::Func(func_getint_id));
+
+        // getch
+        let func_getch = IrFunc::new("getch", IrTy::Int(32), true);
+        let func_getch_id = self.ctx.cur_module.build_func(func_getch);
+        self.ctx.scope_builder.insert("getch", IdInfo::Func(func_getch_id));
+
+        // getarray
+        let mut func_getarray = IrFunc::new("getarray", IrTy::Int(32), true);
+        func_getarray.build_func_param(IrTy::Ptr(Box::from(IrTy::Int(32))));
+        let func_getarray_id = self.ctx.cur_module.build_func(func_getarray);
+        self.ctx.scope_builder.insert("getarray", IdInfo::Func(func_getarray_id));
+
+        // putint
+        let mut func_putint = IrFunc::new("putint", IrTy::Void, true);
+        func_putint.build_func_param(IrTy::Int(32));
+        let func_putint_id = self.ctx.cur_module.build_func(func_putint);
+        self.ctx.scope_builder.insert("putint", IdInfo::Func(func_putint_id));
+
+        // putch
+        let mut func_putch = IrFunc::new("putch", IrTy::Void, true);
+        func_putch.build_func_param(IrTy::Int(32));
+        let func_putch_id = self.ctx.cur_module.build_func(func_putch);
+        self.ctx.scope_builder.insert("putch", IdInfo::Func(func_putch_id));
+
+        // putarray
+        let mut func_putarray = IrFunc::new("putarray", IrTy::Int(32), true);
+        func_putarray.build_func_param(IrTy::Int(32));
+        func_putarray.build_func_param(IrTy::Ptr(Box::from(IrTy::Int(32))));
+        let func_putarray_id = self.ctx.cur_module.build_func(func_putarray);
+        self.ctx.scope_builder.insert("putarray", IdInfo::Func(func_putarray_id));
+    }
 }
 
 impl AstVisitor for IrBuilder {
@@ -139,6 +146,9 @@ impl AstVisitor for IrBuilder {
 
     fn visit_program(&mut self, program: &Program) -> Self::ProgramResult {
         self.ctx.scope_builder.push_scope();
+
+        self.push_built_in_funcs();
+
         program.program_items.iter()
             .try_for_each(|item| match item {
                 ProgramItem::Decl(x) => self.visit_global_decl(x),
