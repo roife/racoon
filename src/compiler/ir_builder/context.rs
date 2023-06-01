@@ -204,7 +204,7 @@ impl From<AstTy> for IrTy {
             AstTy::Func { ret_ty, param_tys: params } => IrTy::Func(Box::new(
                 FuncTy {
                     ret_ty: (*ret_ty).into(),
-                    params_ty: params.into_iter().map(|x| x.into()).collect(),
+                    params_ty: params.into_iter().map(std::convert::Into::into).collect(),
                 }
             )),
             AstTy::Array { siz, elem_ty } => IrTy::Array(

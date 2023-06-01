@@ -16,7 +16,7 @@ pub struct Module {
 }
 
 impl Module {
-    pub fn new() -> Module {
+    #[must_use] pub fn new() -> Module {
         Module {
             first_func: None,
             first_global: None,
@@ -41,7 +41,7 @@ impl Module {
         id
     }
 
-    pub fn get_func(&self, func_id: FuncId) -> Option<&IrFunc> {
+    #[must_use] pub fn get_func(&self, func_id: FuncId) -> Option<&IrFunc> {
         self.func_arena.get(func_id)
     }
 
@@ -49,7 +49,7 @@ impl Module {
         self.func_arena.get_mut(func_id)
     }
 
-    pub fn get_global(&self, global_id: GlobalId) -> Option<&Global> {
+    #[must_use] pub fn get_global(&self, global_id: GlobalId) -> Option<&Global> {
         self.global_arena.get(global_id)
     }
 }

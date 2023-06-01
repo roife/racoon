@@ -7,15 +7,15 @@ use crate::compiler::intrusive_linkedlist::{IntrusiveLinkedList, IntrusiveLinked
 macro_rules! setup_index {
     ($ty:ty) => {
         impl $ty {
-            pub fn slot(self) -> u32 {
+            #[must_use] pub fn slot(self) -> u32 {
                 self.data().as_ffi() as u32
             }
 
-            pub fn from_bits(v: u64) -> Self {
+            #[must_use] pub fn from_bits(v: u64) -> Self {
                 Self(KeyData::from_ffi(v))
             }
 
-            pub fn into_bits(self) -> u64 {
+            #[must_use] pub fn into_bits(self) -> u64 {
                 self.data().as_ffi()
             }
         }

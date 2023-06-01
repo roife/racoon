@@ -15,7 +15,7 @@ pub struct Global {
 }
 
 impl Global {
-    pub fn new(ty: IrTy, name: &str, init_val: Constant) -> Global {
+    #[must_use] pub fn new(ty: IrTy, name: &str, init_val: Constant) -> Global {
         Global {
             ty,
             name: String::from(name),

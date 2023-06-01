@@ -1,4 +1,4 @@
-use super::ast::*;
+use super::ast::{AssignExpr, AstFunc, BinaryExpr, BlockStmt, CallExpr, Decl, Expr, FuncParam, IfStmt, InitVal, LiteralExpr, Program, ReturnStmt, Stmt, TypeIdent, UnaryExpr, WhileStmt};
 use super::super::span::Span;
 
 pub trait AstVisitor {

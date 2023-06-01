@@ -48,27 +48,27 @@ impl IntrusiveLinkedListItem for Inst {
 #[derive(Debug, Clone, EnumAsInner)]
 pub enum InstKind {
     // Binary Instruction
-    Binary(BinaryInst),
+    Binary(Binary),
 
     // Terminator Instruction
-    Br(BrInst),
+    Br(Br),
     RetInst(RetInst),
 
     // Memory
-    Alloca(AllocaInst),
-    Load(LoadInst),
-    Store(StoreInst),
-    GEP(GEPInst),
+    Alloca(Alloca),
+    Load(Load),
+    Store(Store),
+    GEP(GEP),
 
     // Conversion
-    ZExt(ZExtInst),
+    ZExt(ZExt),
 
     // Other
-    Call(CallInst),
+    Call(Call),
 }
 
 #[derive(Debug, Clone)]
-pub struct BinaryInst {
+pub struct Binary {
     pub op: BinaryInstOp,
     pub left: Operand,
     pub right: Operand,
@@ -92,7 +92,7 @@ pub enum BinaryInstOp {
 }
 
 impl BinaryOp {
-    pub fn to_binary_inst_kind(&self) -> BinaryInstOp {
+    #[must_use] pub fn to_binary_inst_kind(&self) -> BinaryInstOp {
         match self {
             BinaryOp::Add => BinaryInstOp::Add,
             BinaryOp::Sub => BinaryInstOp::Sub,
@@ -112,7 +112,7 @@ impl BinaryOp {
 }
 
 #[derive(Debug, Clone)]
-pub enum BrInst {
+pub enum Br {
     Br { cond: Operand, true_bb: BBId, false_bb: BBId },
     Jump { nxt_bb: BBId },
 }
@@ -123,35 +123,35 @@ pub struct RetInst {
 }
 
 #[derive(Debug, Clone)]
-pub struct AllocaInst {
+pub struct Alloca {
     pub alloca_ty: IrTy,
 }
 
 #[derive(Debug, Clone)]
-pub struct LoadInst {
+pub struct Load {
     pub addr: Operand,
 }
 
 #[derive(Debug, Clone)]
-pub struct StoreInst {
+pub struct Store {
     pub addr: Operand,
     pub data: Operand,
 }
 
 #[derive(Debug, Clone)]
-pub struct GEPInst {
+pub struct GEP {
     pub ptr: Operand,
     pub indices: Vec<Operand>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ZExtInst {
+pub struct ZExt {
     pub ori_val: Operand,
     pub target_ty: IrTy,
 }
 
 #[derive(Debug, Clone)]
-pub struct CallInst {
+pub struct Call {
     pub func_id: FuncId,
     pub args: Vec<Operand>,
 }

@@ -98,7 +98,7 @@ pub enum Stmt {
 }
 
 impl Stmt {
-    pub fn span(&self) -> Span {
+    #[must_use] pub fn span(&self) -> Span {
         match self {
             Stmt::Expr(v) => v.span(),
             Stmt::Block(v) => v.span,
@@ -142,7 +142,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn span(&self) -> Span {
+    #[must_use] pub fn span(&self) -> Span {
         match self {
             Expr::LVal(x) => x.span,
             Expr::Assign(x) => x.span,
@@ -153,7 +153,7 @@ impl Expr {
         }
     }
 
-    pub fn ty(&self) -> AstTy {
+    #[must_use] pub fn ty(&self) -> AstTy {
         match self {
             Expr::LVal(x) => x.ty.clone(),
             Expr::Assign(x) => x.ty.clone(),
@@ -188,7 +188,7 @@ pub enum LiteralKind {
 }
 
 impl LiteralExpr {
-    pub fn get_int(&self) -> Option<i32> {
+    #[must_use] pub fn get_int(&self) -> Option<i32> {
         self.kind.as_integer().copied()
     }
 }
@@ -310,7 +310,7 @@ impl PartialEq for AstTy {
 
 impl TokenType {
     pub fn is_binary_op(&self) -> bool {
-        use super::token::TokenType::*;
+        use super::token::TokenType::{And, Assign, Div, Eq, Ge, Gt, Le, Lt, Minus, Mod, Mul, Ne, Not, Or, Plus};
         matches!(
             self,
             Assign | Plus | Minus | Mul | Div | Mod | Eq | Ne | Lt | Gt | Le | Ge | Not | And | Or
@@ -318,7 +318,7 @@ impl TokenType {
     }
 
     pub fn prec(&self) -> u32 {
-        use super::token::TokenType::*;
+        use super::token::TokenType::{And, Assign, Div, Eq, Ge, Gt, Le, Lt, Minus, Mod, Mul, Ne, Or, Plus};
         match self {
             Mul | Div => 20,
             Plus | Minus | Mod => 10,
@@ -332,7 +332,7 @@ impl TokenType {
     }
 
     pub fn is_left_assoc(&self) -> bool {
-        use super::token::TokenType::*;
+        use super::token::TokenType::{And, Assign, Div, Eq, Ge, Gt, Le, Lt, Minus, Mod, Mul, Ne, Or, Plus};
         match self {
             Plus | Minus | Mul | Div | Mod | Eq | Ne | Lt | Gt | Le | Ge | And | Or => true,
             Assign => false,
@@ -368,7 +368,7 @@ impl TokenType {
     }
 
     pub fn is_unary_op(&self) -> bool {
-        use super::token::TokenType::*;
+        use super::token::TokenType::{Minus, Not, Plus};
         matches!(
             self,
             Minus | Plus | Not
@@ -385,7 +385,7 @@ impl TokenType {
     }
 
     pub fn is_ty(&self) -> bool {
-        use super::token::TokenType::*;
+        use super::token::TokenType::{IntTy, VoidTy};
         matches!(self, IntTy | VoidTy)
     }
 }

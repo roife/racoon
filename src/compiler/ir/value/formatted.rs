@@ -6,7 +6,7 @@ use itertools::Itertools;
 use crate::compiler::intrusive_linkedlist::IntrusiveLinkedList;
 use crate::compiler::ir::value::constant::Constant;
 use crate::compiler::ir::value::func::IrFunc;
-use crate::compiler::ir::value::inst::{BinaryInstOp, BrInst, InstKind};
+use crate::compiler::ir::value::inst::{BinaryInstOp, Br, InstKind};
 use crate::compiler::ir::value::module::Module;
 use crate::compiler::ir::value::ty::IrTy;
 use crate::compiler::ir::value::value::{Operand, Value};
@@ -53,7 +53,7 @@ impl<'a> VRegManager<'a> {
             Operand::Const(x) => {
                 let ty = x.get_ty();
                 match x {
-                    Constant::Int(x) => format!("{} {}", ty, x),
+                    Constant::Int(x) => format!("{ty} {x}"),
                     _ => unreachable!()
                 }
             }
@@ -61,7 +61,7 @@ impl<'a> VRegManager<'a> {
                 let global = self.module.global_arena.get(*x).unwrap();
                 let ty = &global.ty;
                 let val = &global.name;
-                format!("{} @{}", ty, val)
+                format!("{ty} @{val}")
             }
             Operand::Param(x) => {
                 let ty = &self.func.get_param(*x).unwrap().ty;
@@ -112,7 +112,7 @@ impl Display for Module {
 
                 let mut inst_iter = bb.insts_head;
                 while let Some(inst_id) = inst_iter {
-                    use InstKind::*;
+                    use InstKind::{Alloca, Binary, Call, GEP, Load, ZExt};
                     let inst = func.get_inst(inst_id).unwrap();
                     match &inst.kind {
                         Binary(_) | Alloca(_) | Load(_) | GEP(_) | ZExt(_) => {
@@ -141,7 +141,7 @@ impl Display for Module {
                             let lhs = vregs.print(&binary_inst.left);
                             let rhs = match &binary_inst.right {
                                 Operand::Inst(_) | Operand::Param(_) => format!("%{}", vregs.get_vreg_unwrap(&binary_inst.right)),
-                                Operand::Const(Constant::Int(x)) => format!("{}", x),
+                                Operand::Const(Constant::Int(x)) => format!("{x}"),
                                 _ => unreachable!()
                             };
 
@@ -149,15 +149,15 @@ impl Display for Module {
                         }
                         InstKind::Br(branch_inst) => {
                             match branch_inst {
-                                BrInst::Br { cond, true_bb, false_bb } => {
+                                Br::Br { cond, true_bb, false_bb } => {
                                     let cond = vregs.print(cond);
                                     let true_bb = vregs.print(&Operand::from(*true_bb));
                                     let false_bb = vregs.print(&Operand::from(*false_bb));
-                                    writeln!(f, "br {}, {}, {}", cond, true_bb, false_bb)?;
+                                    writeln!(f, "br {cond}, {true_bb}, {false_bb}")?;
                                 }
-                                BrInst::Jump { nxt_bb } => {
+                                Br::Jump { nxt_bb } => {
                                     let nxt_bb = vregs.print(&Operand::from(*nxt_bb));
-                                    writeln!(f, "br {}", nxt_bb)?;
+                                    writeln!(f, "br {nxt_bb}")?;
                                 }
                             };
                         }
@@ -166,7 +166,7 @@ impl Display for Module {
                                 None => writeln!(f, "ret void")?,
                                 Some(operand) => {
                                     let ret_val = vregs.print(operand);
-                                    writeln!(f, "ret {}", ret_val)?;
+                                    writeln!(f, "ret {ret_val}")?;
                                 },
                             };
                         }
@@ -182,7 +182,7 @@ impl Display for Module {
                         InstKind::Store(store_inst) => {
                             let data = vregs.print(&store_inst.data);
                             let addr = vregs.print(&store_inst.addr);
-                            writeln!(f, "store {}, {}", data, addr)?;
+                            writeln!(f, "store {data}, {addr}")?;
                         }
                         InstKind::GEP(gep_inst) => {
                             let indices = gep_inst.indices.iter()
@@ -198,7 +198,7 @@ impl Display for Module {
                             let dst = vregs.get_vreg_unwrap(&Operand::from(inst_id));
                             let addr = vregs.print(&gep_inst.ptr);
 
-                            writeln!(f, "%{} = getelementptr {}, {}, {}", dst, ty, addr, indices)?;
+                            writeln!(f, "%{dst} = getelementptr {ty}, {addr}, {indices}")?;
                         }
                         InstKind::ZExt(zext_inst) => {
                             let dst = vregs.get_vreg_unwrap(&Operand::from(inst_id));
@@ -211,7 +211,7 @@ impl Display for Module {
                                 IrTy::Void => write!(f, "call void ")?,
                                 IrTy::Int(_) => {
                                     let dst = vregs.get_vreg_unwrap(&Operand::from(inst_id));
-                                    write!(f, "%{} = call i32 ", dst)?;
+                                    write!(f, "%{dst} = call i32 ")?;
                                 }
                                 _ => unreachable!()
                             }
@@ -233,7 +233,7 @@ impl Display for Module {
 
 impl Display for BinaryInstOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        use BinaryInstOp::*;
+        use BinaryInstOp::{Add, And, Div, Eq, Ge, Gt, Le, Lt, Mod, Mul, Ne, Or, Sub};
         let op_str = match &self {
             Add => "add",
             Sub => "sub",
@@ -249,6 +249,6 @@ impl Display for BinaryInstOp {
             And => "and",
             Or => "or",
         };
-        write!(f, "{}", op_str)
+        write!(f, "{op_str}")
     }
 }

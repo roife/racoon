@@ -47,20 +47,20 @@ impl Value for Constant {
 impl Display for Constant {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Constant::Int(x) => write!(f, "i32 {}", x),
+            Constant::Int(x) => write!(f, "i32 {x}"),
             Constant::Array { ty: ty @ IrTy::Array(siz, elem_ty), elems: vals } => {
                 if vals.is_empty() {
-                    write!(f, "{} zeroinitializer", ty)
+                    write!(f, "{ty} zeroinitializer")
                 } else {
                     let mut data_str: String = vals.iter().join(", ");
 
                     if vals.len() < *siz {
                         let zeros = Self::build_zero(elem_ty.as_ref());
-                        let zeros_str = format!(", {}", zeros).repeat(*siz - vals.len());
+                        let zeros_str = format!(", {zeros}").repeat(*siz - vals.len());
                         data_str.push_str(&zeros_str);
                     }
 
-                    write!(f, "{} [{}]", ty, data_str)
+                    write!(f, "{ty} [{data_str}]")
                 }
             }
             _ => unreachable!()

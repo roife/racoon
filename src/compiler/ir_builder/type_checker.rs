@@ -1,12 +1,12 @@
 use itertools::Itertools;
 
 use crate::compiler::span::Span;
-use crate::compiler::syntax::ast::*;
+use crate::compiler::syntax::ast::{AssignExpr, AstFunc, AstTy, BinaryExpr, BinaryOp, BlockItem, BlockStmt, CallExpr, Decl, Expr, FuncParam, IfStmt, InitVal, InitValKind, LiteralExpr, LiteralKind, PrimitiveTy, Program, ProgramItem, ReturnStmt, Stmt, Subs, TyIdentKind, TypeIdent, UnaryExpr, UnaryOp, WhileStmt};
 use crate::compiler::syntax::visitor::AstVisitorMut;
 
 use super::{
     context::{ScopeBuilder, TyInfo},
-    err::SemanticError::{self, *},
+    err::SemanticError::{self, TypeMismatch},
 };
 
 macro_rules! expect_type {
@@ -29,7 +29,7 @@ pub struct TypeChecker {
 }
 
 impl TypeChecker {
-    pub fn new() -> TypeChecker {
+    #[must_use] pub fn new() -> TypeChecker {
         TypeChecker {
             scopes: ScopeBuilder::new(),
             cur_func_ret_ty: AstTy::Unknown,
@@ -517,7 +517,7 @@ impl AstVisitorMut for TypeChecker {
 
                 sub_expr_val.and_then(|x| x.get_int())
                     .map(|x| LiteralExpr {
-                        kind: LiteralKind::Integer((x != 0) as i32),
+                        kind: LiteralKind::Integer(i32::from(x != 0)),
                         span: expr.span,
                         ty: expr.ty.clone(),
                     })
@@ -527,7 +527,7 @@ impl AstVisitorMut for TypeChecker {
     }
 
     fn visit_binary_expr(&mut self, expr: &mut BinaryExpr) -> Self::ExprResult {
-        use BinaryOp::*;
+        use BinaryOp::{Add, And, Div, Eq, Ge, Gt, Le, Lt, Mod, Mul, Ne, Or, Sub};
         let lval = self.visit_expr(&mut expr.lhs)?;
         let rval = self.visit_expr(&mut expr.rhs)?;
         let op = expr.op;
@@ -574,14 +574,14 @@ impl AstVisitorMut for TypeChecker {
                 Mul => lval * rval,
                 Div => lval / rval,
                 Mod => lval % rval,
-                Lt => (lval < rval) as i32,
-                Le => (lval <= rval) as i32,
-                Gt => (lval > rval) as i32,
-                Ge => (lval >= rval) as i32,
-                Eq => (lval == rval) as i32,
-                Ne => (lval != rval) as i32,
-                And => (lval != 0 && rval != 0) as i32,
-                Or => (lval != 0 || rval != 0) as i32,
+                Lt => i32::from(lval < rval),
+                Le => i32::from(lval <= rval),
+                Gt => i32::from(lval > rval),
+                Ge => i32::from(lval >= rval),
+                Eq => i32::from(lval == rval),
+                Ne => i32::from(lval != rval),
+                And => i32::from(lval != 0 && rval != 0),
+                Or => i32::from(lval != 0 || rval != 0),
             };
             Some(LiteralExpr {
                 kind: LiteralKind::Integer(result),
@@ -630,7 +630,7 @@ impl AstVisitorMut for TypeChecker {
 fn assert_type_eq(expected: &AstTy, found: &AstTy) -> Result<(), SemanticError> {
     if expected != found {
         return Err(TypeMismatch {
-            expected: format!("{:?}", expected),
+            expected: format!("{expected:?}"),
             found: found.clone(),
         });
     }

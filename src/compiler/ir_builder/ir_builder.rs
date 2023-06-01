@@ -6,13 +6,13 @@ use crate::compiler::ir::{
         constant::Constant,
         func::IrFunc,
         global::Global,
-        inst::*,
+        inst::{Alloca, Binary, BinaryInstOp, Br, Call, GEP, InstKind, Load, RetInst, Store, ZExt},
         ty::IrTy,
         value::Operand,
     },
 };
 use crate::compiler::span::Span;
-use crate::compiler::syntax::{ast::*, visitor::AstVisitor};
+use crate::compiler::syntax::{ast::{AssignExpr, AstFunc, AstTy, BinaryExpr, BlockItem, BlockStmt, CallExpr, Decl, Expr, FuncParam, IfStmt, InitVal, InitValKind, LiteralExpr, LiteralKind, PrimitiveTy, Program, ProgramItem, ReturnStmt, Stmt, Subs, TyIdentKind, TypeIdent, UnaryExpr, UnaryOp, WhileStmt}, visitor::AstVisitor};
 
 use super::{
     context::{Context, IdInfo},
@@ -32,7 +32,7 @@ pub struct IrBuilder {
 }
 
 impl IrBuilder {
-    pub fn new() -> IrBuilder {
+    #[must_use] pub fn new() -> IrBuilder {
         IrBuilder {
             ctx: Context::new(),
             loop_targets: vec![],
@@ -69,7 +69,7 @@ impl IrBuilder {
             InitValKind::Expr(expr) => {
                 let init_expr_id = self.visit_expr(expr)?;
 
-                let store_inst = StoreInst {
+                let store_inst = Store {
                     addr: base_addr.into(),
                     data: init_expr_id,
                 };
@@ -81,7 +81,7 @@ impl IrBuilder {
                         let ir_ty = IrTy::from(init_val.ty.clone());
                         let ty = ir_ty.as_array().unwrap().1.as_ref();
 
-                        let gep_inst = GEPInst {
+                        let gep_inst = GEP {
                             ptr: base_addr.into(),
                             indices: vec![0.into(), (idx as i32).into()]
                         };
@@ -231,7 +231,7 @@ impl AstVisitor for IrBuilder {
         if let IrTy::Ptr(_) = ty {
             self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Param(param_id));
         } else {
-            let alloca_inst = AllocaInst { alloca_ty: ty.clone() };
+            let alloca_inst = Alloca { alloca_ty: ty.clone() };
             let alloca_addr = self.ctx.build_inst_end_of_cur(
                 InstKind::Alloca(alloca_inst),
                 IrTy::ptr_of(&ty),
@@ -239,7 +239,7 @@ impl AstVisitor for IrBuilder {
 
             self.ctx.scope_builder.insert(&param.ident.name, IdInfo::Inst(alloca_addr));
 
-            let store_inst = StoreInst {
+            let store_inst = Store {
                 addr: alloca_addr.into(),
                 data: param_id.into(),
             };
@@ -282,7 +282,7 @@ impl AstVisitor for IrBuilder {
         for sub_decl in &decl.sub_decls {
             let ty = IrTy::from(sub_decl.ty.clone());
 
-            let alloca_inst = AllocaInst { alloca_ty: ty.clone() };
+            let alloca_inst = Alloca { alloca_ty: ty.clone() };
             let alloca_addr = self.ctx.build_inst_end_of_cur(
                 InstKind::Alloca(alloca_inst),
                 IrTy::ptr_of(&ty),
@@ -325,7 +325,7 @@ impl AstVisitor for IrBuilder {
         // nxt bb
         let nxt_bb = self.ctx.build_bb_after_cur();
 
-        let cond_br_inst = BrInst::Br {
+        let cond_br_inst = Br::Br {
             cond,
             true_bb: then_bb,
             false_bb: else_bb.unwrap_or(nxt_bb),
@@ -335,14 +335,14 @@ impl AstVisitor for IrBuilder {
             IrTy::Void,
             old_bb);
 
-        let then_br_inst = BrInst::Jump { nxt_bb };
+        let then_br_inst = Br::Jump { nxt_bb };
         self.ctx.build_inst_end(
             InstKind::Br(then_br_inst),
             IrTy::Void,
             then_bb_end);
 
         if let Some(else_bb_end) = else_bb_end {
-            let else_br_inst = BrInst::Jump { nxt_bb };
+            let else_br_inst = Br::Jump { nxt_bb };
             self.ctx.build_inst_end(
                 InstKind::Br(else_br_inst),
                 IrTy::Void,
@@ -373,13 +373,13 @@ impl AstVisitor for IrBuilder {
         self.pop_loop_target();
         let loop_end_bb = self.ctx.get_cur_bb_id();
 
-        let old_bb_br_inst = BrInst::Jump { nxt_bb: cond_bb };
+        let old_bb_br_inst = Br::Jump { nxt_bb: cond_bb };
         self.ctx.build_inst_end(
             InstKind::Br(old_bb_br_inst),
             IrTy::Void,
             old_bb);
 
-        let loop_cond_br_inst = BrInst::Br {
+        let loop_cond_br_inst = Br::Br {
             cond,
             true_bb: loop_bb,
             false_bb: nxt_bb,
@@ -389,7 +389,7 @@ impl AstVisitor for IrBuilder {
             IrTy::Void,
             cond_bb);
 
-        let loop_body_br_inst = BrInst::Jump { nxt_bb: cond_bb };
+        let loop_body_br_inst = Br::Jump { nxt_bb: cond_bb };
         self.ctx.build_inst_end(
             InstKind::Br(loop_body_br_inst),
             IrTy::Void,
@@ -403,7 +403,7 @@ impl AstVisitor for IrBuilder {
         let break_target = self.get_break_target()
             .ok_or(SemanticError::BreakOutsideLoop)?;
 
-        let break_br_inst = BrInst::Jump { nxt_bb: break_target };
+        let break_br_inst = Br::Jump { nxt_bb: break_target };
         self.ctx.build_inst_end_of_cur(
             InstKind::Br(break_br_inst),
             IrTy::Void);
@@ -418,7 +418,7 @@ impl AstVisitor for IrBuilder {
         let continue_target = self.get_continue_target()
             .ok_or(SemanticError::ContinueOutsideLoop)?;
 
-        let continue_br_inst = BrInst::Jump { nxt_bb: continue_target };
+        let continue_br_inst = Br::Jump { nxt_bb: continue_target };
         self.ctx.build_inst_end_of_cur(
             InstKind::Br(continue_br_inst),
             IrTy::Void);
@@ -478,7 +478,7 @@ impl AstVisitor for IrBuilder {
                 indices.push(idx);
             }
 
-            let gep_inst = GEPInst {
+            let gep_inst = GEP {
                 ptr: addr,
                 indices,
             };
@@ -490,7 +490,7 @@ impl AstVisitor for IrBuilder {
             Ok(addr)
         } else {
             let val_id = self.ctx.build_inst_end_of_cur(
-                InstKind::Load(LoadInst { addr }),
+                InstKind::Load(Load { addr }),
                 ty);
 
             Ok(val_id.into())
@@ -500,7 +500,7 @@ impl AstVisitor for IrBuilder {
     fn visit_assign_expr(&mut self, expr: &AssignExpr) -> Self::ExprResult {
         let lval = self.visit_lexpr(&expr.lhs, true)?;
         let rval = self.visit_expr(&expr.rhs)?;
-        let store_inst = StoreInst {
+        let store_inst = Store {
             addr: lval,
             data: rval.clone()
         };
@@ -520,7 +520,7 @@ impl AstVisitor for IrBuilder {
         let mut val = self.visit_expr(&expr.sub_expr)?;
         match expr.op {
             UnaryOp::Neg => {
-                let inst = BinaryInst {
+                let inst = Binary {
                     op: BinaryInstOp::Sub,
                     left: 0.into(),
                     right: val,
@@ -532,7 +532,7 @@ impl AstVisitor for IrBuilder {
             UnaryOp::Pos => Ok(val),
             UnaryOp::Not => {
                 if let AstTy::Bool = expr.sub_expr.ty() {
-                    let zext_inst = ZExtInst {
+                    let zext_inst = ZExt {
                         ori_val: val,
                         target_ty: IrTy::int(),
                     };
@@ -540,7 +540,7 @@ impl AstVisitor for IrBuilder {
                     val = id.into();
                 }
 
-                let inst = BinaryInst {
+                let inst = Binary {
                     op: BinaryInstOp::Ne,
                     left: val,
                     right: 0.into(),
@@ -557,7 +557,7 @@ impl AstVisitor for IrBuilder {
         let right = self.visit_expr(&expr.rhs)?;
         let op = expr.op.to_binary_inst_kind();
 
-        let binary_inst = BinaryInst { op, left, right };
+        let binary_inst = Binary { op, left, right };
         let binary_inst_id = self.ctx.build_inst_end_of_cur(InstKind::Binary(binary_inst), expr.ty.clone().into());
 
         Ok(binary_inst_id.into())
@@ -573,7 +573,7 @@ impl AstVisitor for IrBuilder {
                 match x.ty() {
                     AstTy::Int | AstTy::Bool | AstTy::Ptr(_) => Ok(expr_id),
                     AstTy::Array { elem_ty, .. } => {
-                        let gep_inst = GEPInst {
+                        let gep_inst = GEP {
                             ptr: expr_id,
                             // convert array type to ptr
                             indices: vec![0.into(), 0.into()],
@@ -592,7 +592,7 @@ impl AstVisitor for IrBuilder {
 
         let ret_ty = self.ctx.get_func_ty(func_id).ret_ty.clone();
 
-        let call_inst = CallInst { func_id, args };
+        let call_inst = Call { func_id, args };
         let call_inst_id = self.ctx.build_inst_end_of_cur(InstKind::Call(call_inst), ret_ty);
 
         Ok(call_inst_id.into())

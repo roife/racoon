@@ -2,7 +2,7 @@ use slotmap::SlotMap;
 
 use crate::compiler::intrusive_linkedlist::{IntrusiveLinkedList, IntrusiveLinkedListItem};
 use crate::compiler::ir::arena::{BBId, FuncId, InstId, ParamId};
-use crate::compiler::ir::value::{basic_block::*, inst::*, ty::*, value::*};
+use crate::compiler::ir::value::{basic_block::BasicBlock, inst::{Inst, InstKind}, ty::IrTy, value::Value};
 
 #[derive(Debug)]
 pub struct IrFuncParam {
@@ -55,7 +55,7 @@ impl IntrusiveLinkedListItem for IrFunc {
 }
 
 impl IrFunc {
-    pub fn new(name: &str, ret_ty: IrTy, is_builtin: bool) -> IrFunc {
+    #[must_use] pub fn new(name: &str, ret_ty: IrTy, is_builtin: bool) -> IrFunc {
         IrFunc {
             name: String::from(name),
             ret_ty: ret_ty.clone(),
@@ -84,11 +84,11 @@ impl IrFunc {
 }
 
 impl IrFunc {
-    pub fn get_inst(&self, inst_id: InstId) -> Option<&Inst> {
+    #[must_use] pub fn get_inst(&self, inst_id: InstId) -> Option<&Inst> {
         self.inst_arena.get(inst_id)
     }
 
-    pub fn get_param(&self, param_id: ParamId) -> Option<&IrFuncParam> {
+    #[must_use] pub fn get_param(&self, param_id: ParamId) -> Option<&IrFuncParam> {
         self.param_arena.get(param_id)
     }
 
@@ -180,7 +180,7 @@ impl IrFunc {
 }
 
 impl IrFunc {
-    pub fn get_bb(&self, bb_id: BBId) -> Option<&BasicBlock> {
+    #[must_use] pub fn get_bb(&self, bb_id: BBId) -> Option<&BasicBlock> {
         self.bb_arena.get(bb_id)
     }
 

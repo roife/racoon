@@ -3,7 +3,9 @@ use std::fmt::{Display, Formatter};
 use enum_as_inner::EnumAsInner;
 
 #[derive(Debug, Clone, Eq, Hash, EnumAsInner)]
+#[derive(Default)]
 pub enum IrTy {
+    #[default]
     Void,
     Int(usize),
     Func(Box<FuncTy>),
@@ -12,15 +14,11 @@ pub enum IrTy {
     Array(usize, Box<IrTy>),
 }
 
-impl Default for IrTy {
-    fn default() -> Self {
-        IrTy::Void
-    }
-}
+
 
 impl PartialEq<Self> for IrTy {
     fn eq(&self, other: &Self) -> bool {
-        use IrTy::*;
+        use IrTy::{Array, Func, Int, Label, Ptr, Void};
         match (self, other) {
             (Void, Void) | (Label, Label) => true,
             (Int(x), Int(y)) => x == y,
@@ -48,26 +46,26 @@ impl PartialEq<Self> for FuncTy {
 }
 
 impl IrTy {
-    pub fn bool() -> IrTy {
+    #[must_use] pub fn bool() -> IrTy {
         IrTy::Int(1)
     }
 
-    pub fn int() -> IrTy {
+    #[must_use] pub fn int() -> IrTy {
         IrTy::Int(32)
     }
 
-    pub fn func_of(ret_ty: IrTy, params: Vec<IrTy>) -> IrTy {
+    #[must_use] pub fn func_of(ret_ty: IrTy, params: Vec<IrTy>) -> IrTy {
         IrTy::Func(Box::new(FuncTy {
             ret_ty,
             params_ty: params,
         }))
     }
 
-    pub fn ptr_of(ty: &IrTy) -> IrTy {
+    #[must_use] pub fn ptr_of(ty: &IrTy) -> IrTy {
         IrTy::Ptr(Box::new(ty.clone()))
     }
 
-    pub fn deptr_of(ty: &IrTy) -> Option<IrTy> {
+    #[must_use] pub fn deptr_of(ty: &IrTy) -> Option<IrTy> {
         match ty {
             IrTy::Ptr(x) => Some(x.as_ref().clone()),
             _ => None
@@ -79,12 +77,12 @@ impl Display for IrTy {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             IrTy::Void => String::from("void"),
-            IrTy::Int(x) => format!("i{}", x),
-            IrTy::Ptr(t) => format!("{}*", t),
+            IrTy::Int(x) => format!("i{x}"),
+            IrTy::Ptr(t) => format!("{t}*"),
             IrTy::Label => String::from("label"),
-            IrTy::Array(dim_size, elem_ty) => format!("[{} x {}]", dim_size, elem_ty),
+            IrTy::Array(dim_size, elem_ty) => format!("[{dim_size} x {elem_ty}]"),
             _ => unreachable!()
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }

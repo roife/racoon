@@ -17,7 +17,7 @@ pub enum Operand {
 
 impl PartialEq for Operand {
     fn eq(&self, other: &Self) -> bool {
-        use Operand::*;
+        use Operand::{BB, Const, Global, Inst, Param};
         match (self, other) {
             (Inst(x), Inst(y)) => x == y,
             (Const(x), Const(y)) => x == y,

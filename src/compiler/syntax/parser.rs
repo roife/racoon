@@ -3,7 +3,7 @@ use std::iter::Peekable;
 use crate::compiler::span::Span;
 
 use super::{
-    ast::*,
+    ast::{AssignExpr, AstFunc, AstTy, BinaryExpr, BlockItem, BlockStmt, CallExpr, Decl, Expr, FuncParam, Ident, IfStmt, InitVal, InitValKind, LVal, LiteralExpr, LiteralKind, Program, ProgramItem, ReturnStmt, Stmt, SubDecl, Subs, TypeIdent, UnaryExpr, WhileStmt},
     err::{ParseError, ParseErrorKind},
     lexer::Lexer,
     token::TokenType,
