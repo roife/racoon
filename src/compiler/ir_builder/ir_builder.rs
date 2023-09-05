@@ -473,7 +473,7 @@ impl AstVisitor for IrBuilder {
                 indices.push(0.into());
             }
 
-            for sub in subs.iter() {
+            for sub in subs {
                 let idx = self.visit_expr(sub)?;
                 indices.push(idx);
             }

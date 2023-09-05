@@ -440,7 +440,7 @@ impl AstVisitorMut for TypeChecker {
                 if let Some(Subs { subs, .. }) = &mut lval.subs {
                     let mut cur_ty = &ty_info.ty;
 
-                    for sub in subs.iter_mut() {
+                    for sub in &mut *subs {
                         self.visit_expr(sub)?;
                         expect_type!(sub.ty(), AstTy::Int)?;
 
