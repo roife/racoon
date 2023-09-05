@@ -1,26 +1,25 @@
 use std::path::PathBuf;
 use std::str::FromStr;
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 #[structopt(name = "racoon",
             about = "An implementation for mini-SysY compiler in Rust",
             author = "roife <roifewu@gmail.com>")]
 pub struct Options {
-    #[structopt(parse(from_os_str))]
     pub input_file: PathBuf,
 
-    #[structopt(short, long, default_value = "a.out", parse(from_os_str))]
+    #[arg(short, long, default_value = "a.out")]
     pub output_file: PathBuf,
 
-    #[structopt(long="emit", default_value = "ir")]
+    #[arg(value_enum, long="emit", default_value = "ir")]
     pub emit_option: EmitOption,
 
-    #[structopt(short, long)]
+    #[arg(short, long)]
     pub passes: Option<Vec<String>>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum EmitOption {
     Ir,
 }

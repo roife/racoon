@@ -1,7 +1,6 @@
 use std::fs::{self, File};
 use std::io::Write;
-
-use structopt::StructOpt;
+use clap::Parser;
 
 use racoon::compiler::{
     ir_builder::*,
@@ -11,7 +10,7 @@ use racoon::compiler::{
 mod options;
 
 fn main() {
-    let options = options::Options::from_args();
+    let options = options::Options::parse();
 
     let input_file = options.input_file;
     let input = fs::read_to_string(input_file)
